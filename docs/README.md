@@ -1,7 +1,5 @@
 # 📚 Dokumentasi SEAPEDIA
 
-Dokumentasi pembelajaran membangun platform e-commerce SEAPEDIA dari nol.
-
 ## 📖 Daftar Bab
 
 | Bab | Judul | Status |
