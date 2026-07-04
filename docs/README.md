@@ -6,7 +6,8 @@
 |-----|-------|--------|
 | 00 | Fondasi & Perencanaan | ✅ Selesai |
 | 01 | Setup Environment & Project Structure | ✅ Selesai |
-| 02 | Database & Migration | 🔜 Mendatang |
+| 02 | Database & Migration | ✅ Selesai |
+| 03 | Backend - User & Auth | 🔜 Mendatang |
 | 03 | Backend - User & Auth | 🔜 Mendatang |
 | 04 | Frontend - UI Foundations | 🔜 Mendatang |
 | 05 | Frontend - Pages & State | 🔜 Mendatang |
