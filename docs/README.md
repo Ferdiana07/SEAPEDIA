@@ -5,7 +5,7 @@
 | Bab | Judul | Status |
 |-----|-------|--------|
 | 00 | Fondasi & Perencanaan | ✅ Selesai |
-| 01 | Setup Environment & Project Structure | 🔜 Mendatang |
+| 01 | Setup Environment & Project Structure | ✅ Selesai |
 | 02 | Database & Migration | 🔜 Mendatang |
 | 03 | Backend - User & Auth | 🔜 Mendatang |
 | 04 | Frontend - UI Foundations | 🔜 Mendatang |
