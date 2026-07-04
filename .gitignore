@@ -1,0 +1,25 @@
+# Laravel
+/vendor
+/node_modules
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+storage/*.key
+npm-debug.log
+yarn-error.log
+
+# React
+/dist
+/build
+*.local
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+.idea
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
