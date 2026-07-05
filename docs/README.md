@@ -9,7 +9,7 @@ Dokumentasi pembelajaran membangun platform e-commerce SEAPEDIA dari nol.
 | 00 | Fondasi & Perencanaan | ✅ Selesai |
 | 01 | Setup Environment & Project Structure | ✅ Selesai |
 | 02 | Database & Migration | ✅ Selesai |
-| 03 | Backend - User & Auth | 🔜 Mendatang |
+| 03 | Backend - User & Auth | ✅ Selesai |
 | 04 | Frontend - UI Foundations | 🔜 Mendatang |
 | 05 | Frontend - Pages & State | 🔜 Mendatang |
 | 06 | Backend - Store & Products | 🔜 Mendatang |
@@ -33,8 +33,11 @@ docs/
 ├── 01-setup/
 │   └── 01-persiapan.md        ← BAB 1: Setup Environment
 │
-└── 02-database/
-    └── 02-migration.md         ← BAB 2: Database & Migration
+├── 02-database/
+│   └── 02-migration.md         ← BAB 2: Database & Migration
+│
+└── 03-backend-auth/
+    └── 03-authentication.md   ← BAB 3: Backend - Auth
 ```
 
 ## 📌 Folder _reference (Referensi Pelengkap)
@@ -43,64 +46,7 @@ Berbeda dengan BAB yang harus dibaca berurutan, folder `_reference` adalah **dok
 
 | File | Deskripsi |
 |------|-----------|
-| [01-tools-dan-framework.md](_reference/01-tools-dan-framework.md) | Penjelasan semua tools, bahasa, dan framework yang digunakan |
-
-### Isi Referensi:
-
-```
-_Reference/
-└── 01-tools-dan-framework.md
-    ├── 1. Bahasa Pemrograman
-    │   ├── JavaScript (JS)
-    │   ├── PHP
-    │   ├── HTML
-    │   ├── CSS
-    │   └── SQL
-    │
-    ├── 2. Frontend Framework & Library
-    │   ├── React
-    │   └── JSX
-    │
-    ├── 3. Backend Framework
-    │   ├── Laravel
-    │   └── Blade
-    │
-    ├── 4. Database
-    │   └── MySQL
-    │
-    ├── 5. Build Tools
-    │   ├── Vite
-    │   └── Node.js
-    │
-    ├── 6. Package Manager
-    │   ├── npm
-    │   └── Composer
-    │
-    ├── 7. Authentication
-    │   └── Laravel Sanctum
-    │
-    ├── 8. CSS Framework
-    │   └── Tailwind CSS
-    │
-    ├── 9. API & Communication
-    │   ├── REST API
-    │   └── Axios
-    │
-    ├── 10. State Management
-    │    └── Zustand
-    │
-    ├── 11. Routing
-    │    └── React Router DOM
-    │
-    ├── 12. Version Control
-    │    └── Git
-    │
-    ├── 13. Server
-    │    ├── Apache
-    │    └── XAMPP
-    │
-    └── 14. Glosarium Singkat
-```
+| [01-tools-dan-framework.md](../_reference/01-tools-dan-framework.md) | Penjelasan semua tools, bahasa, dan framework yang digunakan |
 
 ## 🎯 Tujuan Pembelajaran
 
