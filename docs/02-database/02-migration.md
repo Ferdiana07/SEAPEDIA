@@ -699,7 +699,7 @@ app/Models/
 │    ├── hasOne(Cart)          → satu user punya satu cart       │
 │    ├── hasMany(Order)        → satu user punya banyak pesanan  │
 │    └── hasMany(Review)       → satu user punya banyak review   │
-│                                                                  │
+│                                                                │
 │  UserRole                                                       │
 │    └── belongsTo(User)       → role milik satu user           │
 │                                                                  │
