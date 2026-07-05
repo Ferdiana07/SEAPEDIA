@@ -13,6 +13,26 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+            $table->string('order_number', 50)->unique();  // Contoh: ORD-20240101-001
+            $table->foreignId('user_id')
+                ->constrained()
+                ->onDelete('cascade');
+            $table->foreignId('store_id')
+                ->constrained()
+                ->onDelete('cascade');
+            $table->foreignId('driver_id')                 // Nullable: belum ada driver
+                ->nullable()
+                ->constrained('users')
+                ->onDelete('set null');
+            $table->enum('status', [
+                'packaging',           // Sedang dikemas seller
+                'waiting_shipper',     // Menunggu driver
+                'shipping',            // Sedang diantar
+                'completed',           // Selesai
+                'returned'            // Dikembalikan
+            ])->default('packaging');
+            $table->decimal('total_amount', 15, 2);
+            $table->text('shipping_address');
             $table->timestamps();
         });
     }

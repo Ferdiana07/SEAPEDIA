@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('wallets', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')
+                ->constrained()
+                ->onDelete('cascade')
+                ->unique();                           // 1 user = 1 wallet
+            $table->decimal('balance', 15, 2)         // Contoh: 9999999999999.99
+                ->default(0);
             $table->timestamps();
         });
     }

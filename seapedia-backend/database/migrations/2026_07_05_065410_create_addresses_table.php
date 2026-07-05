@@ -13,6 +13,14 @@ return new class extends Migration
     {
         Schema::create('addresses', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')
+                ->constrained()
+                ->onDelete('cascade');
+            $table->string('label', 50);              // "Rumah", "Kantor", dll
+            $table->string('recipient_name', 255);
+            $table->string('phone', 20);
+            $table->text('full_address');
+            $table->boolean('is_default')->default(false);
             $table->timestamps();
         });
     }
