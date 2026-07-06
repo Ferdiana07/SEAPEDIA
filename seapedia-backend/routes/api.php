@@ -1,20 +1,36 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Di sini kita akan definisikan semua endpoint API SEAPEDIA
-| Nanti akan kita isi di BAB 3, 6, 7 dst
+| Semua endpoint API SEAPEDIA didefinisikan di sini
 |
 */
 
-Route::get('/ping', function () {
-    return response()->json([
-        'message' => 'SEAPEDIA API is running!',
-        'version' => '1.0.0'
-    ]);
+// ============================================================
+// PUBLIC ROUTES (Tanpa autentikasi)
+// ============================================================
+Route::prefix('auth')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+});
+
+// ============================================================
+// PROTECTED ROUTES (Perlu autentikasi)
+// ============================================================
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Auth Routes
+    Route::prefix('auth')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/select-role', [AuthController::class, 'selectRole']);
+        Route::post('/assign-role', [AuthController::class, 'assignRole']);
+    });
+
 });
