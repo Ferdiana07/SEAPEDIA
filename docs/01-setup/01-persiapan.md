@@ -807,7 +807,7 @@ npm run dev
 
 **P3.** Buka browser, harusnya:
 - `http://localhost:8000` menampilkan halaman Laravel
-- `http://localhost:5173` menampilkan halaman React (counter app).
+- `http://localhost:5173` menampilkan halaman React (counter app)
 
 ---
 
