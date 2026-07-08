@@ -10,7 +10,7 @@ Dokumentasi pembelajaran membangun platform e-commerce SEAPEDIA dari nol.
 | 01 | Setup Environment & Project Structure | ✅ Selesai |
 | 02 | Database & Migration | ✅ Selesai |
 | 03 | Backend - User & Auth | ✅ Selesai |
-| 04 | Frontend - UI Foundations | 🔜 Mendatang |
+| 04 | Frontend - UI Foundations | ✅ Selesai |
 | 05 | Frontend - Pages & State | 🔜 Mendatang |
 | 06 | Backend - Store & Products | 🔜 Mendatang |
 | 07 | Backend - Wallet, Cart, Orders | 🔜 Mendatang |
@@ -36,8 +36,11 @@ docs/
 ├── 02-database/
 │   └── 02-migration.md         ← BAB 2: Database & Migration
 │
-└── 03-backend-auth/
-    └── 03-authentication.md   ← BAB 3: Backend - Auth
+├── 03-backend-auth/
+│   └── 03-authentication.md   ← BAB 3: Backend - Auth
+│
+└── 04-frontend-ui/
+    └── 04-ui-foundations.md   ← BAB 4: Frontend - UI Foundations
 ```
 
 ## 📌 Folder _reference (Referensi Pelengkap)
