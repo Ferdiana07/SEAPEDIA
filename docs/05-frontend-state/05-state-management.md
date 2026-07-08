@@ -2934,5 +2934,5 @@ export default sellerProductService
 
 ---
 
-*Dokumentasi ini dibuat sebagai bagian dari pembelajaran SEAPEDIA*
+*Dokumentasi ini dibuat sebagai bagian dari pembelajaran SEAPEDIA.*
 *Tanggal: 2026-07-08*
