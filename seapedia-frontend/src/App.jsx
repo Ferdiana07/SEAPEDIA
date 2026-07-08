@@ -1,121 +1,200 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
 
-function App() {
-  const [count, setCount] = useState(0)
+// Layout Components
+import Navbar from './components/layout/Navbar'
+import Footer from './components/layout/Footer'
 
+// Pages
+import HomePage from './pages/HomePage'
+import ProductsPage from './pages/ProductsPage'
+import ProductDetailPage from './pages/ProductDetailPage'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import CartPage from './pages/dashboard/buyer/CartPage'
+import OrdersPage from './pages/dashboard/buyer/OrdersPage'
+import WalletPage from './pages/dashboard/buyer/WalletPage'
+import SellerDashboardPage from './pages/dashboard/seller/DashboardPage'
+import SellerProductsPage from './pages/dashboard/seller/ProductsPage'
+import DriverOrdersPage from './pages/dashboard/driver/OrdersPage'
+
+// Stores
+import useAuthStore from './stores/authStore'
+import useUIStore from './stores/uiStore'
+
+// ============================================================
+// PROTECTED ROUTE WRAPPER
+// ============================================================
+/**
+ * Wrapper untuk route yang butuh autentikasi
+ */
+const ProtectedRoute = ({ children, requiredRole }) => {
+  const { isAuthenticated, activeRole } = useAuthStore()
+  
+  // Belum login
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />
+  }
+  
+  // Butuh role tertentu
+  if (requiredRole && activeRole !== requiredRole) {
+    return <Navigate to="/" replace />
+  }
+  
+  return children
+}
+
+// ============================================================
+// ROLE ROUTE WRAPPER
+// ============================================================
+/**
+ * Wrapper untuk route berdasarkan role
+ */
+const RoleRoute = ({ children, role }) => {
+  const { isAuthenticated, activeRole } = useAuthStore()
+  
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />
+  }
+  
+  if (activeRole !== role) {
+    return <Navigate to="/" replace />
+  }
+  
+  return children
+}
+
+// ============================================================
+// TOAST COMPONENT
+// ============================================================
+const ToastContainer = () => {
+  const { toasts, removeToast } = useUIStore()
+  
+  if (toasts.length === 0) return null
+  
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+    <div className="fixed bottom-4 right-4 z-50 space-y-2">
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className={`
+            px-4 py-3 rounded-lg shadow-lg text-white
+            animate-slide-in
+            ${toast.type === 'success' ? 'bg-green-500' : ''}
+            ${toast.type === 'error' ? 'bg-red-500' : ''}
+            ${toast.type === 'warning' ? 'bg-yellow-500' : ''}
+            ${toast.type === 'info' ? 'bg-blue-500' : ''}
+          `}
         >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          <div className="flex items-center gap-3">
+            <span>{toast.message}</span>
+            <button 
+              onClick={() => removeToast(toast.id)}
+              className="text-white/80 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      ))}
+    </div>
+  )
+}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+// ============================================================
+// MAIN APP
+// ============================================================
+function App() {
+  return (
+    <BrowserRouter>
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        {/* Navbar */}
+        <Navbar />
+        
+        {/* Main Content */}
+        <main className="flex-1">
+          <Routes>
+            {/* ==================== PUBLIC ROUTES ==================== */}
+            
+            {/* Landing Page */}
+            <Route path="/" element={<HomePage />} />
+            
+            {/* Products */}
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/:id" element={<ProductDetailPage />} />
+            
+            {/* Auth */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            
+            {/* ==================== PROTECTED ROUTES ==================== */}
+            
+            {/* Buyer Routes */}
+            <Route
+              path="/cart"
+              element={
+                <RoleRoute role="buyer">
+                  <CartPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="/buyer/orders"
+              element={
+                <RoleRoute role="buyer">
+                  <OrdersPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="/buyer/wallet"
+              element={
+                <RoleRoute role="buyer">
+                  <WalletPage />
+                </RoleRoute>
+              }
+            />
+            
+            {/* Seller Routes */}
+            <Route
+              path="/seller/dashboard"
+              element={
+                <RoleRoute role="seller">
+                  <SellerDashboardPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="/seller/products"
+              element={
+                <RoleRoute role="seller">
+                  <SellerProductsPage />
+                </RoleRoute>
+              }
+            />
+            
+            {/* Driver Routes */}
+            <Route
+              path="/driver/orders"
+              element={
+                <RoleRoute role="driver">
+                  <DriverOrdersPage />
+                </RoleRoute>
+              }
+            />
+            
+            {/* ==================== CATCH ALL ==================== */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+        
+        {/* Footer */}
+        <Footer />
+        
+        {/* Toast Notifications */}
+        <ToastContainer />
+      </div>
+    </BrowserRouter>
   )
 }
 
