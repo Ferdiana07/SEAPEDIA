@@ -202,7 +202,7 @@ export default useProductStore
 
 ---
 
-## 5.4 Store Baru: Order Store
+## 5.4 Store Baru: Order Store.
 
 ### orderStore.js
 
