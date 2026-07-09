@@ -1,6 +1,6 @@
 # BAB 5: Frontend - Pages & State Management (Lanjutan)
 
-> **Tujuan:** Melanjutkan pembuatan pages frontend dengan integrasi API, state management yang lebih kompleks, dan role-based pages untuk Buyer, Seller, dan Driver
+> **Tujuan:** Melanjutkan pembuatan pages frontend dengan integrasi API, state management yang lebih kompleks, dan role-based pages untuk Buyer, Seller, dan Driver.
 
 ---
 
