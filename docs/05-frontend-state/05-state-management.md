@@ -2879,7 +2879,2219 @@ export default sellerProductService
 
 ---
 
-## 5.16 Checklist BAB 5
+## 5.16 Penjelasan Detail: Services & Stores
+
+### 5.16.1 Alur Komunikasi Frontend ↔ Backend
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        ARSITEKTUR KOMUNIKASI                                         │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  USER BROWSER                                                               │
+│       │                                                                     │
+│       ▼                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐        │
+│  │                         FRONTEND (React)                              │        │
+│  │                                                                      │        │
+│  │   ┌──────────┐     ┌──────────┐     ┌──────────┐                   │        │
+│  │   │  Pages   │────▶│  Stores  │────▶│ Services │                   │        │
+│  │   │  .jsx    │     │  .js     │     │   .js    │                   │        │
+│  │   └──────────┘     └──────────┘     └────┬─────┘                   │        │
+│  │       │               │                  │                          │        │
+│  │       │               │                  │                          │        │
+│  │       │               │                  ▼                          │        │
+│  │       │               │         ┌──────────────┐                    │        │
+│  │       │               │         │  api.js      │                    │        │
+│  │       │               │         │  (Axios)     │                    │        │
+│  │       │               │         └──────┬───────┘                    │        │
+│  │       │               │                │                           │        │
+│  └───────┼───────────────┼────────────────┼───────────────────────────┘        │
+│          │               │                │                                   │
+│          │               │                │ HTTP Request                       │
+│          │               │                │ (JSON + Token)                     │
+│          │               │                ▼                                   │
+│          │               │         ┌──────────────┐                            │
+│          │               │         │ Vite Proxy   │                            │
+│          │               │         │ localhost:   │                            │
+│          │               │         │   5173→8000  │                            │
+│          │               │         └──────┬───────┘                            │
+│          │               │                │                                   │
+│          └───────────────┼────────────────┼─────────────────────              │
+│                          │                │                                  │
+│                          ▼                ▼                                  │
+│                    ┌──────────────────────────────────┐                   │
+│                    │         BACKEND (Laravel)        │                   │
+│                    │                                  │                   │
+│                    │  ┌────────────────────────────┐ │                   │
+│                    │  │     API Routes             │ │                   │
+│                    │  │  POST /api/auth/login      │ │                   │
+│                    │  │  GET  /api/products        │ │                   │
+│                    │  │  POST /api/orders          │ │                   │
+│                    │  └──────────────┬─────────────┘ │                   │
+│                    │                 │                 │                   │
+│                    │                 ▼                 │                   │
+│                    │  ┌────────────────────────────┐ │                   │
+│                    │  │      Controllers          │ │                   │
+│                    │  │  • AuthController         │ │                   │
+│                    │  │  • ProductController      │ │                   │
+│                    │  │  • OrderController        │ │                   │
+│                    │  └──────────────┬─────────────┘ │                   │
+│                    │                 │                 │                   │
+│                    │                 ▼                 │                   │
+│                    │  ┌────────────────────────────┐ │                   │
+│                    │  │       Database            │ │                   │
+│                    │  │   MySQL / SQLite         │ │                   │
+│                    │  └────────────────────────────┘ │                   │
+│                    │                                  │                   │
+│                    └──────────────────────────────────┘                   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.16.2 Perbedaan Services vs Stores
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                      SERVICES vs STORES                                            │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────────────────────┬─────────────────────────────────────────┐   │
+│  │            SERVICES              │                STORES                    │   │
+│  ├─────────────────────────────────┼─────────────────────────────────────────┤   │
+│  │                                 │                                         │   │
+│  │  🎯 TUJUAN:                    │  🎯 TUJUAN:                             │   │
+│  │  Berkomunikasi dengan Backend   │  Menyimpan Data Sementara (State)       │   │
+│  │  (API Calls)                    │  di Sisi Client                         │   │
+│  │                                 │                                         │   │
+│  ├─────────────────────────────────┼─────────────────────────────────────────┤   │
+│  │                                 │                                         │   │
+│  │  📡 PROTOKOL:                  │  📦 PENYIMPANAN:                        │   │
+│  │  HTTP Request/Response         │  JavaScript Memory + localStorage        │   │
+│  │  (axios)                       │  (Zustand)                              │   │
+│  │                                 │                                         │   │
+│  ├─────────────────────────────────┼─────────────────────────────────────────┤   │
+│  │                                 │                                         │   │
+│  │  ⏰ KAPAN DIGUNAKAN:           │  ⏰ KAPAN DIGUNAKAN:                     │   │
+│  │  • Ambil data dari server      │  • Simpan data user login               │   │
+│  │  • Kirim data ke server        │  • Simpan items di cart                 │   │
+│  │  • CRUD operations             │  • Simpan state UI (loading, toast)     │   │
+│  │                                 │                                         │   │
+│  ├─────────────────────────────────┼─────────────────────────────────────────┤   │
+│  │                                 │                                         │   │
+│  │  📁 CONTOH:                    │  📁 CONTOH:                             │   │
+│  │  • authService.login()         │  • authStore.user = {...}              │   │
+│  │  • productService.getAll()     │  • cartStore.items = [...]              │   │
+│  │  • orderService.create()        │  • uiStore.toasts = [...]               │   │
+│  │                                 │                                         │   │
+│  └─────────────────────────────────┴─────────────────────────────────────────┘   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.16.3 Penjelasan Detail: Services
+
+#### Apa itu Services?
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         APA ITU SERVICES?                                         │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  Services adalah KUMPULAN FUNGSI yang bertugas untuk BERKOMUNIKASI              │
+│  dengan Backend API.                                                             │
+│                                                                                  │
+│  ANALOGI: AGEN PERJALANAN                                                     │
+│  ─────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                          │   │
+│  │    FRONTEND (Kamu)              BACKEND (Database)                     │   │
+│  │         │                              │                                │   │
+│  │         │    "Saya mau pesan           │                                │   │
+│  │         │     tiket ke Jakarta"        │                                │   │
+│  │         │                             │                                │   │
+│  │         ├────────────────────────────▶│                                │   │
+│  │         │                             │                                │   │
+│  │         │    ┌─────────────────────────────────────┐                 │   │
+│  │         │    │      SERVICES (Agen Travel)         │                 │   │
+│  │         │    │                                       │                 │   │
+│  │         │    │  authService.login()  →  " proses login"             │   │
+│  │         │    │  productService.getAll() →  " ambil produk"           │   │
+│  │         │    │  orderService.create()  →  " buat pesanan"           │   │
+│  │         │    │                                       │                 │   │
+│  │         │    │  Tugas:                                │                 │   │
+│  │         │    │  • Bawa request dari frontend         │                 │   │
+│  │         │    │  • Kirim ke backend                    │                 │   │
+│  │         │    │  • Bawa response balik ke frontend    │                 │   │
+│  │         │    │                                       │                 │   │
+│  │         │    └─────────────────────────────────────┘                 │   │
+│  │         │                             │                                │   │
+│  │         │    "Tiket ke Jakarta        │                                │   │
+│  │         │     sudah siap!"            │                                │   │
+│  │         │◀────────────────────────────┤                                │   │
+│  │         │                             │                                │   │
+│  │         ▼                             ▼                                │   │
+│  │    ┌──────────┐                 ┌──────────┐                          │   │
+│  │    │ Kamu    │                 │ Database │                          │   │
+│  │    │ Senang! │                 │ Jakarta! │                          │   │
+│  │    └──────────┘                 └──────────┘                          │   │
+│  │                                                                          │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Kenapa Butuh Services?
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                      KENAPA PAKAI SERVICES?                                      │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ❌ TANPA SERVICES (Ribet & Berulang):                                         │
+│  ─────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  LoginPage.jsx                                                                 │
+│  ├── fetch('http://localhost:8000/api/auth/login', {...})                      │
+│  ├── dengan headers 'Authorization: Bearer xxx'                                │
+│  ├── handle error 401, 422, 500                                                │
+│  └── .then(res => res.json())                                                  │
+│                                                                                  │
+│  RegisterPage.jsx                                                               │
+│  ├── fetch('http://localhost:8000/api/auth/register', {...})  ← KODE BERULANG! │
+│  ├── dengan headers 'Authorization: Bearer xxx'        ← KODE BERULANG!         │
+│  ├── handle error 401, 422, 500                        ← KODE BERULANG!       │
+│  └── .then(res => res.json())                          ← KODE BERULANG!       │
+│                                                                                  │
+│  ProductsPage.jsx                                                               │
+│  ├── fetch('http://localhost:8000/api/products', {...})   ← KODE BERULANG!     │
+│  ├── dengan headers 'Authorization: Bearer xxx'        ← KODE BERULANG!       │
+│  └── .then(res => res.json())                          ← KODE BERULANG!       │
+│                                                                                  │
+│  ❌ Jika baseURL berubah → ubah di MANA-MANA!                                   │
+│  ❌ Jika headers berubah → ubah di MANA-MANA!                                   │
+│  ❌ Jika error handling berubah → ubah di MANA-MANA!                           │
+│                                                                                  │
+│  ✅ DENGAN SERVICES (Rapi & Centralized):                                     │
+│  ─────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  api.js (PUSAT KONFIGURASI)                                                   │
+│  ├── baseURL: '/api'                                                           │
+│  ├── headers default                                                          │
+│  ├── interceptors (auto-add token)                                            │
+│  └── error handling centralized                                                │
+│                                                                                  │
+│  authService.js (FUNGSI AUTH)                                                 │
+│  ├── login() → api.post('/auth/login', data)                                  │
+│  ├── register() → api.post('/auth/register', data)                            │
+│  └── logout() → api.post('/auth/logout')                                      │
+│                                                                                  │
+│  productService.js (FUNGSI PRODUK)                                            │
+│  ├── getAll() → api.get('/products')                                         │
+│  ├── getById() → api.get('/products/:id')                                     │
+│  └── create() → api.post('/products', data)                                    │
+│                                                                                  │
+│  ✅ Hanya ubah di SATU tempat!                                                │
+│  ✅ Semua page pakai fungsi yang SAMA!                                         │
+│  ✅ Mudah di-maintain!                                                        │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### 📁 api.js - Fondasi Semua Services
+
+```javascript
+// File: src/services/api.js
+// =================================================================
+// API.JS - FONDASI SEMUA SERVICES
+// =================================================================
+//
+// Penjelasan:
+// File ini adalah PUSAT KONFIGURASI untuk semua HTTP requests.
+// Semua services mengimport instance axios dari file ini.
+//
+// Kenapa penting?
+// 1. Satu tempat untuk konfigurasi (baseURL, timeout, headers)
+// 2. Interceptors untuk auto-add token
+// 3. Centralized error handling
+// 4. Jika config berubah, ubah di satu tempat saja
+//
+// =================================================================
+
+import axios from 'axios'
+
+// 1. BUAT INSTANCE AXIOS
+//    Instance = objek axios dengan konfigurasi sendiri
+//    Tidak mengubah axios global, tapi membuat salinan dengan setting khusus
+const api = axios.create({
+  // baseURL: URL dasar yang akan ditambahkan di depan semua endpoint
+  // Contoh: jika baseURL = '/api', maka:
+  //   api.get('/products') → request ke '/api/products'
+  baseURL: '/api',
+  
+  // timeout: berapa lama request boleh berlangsung (dalam ms)
+  // Jika lebih dari 30 detik, request akan dibatalkan
+  // Ini mencegah browser hang jika server tidak responsif
+  timeout: 30000,
+  
+  // headers default untuk SEMUA request
+  headers: {
+    // JSON format untuk request body
+    'Content-Type': 'application/json',
+    // Terima response dalam format JSON
+    'Accept': 'application/json',
+  },
+})
+
+// =================================================================
+// REQUEST INTERCEPTOR
+// =================================================================
+//
+// APA ITU INTERCEPTOR?
+// Kode yang BERJALAN OTOMATIS sebelum request dikirim atau
+// setelah response diterima.
+//
+// REQUEST INTERCEPTOR berjalan SEBELUM setiap request dikirim.
+// Ini tempat yang sempurna untuk:
+// - Menambahkan token otentikasi
+// - Logging request
+// - Modifikasi headers
+//
+// =================================================================
+
+api.interceptors.request.use(
+  // Fungsi ini dijalankan SEBELUM request dikirim
+  (config) => {
+    // Ambil token dari localStorage
+    // localStorage adalah penyimpanan di browser yang persist antar reload
+    // Format penyimpanan Zustand persist:
+    // '{"state":{"user":{...},"token":"1|abc..."},"version":0}'
+    const authData = JSON.parse(localStorage.getItem('seapedia-auth') || '{}')
+    const token = authData.state?.token  // Ambil token dari nested object
+    
+    // Jika token ada, tambahkan ke Authorization header
+    // Format: "Bearer <token>" (standar REST API)
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    
+    // Return config agar request berlanjut
+    // Jika tidak return, request akan berhenti di sini
+    return config
+  },
+  
+  // Fungsi error handler (jalan jika ada error SEBELUM request dikirim)
+  (error) => {
+    // Contoh: network error sebelum request dikirim
+    console.error('Request error:', error)
+    return Promise.reject(error)
+  }
+)
+
+// =================================================================
+// RESPONSE INTERCEPTOR
+// =================================================================
+//
+// RESPONSE INTERCEPTOR berjalan SETELAH response diterima.
+// Ini tempat yang sempurna untuk:
+// - Memeriksa status response
+// - Handle error (401 = unauthorized, dll)
+// - Transformasi data
+//
+// =================================================================
+
+api.interceptors.response.use(
+  // Fungsi pertama: jalan jika response SUKSES (status 2xx)
+  (response) => {
+    // Langsung return response ke yang meminta
+    // Tidak perlu ubah apa-apa
+    return response
+  },
+  
+  // Fungsi kedua: jalan jika response GAGAL (bukan 2xx)
+  (error) => {
+    // Handle berbagai jenis error response
+    
+    if (error.response) {
+      // Server merespons dengan error (status di luar 2xx)
+      // error.response berisi { status, data, headers }
+      
+      const { status, data } = error.response
+      
+      switch (status) {
+        case 401:
+          // UNAUTHORIZED - Token invalid atau expired
+          // Ini biasanya berarti user perlu login lagi
+          
+          // 1. Hapus data auth dari localStorage
+          localStorage.removeItem('seapedia-auth')
+          
+          // 2. Redirect ke halaman login
+          // typeof window !== 'undefined' untuk cek apakah di browser
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login'
+          }
+          break
+          
+        case 403:
+          // FORBIDDEN - User tidak punya izin untuk akses ini
+          console.error('Access forbidden:', data.message)
+          break
+          
+        case 404:
+          // NOT FOUND - Endpoint atau resource tidak ditemukan
+          console.error('Resource not found:', data.message)
+          break
+          
+        case 422:
+          // VALIDATION ERROR - Input tidak valid
+          // Biasanya berisi { errors: { field: ['message'] } }
+          console.error('Validation error:', data.errors)
+          break
+          
+        case 500:
+          // SERVER ERROR - Error di sisi server
+          console.error('Server error:', data.message)
+          break
+          
+        default:
+          // Error lainnya
+          console.error('API Error:', data)
+      }
+    } 
+    else if (error.request) {
+      // REQUEST DIKIRIM TAPI TIDAK ADA RESPONSE
+      // Kemungkinan: server mati, network error, CORS issue
+      console.error('No response received:', error.request)
+    } 
+    else {
+      // ERROR DALAM MEMBUAT REQUEST
+      // Kemungkinan: salah konfigurasi
+      console.error('Error:', error.message)
+    }
+    
+    // RE-THROW ERROR
+    // Supaya component yang memanggil bisa handle error sendiri
+    // Tanpa ini, error akan "dimakan" dan component tidak tahu ada error
+    return Promise.reject(error)
+  }
+)
+
+// =================================================================
+// PENGGUNAAN
+// =================================================================
+//
+// Di file services lain, import seperti ini:
+//
+//   import api from './api'
+//
+//   const authService = {
+//     login: async (data) => {
+//       const response = await api.post('/auth/login', data)
+//       return response.data
+//     }
+//   }
+//
+// Kenapa return response.data?
+// - response = objek axios lengkap (headers, status, dll)
+// - response.data = payload JSON dari server
+// - Lebih praktis untuk diambil datanya
+//
+// =================================================================
+
+export default api
+```
+
+#### 📁 orderService.js - Service untuk Pesanan
+
+```javascript
+// File: src/services/orderService.js
+// =================================================================
+// ORDER SERVICE - SERVICE UNTUK OPERASI PESANAN
+// =================================================================
+//
+// Penjelasan:
+// File ini berisi SEMUA fungsi yang berhubungan dengan PESANAN (orders).
+// Fungsi-fungsi ini yang dipanggil dari OrderStore atau langsung dari Page.
+//
+// Setiap fungsi:
+// 1. Membuat HTTP request ke backend
+// 2. Return response data ke caller
+//
+// Endpoint API yang digunakan:
+// - GET    /api/orders              → Ambil semua pesanan
+// - GET    /api/orders/:id          → Ambil detail pesanan
+// - POST   /api/orders              → Buat pesanan baru (checkout)
+// - PUT    /api/orders/:id/status   → Update status pesanan
+// - POST   /api/orders/:id/cancel   → Buyer batalkan pesanan
+// - POST   /api/orders/:id/pickup   → Driver ambil pesanan
+// - POST   /api/orders/:id/deliver  → Driver konfirmasi antar
+//
+// =================================================================
+
+import api from './api'  // Import instance axios yang sudah dikonfigurasi
+
+const orderService = {
+  // =================================================================
+  // GET ALL ORDERS
+  // =================================================================
+  /**
+   * Ambil semua pesanan user
+   * 
+   * @param {Object} params - Parameter query string
+   *   @param {number} params.page - Halaman ke berapa (default: 1)
+   *   @param {number} params.per_page - Item per halaman (default: 10)
+   *   @param {string} params.status - Filter berdasarkan status
+   * 
+   * @returns {Promise<Object>} 
+   *   {
+   *     success: true,
+   *     data: [{ id, order_number, status, total_amount, items: [...] }],
+   *     meta: { current_page, per_page, total, last_page }
+   *   }
+   * 
+   * Contoh Penggunaan:
+   * ```javascript
+   * // Ambil semua pesanan
+   * const response = await orderService.getAll()
+   * 
+   * // Ambil pesanan dengan filter
+   * const response = await orderService.getAll({ status: 'completed' })
+   * 
+   * // Ambil halaman ke-2
+   * const response = await orderService.getAll({ page: 2 })
+   * ```
+   * 
+   * Alur:
+   * 1. Component panggil getAll({ status: 'pending' })
+   * 2. Fungsi ini kirim GET /api/orders?status=pending
+   * 3. Backend proses & return list pesanan
+   * 4. Fungsi return response.data ke component
+   */
+  getAll: async (params = {}) => {
+    // api.get() kedua parameter: (url, { params })
+    // Axios akan convert params jadi query string:
+    // /api/orders?page=1&per_page=10&status=pending
+    const response = await api.get('/orders', { params })
+    
+    // Return response.data, bukan response penuh
+    // response.data = { success, data, meta }
+    return response.data
+  },
+  
+  // =================================================================
+  // GET ORDER BY ID
+  // =================================================================
+  /**
+   * Ambil detail satu pesanan berdasarkan ID
+   * 
+   * @param {number} id - Order ID
+   * 
+   * @returns {Promise<Object>}
+   *   {
+   *     success: true,
+   *     data: {
+   *       id: 1,
+   *       order_number: 'ORD-20240101-001',
+   *       status: 'packaging',
+   *       total_amount: 75000,
+   *       items: [{ product_id, name, quantity, price_at_purchase }],
+   *       shipping_address: 'Jl. Merdeka No. 1',
+   *       created_at: '2024-01-01T10:00:00Z'
+   *     }
+   *   }
+   * 
+   * Contoh Penggunaan:
+   * ```javascript
+   * const response = await orderService.getById(1)
+   * const order = response.data
+   * console.log(order.order_number) // 'ORD-20240101-001'
+   * ```
+   */
+  getById: async (id) => {
+    // Template string untuk dynamic URL
+    // /api/orders/1 → Ambil pesanan dengan id=1
+    const response = await api.get(`/orders/${id}`)
+    return response.data
+  },
+  
+  // =================================================================
+  // GET ORDERS BY STATUS
+  // =================================================================
+  /**
+   * Ambil pesanan berdasarkan status tertentu
+   * 
+   * @param {string} status - Status pesanan
+   *   Contoh: 'packaging', 'waiting_shipper', 'shipping', 'completed', 'returned'
+   * 
+   * @returns {Promise<Object>} List pesanan dengan status tersebut
+   * 
+   * Contoh Penggunaan:
+   * ```javascript
+   * // Ambil semua pesanan yang sedang dikemas
+   * const packagingOrders = await orderService.getByStatus('packaging')
+   * ```
+   */
+  getByStatus: async (status) => {
+    // params object dengan satu key
+    // Akan jadi query string: ?status=packaging
+    const response = await api.get('/orders', { params: { status } })
+    return response.data
+  },
+  
+  // =================================================================
+  // CREATE ORDER (CHECKOUT)
+  // =================================================================
+  /**
+   * Buat pesanan baru (checkout dari cart)
+   * 
+   * @param {Object} data - Data checkout
+   *   @param {number} data.address_id - ID alamat pengiriman
+   *   @param {string} data.shipping_address - Alamat lengkap
+   *   @param {string} [data.notes] - Catatan untuk seller/driver
+   * 
+   * @returns {Promise<Object>}
+   *   {
+   *     success: true,
+   *     message: 'Order created successfully',
+   *     data: { id, order_number, ... }
+   *   }
+   * 
+   * Contoh Penggunaan:
+   * ```javascript
+   * const response = await orderService.create({
+   *   address_id: 5,
+   *   shipping_address: 'Jl. Sudirman No. 10, Jakarta',
+   *   notes: 'Hubungi sebelum antar'
+   * })
+   * 
+   * if (response.success) {
+   *   clearCart()
+   *   navigate('/buyer/orders')
+   * }
+   * ```
+   * 
+   * ⚠️ CATATAN PENTING:
+   * Create order biasanya:
+   * 1. Mengambil items dari cartStore
+   * 2. Memvalidasi stock & harga
+   * 3. Mendeduct wallet balance
+   * 4. Membuat record di database
+   * 5. Mengirim notifikasi ke Seller
+   */
+  create: async (data) => {
+    // POST request dengan body data
+    // Body akan di-convert jadi JSON otomatis oleh axios
+    const response = await api.post('/orders', data)
+    return response.data
+  },
+  
+  // =================================================================
+  // UPDATE ORDER STATUS
+  // =================================================================
+  /**
+   * Update status pesanan
+   * Dipakai oleh Seller (untuk packaging) atau Driver (untuk shipping)
+   * 
+   * @param {number} id - Order ID
+   * @param {string} status - Status baru
+   *   Seller bisa: 'packaging' → 'waiting_shipper'
+   *   Driver bisa: 'waiting_shipper' → 'shipping' → 'completed'
+   * 
+   * @returns {Promise<Object>}
+   *   { success: true, message: 'Status updated', data: { ... } }
+   * 
+   * Contoh Penggunaan:
+   * ```javascript
+   * // Seller mulai kemas pesanan
+   * await orderService.updateStatus(1, 'waiting_shipper')
+   * 
+   * // Driver ambil pesanan
+   * await orderService.updateStatus(1, 'shipping')
+   * ```
+   */
+  updateStatus: async (id, status) => {
+    // PUT request dengan body { status }
+    const response = await api.put(`/orders/${id}/status`, { status })
+    return response.data
+  },
+  
+  // =================================================================
+  // CANCEL ORDER (BUYER)
+  // =================================================================
+  /**
+   * Buyer membatalkan pesanan
+   * Bisa hanya jika status 'packaging' atau 'waiting_shipper'
+   * 
+   * @param {number} id - Order ID
+   * 
+   * @returns {Promise<Object>}
+   *   { success: true, message: 'Order cancelled', data: { ... } }
+   * 
+   * ⚠️ Efek Samping:
+   * - Wallet akan di-refund
+   * - Stock produk akan di-restore
+   * - Seller akan dapat notifikasi pembatalan
+   */
+  cancel: async (id) => {
+    const response = await api.post(`/orders/${id}/cancel`)
+    return response.data
+  },
+  
+  // =================================================================
+  // DRIVER PICKUP
+  // =================================================================
+  /**
+   * Driver mengambil pesanan dari seller
+   * Status berubah: waiting_shipper → shipping
+   * 
+   * @param {number} id - Order ID
+   * 
+   * @returns {Promise<Object>}
+   */
+  pickup: async (id) => {
+    const response = await api.post(`/orders/${id}/pickup`)
+    return response.data
+  },
+  
+  // =================================================================
+  // DRIVER DELIVER
+  // =================================================================
+  /**
+   * Driver mengkonfirmasi pesanan telah diantar
+   * Status berubah: shipping → completed
+   * 
+   * @param {number} id - Order ID
+   * 
+   * @returns {Promise<Object>}
+   * 
+   * ⚠️ Efek Samping:
+   * - Saldo akan ditransfer ke Seller
+   * - Driver dapat komisi
+   */
+  deliver: async (id) => {
+    const response = await api.post(`/orders/${id}/deliver`)
+    return response.data
+  },
+}
+
+export default orderService
+```
+
+#### 📁 walletService.js - Service untuk Wallet
+
+```javascript
+// File: src/services/walletService.js
+// =================================================================
+// WALLET SERVICE - SERVICE UNTUK OPERASI WALLET
+// =================================================================
+//
+// Penjelasan:
+// File ini berisi SEMUA fungsi yang berhubungan dengan WALLET/PURSE
+// Milik buyer.
+//
+// Fungsi utama:
+// 1. Ambil data wallet (balance)
+// 2. Ambil riwayat transaksi
+// 3. Top up wallet
+//
+// Endpoint API:
+// - GET    /api/wallet           → Ambil data wallet
+// - GET    /api/transactions     → Ambil riwayat transaksi
+// - POST   /api/wallet/topup     → Top up wallet
+//
+// =================================================================
+
+import api from './api'
+
+const walletService = {
+  // =================================================================
+  // GET WALLET DATA
+  // =================================================================
+  /**
+   * Ambil data wallet user
+   * Include: balance, created_at, dll
+   * 
+   * @returns {Promise<Object>}
+   *   {
+   *     success: true,
+   *     data: {
+   *       id: 1,
+   *       user_id: 5,
+   *       balance: 500000,
+   *       created_at: '2024-01-01T00:00:00Z',
+   *       updated_at: '2024-01-15T10:30:00Z'
+   *     }
+   *   }
+   * 
+   * Contoh Penggunaan:
+   * ```javascript
+   * const response = await walletService.getWallet()
+   * const wallet = response.data
+   * console.log(`Saldo: Rp ${wallet.balance}`) // Saldo: Rp 500000
+   * ```
+   */
+  getWallet: async () => {
+    const response = await api.get('/wallet')
+    return response.data
+  },
+  
+  // =================================================================
+  // GET TRANSACTIONS
+  // =================================================================
+  /**
+   * Ambil riwayat transaksi wallet
+   * Include: topup, purchase, refund, dll
+   * 
+   * @param {Object} params - Parameter pagination
+   *   @param {number} params.page - Halaman
+   *   @param {number} params.per_page - Item per halaman
+   * 
+   * @returns {Promise<Object>}
+   *   {
+   *     success: true,
+   *     data: [
+   *       {
+   *         id: 1,
+   *         type: 'topup',
+   *         amount: 100000,
+   *         description: 'Top up via GoPay',
+   *         balance_before: 400000,
+   *         balance_after: 500000,
+   *         created_at: '2024-01-15T10:30:00Z'
+   *       },
+   *       {
+   *         id: 2,
+   *         type: 'purchase',
+   *         amount: 50000,
+   *         description: 'Pembayaran Order #ORD-001',
+   *         balance_before: 500000,
+   *         balance_after: 450000,
+   *         created_at: '2024-01-14T15:00:00Z'
+   *       }
+   *     ],
+   *     meta: { current_page, per_page, total, last_page }
+   *   }
+   * 
+   * Contoh Penggunaan:
+   * ```javascript
+   * const response = await walletService.getTransactions({ page: 1, per_page: 20 })
+   * const transactions = response.data
+   * 
+   * transactions.forEach(tx => {
+   *   const sign = tx.type === 'topup' ? '+' : '-'
+   *   console.log(`${sign} Rp ${tx.amount} - ${tx.description}`)
+   * })
+   * ```
+   */
+  getTransactions: async (params = {}) => {
+    const response = await api.get('/transactions', { params })
+    return response.data
+  },
+  
+  // =================================================================
+  // TOP UP WALLET
+  // =================================================================
+  /**
+   * Top up wallet (dummy flow untuk demo)
+   * 
+   * @param {Object} data
+   *   @param {number} data.amount - Jumlah yang di-top up
+   * 
+   * @returns {Promise<Object>}
+   *   {
+   *     success: true,
+   *     message: 'Top up successful',
+   *     data: {
+   *       balance: 600000  // Balance baru setelah top up
+   *     }
+   *   }
+   * 
+   * Contoh Penggunaan:
+   * ```javascript
+   * const response = await walletService.topUp({ amount: 100000 })
+   * 
+   * if (response.success) {
+   *   // Update local balance
+   *   setBalance(response.data.balance)
+   *   // Refresh transactions
+   *   fetchTransactions()
+   *   // Show success toast
+   *   success('Top up berhasil!')
+   * }
+   * ```
+   * 
+   * ⚠️ CATATAN:
+   * Untuk aplikasi nyata, top up biasanya melalui:
+   * - Payment gateway (Midtrans, Xendit)
+   * - Transfer bank
+   * - E-wallet integration
+   * 
+   * Untuk demo ini, kita langsung tambahkan balance tanpa payment gateway.
+   */
+  topUp: async (data) => {
+    const response = await api.post('/wallet/topup', data)
+    return response.data
+  },
+}
+
+export default walletService
+```
+
+#### 📁 addressService.js - Service untuk Alamat
+
+```javascript
+// File: src/services/addressService.js
+// =================================================================
+// ADDRESS SERVICE - SERVICE UNTUK OPERASI ALAMAT
+// =================================================================
+//
+// Penjelasan:
+// File ini berisi SEMUA fungsi yang berhubungan dengan ALAMAT PENGIRIMAN
+// Milik buyer.
+//
+// Fitur:
+// 1. CRUD alamat pengiriman
+// 2. Set alamat default
+//
+// Endpoint API:
+// - GET    /api/addresses          → Ambil semua alamat
+// - GET    /api/addresses/:id       → Ambil satu alamat
+// - POST   /api/addresses           → Tambah alamat baru
+// - PUT    /api/addresses/:id       → Update alamat
+// - DELETE /api/addresses/:id       → Hapus alamat
+//
+// =================================================================
+
+import api from './api'
+
+const addressService = {
+  // =================================================================
+  // GET ALL ADDRESSES
+  // =================================================================
+  /**
+   * Ambil semua alamat user
+   * 
+   * @returns {Promise<Object>}
+   *   {
+   *     success: true,
+   *     data: [
+   *       {
+   *         id: 1,
+   *         user_id: 5,
+   *         label: 'Rumah',
+   *         recipient_name: 'Budi Santoso',
+   *         phone: '081234567890',
+   *         full_address: 'Jl. Merdeka No. 1 RT 01 RW 02, Kelurahan,
+   *                        Kecamatan, Jakarta 12345',
+   *         is_default: true,
+   *         created_at: '...'
+   *       },
+   *       {
+   *         id: 2,
+   *         label: 'Kantor',
+   *         recipient_name: 'Budi Santoso',
+   *         phone: '081234567890',
+   *         full_address: 'Jl. Sudirman No. 10, Jakarta',
+   *         is_default: false,
+   *         created_at: '...'
+   *       }
+   *     ]
+   *   }
+   * 
+   * Contoh Penggunaan:
+   * ```javascript
+   * const response = await addressService.getAll()
+   * const addresses = response.data
+   * 
+   * // Cari alamat default
+   * const defaultAddr = addresses.find(addr => addr.is_default)
+   * ```
+   */
+  getAll: async () => {
+    const response = await api.get('/addresses')
+    return response.data
+  },
+  
+  // =================================================================
+  // GET ADDRESS BY ID
+  // =================================================================
+  /**
+   * Ambil satu alamat berdasarkan ID
+   * 
+   * @param {number} id - Address ID
+   * 
+   * @returns {Promise<Object>}
+   */
+  getById: async (id) => {
+    const response = await api.get(`/addresses/${id}`)
+    return response.data
+  },
+  
+  // =================================================================
+  // CREATE ADDRESS
+  // =================================================================
+  /**
+   * Tambah alamat baru
+   * 
+   * @param {Object} data - Data alamat
+   *   @param {string} data.label - Label (Rumah, Kantor, dll)
+   *   @param {string} data.recipient_name - Nama penerima
+   *   @param {string} data.phone - No. telepon
+   *   @param {string} data.full_address - Alamat lengkap
+   *   @param {boolean} [data.is_default] - Jadikan default
+   * 
+   * @returns {Promise<Object>}
+   *   {
+   *     success: true,
+   *     message: 'Address created',
+   *     data: { id: 3, label: 'Kos', ... }
+   *   }
+   * 
+   * Contoh Penggunaan:
+   * ```javascript
+   * const response = await addressService.create({
+   *   label: 'Kos',
+   *   recipient_name: 'Budi Santoso',
+   *   phone: '081234567890',
+   *   full_address: 'Jl. Pelajar No. 5, Yogyakarta',
+   *   is_default: false
+   * })
+   * ```
+   */
+  create: async (data) => {
+    const response = await api.post('/addresses', data)
+    return response.data
+  },
+  
+  // =================================================================
+  // UPDATE ADDRESS
+  // =================================================================
+  /**
+   * Update alamat yang sudah ada
+   * 
+   * @param {number} id - Address ID
+   * @param {Object} data - Data update (sama dengan create)
+   * 
+   * @returns {Promise<Object>}
+   */
+  update: async (id, data) => {
+    const response = await api.put(`/addresses/${id}`, data)
+    return response.data
+  },
+  
+  // =================================================================
+  // DELETE ADDRESS
+  // =================================================================
+  /**
+   * Hapus alamat
+   * 
+   * @param {number} id - Address ID
+   * 
+   * @returns {Promise<Object>}
+   *   { success: true, message: 'Address deleted' }
+   * 
+   * ⚠️ CATATAN:
+   * Jika menghapus alamat default, sistem biasanya:
+   * 1. Set alamat pertama sebagai default baru
+   * 2. Atau biarkan tanpa default
+   */
+  delete: async (id) => {
+    const response = await api.delete(`/addresses/${id}`)
+    return response.data
+  },
+}
+
+export default addressService
+```
+
+#### 📁 storeService.js - Service untuk Toko
+
+```javascript
+// File: src/services/storeService.js
+// =================================================================
+// STORE SERVICE - SERVICE UNTUK OPERASI TOKO (SELLER)
+// =================================================================
+//
+// Penjelasan:
+// File ini berisi fungsi untuk SELLER mengelola toko mereka sendiri.
+//
+// Endpoint API:
+// - GET    /api/stores/my         → Ambil data toko sendiri
+// - PUT    /api/stores/my         → Update data toko
+//
+// =================================================================
+
+import api from './api'
+
+const storeService = {
+  // =================================================================
+  // GET MY STORE
+  // =================================================================
+  /**
+   * Ambil data toko sendiri (untuk Seller)
+   * 
+   * @returns {Promise<Object>}
+   *   {
+   *     success: true,
+   *     data: {
+   *       id: 1,
+   *       user_id: 3,
+   *       name: 'Dapur Enak',
+   *       description: 'Masakan rumahan berkualitas',
+   *       address: 'Jl. Sehat No. 5, Jakarta',
+   *       phone: '02112345678',
+   *       is_active: true,
+   *       created_at: '...'
+   *     }
+   *   }
+   */
+  getMyStore: async () => {
+    const response = await api.get('/stores/my')
+    return response.data
+  },
+  
+  // =================================================================
+  // UPDATE MY STORE
+  // =================================================================
+  /**
+   * Update data toko sendiri
+   * 
+   * @param {Object} data - Data update
+   *   @param {string} data.name - Nama toko (unik)
+   *   @param {string} data.description - Deskripsi toko
+   *   @param {string} data.address - Alamat toko
+   *   @param {string} data.phone - No. telepon
+   * 
+   * @returns {Promise<Object>}
+   */
+  update: async (data) => {
+    const response = await api.put('/stores/my', data)
+    return response.data
+  },
+}
+
+export default storeService
+```
+
+#### 📁 sellerProductService.js - Service untuk Produk Seller
+
+```javascript
+// File: src/services/sellerProductService.js
+// =================================================================
+// SELLER PRODUCT SERVICE - CRUD PRODUK MILIK SELLER
+// =================================================================
+//
+// Penjelasan:
+// File ini berisi fungsi untuk SELLER mengelola produk mereka sendiri.
+// Berbeda dengan productService.js yang untuk PUBLIC (semua produk).
+//
+// Endpoint API:
+// - GET    /api/seller/products     → Ambil produk sendiri
+// - GET    /api/seller/products/stats → Statistik produk
+// - POST   /api/seller/products     → Tambah produk baru
+// - PUT    /api/seller/products/:id → Update produk
+// - DELETE /api/seller/products/:id → Hapus produk
+//
+// =================================================================
+
+import api from './api'
+
+const sellerProductService = {
+  // =================================================================
+  // GET MY PRODUCTS
+  // =================================================================
+  /**
+   * Ambil semua produk milik seller yang login
+   * 
+   * @returns {Promise<Object>}
+   */
+  getMyProducts: async () => {
+    const response = await api.get('/seller/products')
+    return response.data
+  },
+  
+  // =================================================================
+  // GET STATS
+  // =================================================================
+  /**
+   * Ambil statistik produk seller
+   * Include: total products, out of stock, etc
+   * 
+   * @returns {Promise<Object>}
+   *   {
+   *     success: true,
+   *     data: {
+   *       total_products: 25,
+   *       active_products: 23,
+   *       out_of_stock: 2,
+   *       total_sales: 150,
+   *       total_revenue: 15000000
+   *     }
+   *   }
+   */
+  getStats: async () => {
+    const response = await api.get('/seller/products/stats')
+    return response.data
+  },
+  
+  // =================================================================
+  // CREATE PRODUCT
+  // =================================================================
+  /**
+   * Tambah produk baru
+   * 
+   * @param {Object} data
+   *   @param {string} data.name - Nama produk
+   *   @param {string} [data.description] - Deskripsi
+   *   @param {number} data.price - Harga
+   *   @param {number} data.stock - Stok
+   *   @param {string} [data.image_url] - URL gambar
+   * 
+   * @returns {Promise<Object>}
+   */
+  create: async (data) => {
+    const response = await api.post('/seller/products', data)
+    return response.data
+  },
+  
+  // =================================================================
+  // UPDATE PRODUCT
+  // =================================================================
+  /**
+   * Update produk
+   * 
+   * @param {number} id - Product ID
+   * @param {Object} data - Data update
+   * 
+   * @returns {Promise<Object>}
+   */
+  update: async (id, data) => {
+    const response = await api.put(`/seller/products/${id}`, data)
+    return response.data
+  },
+  
+  // =================================================================
+  // DELETE PRODUCT
+  // =================================================================
+  /**
+   * Hapus produk
+   * 
+   * @param {number} id - Product ID
+   * 
+   * @returns {Promise<Object>}
+   * 
+   * ⚠️ CATATAN:
+   * Biasanya produk tidak dihapus permanen, tapi di-set is_active = false
+   * Agar histori pesanan tetap aman.
+   */
+  delete: async (id) => {
+    const response = await api.delete(`/seller/products/${id}`)
+    return response.data
+  },
+}
+
+export default sellerProductService
+```
+
+---
+
+### 5.16.4 Penjelasan Detail: Stores (Zustand)
+
+#### Apa itu Zustand & Stores?
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    APA ITU ZUSTAND STORES?                                        │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  Zustand = State Management Library untuk React                                  │
+│  Stores = Tempat menyimpan STATE (data) yang bisa diakses dari mana saja         │
+│                                                                                  │
+│  ─────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  ANALOGI: KULKAS PINTAR                                                       │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                          │   │
+│  │   TANPA STATE MANAGEMENT:                                               │   │
+│  │   ─────────────────────────                                              │   │
+│  │                                                                          │   │
+│  │   App                                                                    │   │
+│  │    │                                                                      │   │
+│  │    ▼                                                                      │   │
+│  │   Navbar                                                                 │   │
+│  │    │                                                                      │   │
+│  │    ├── Header ────── User data ada di sini!                            │   │
+│  │    │                         │                                           │   │
+│  │    │                         ▼                                           │   │
+│  │    │                    CartBadge ──── Cart data ada di sini!           │   │
+│  │    │                                        │                            │   │
+│  │    │                                        ▼                            │   │
+│  │    │                                   CartPage ──── Cart data lagi!   │   │
+│  │    │                                                                      │   │
+│  │    │   ❌ DATA BERULANG DI MANA-MANA!                                   │   │
+│  │    │   ❌ PROP DRILLING! (pass data dari parent ke child berkali-kali) │   │
+│  │    │   ❌ SUSAH DIKELOLA!                                              │   │
+│  │                                                                          │   │
+│  │                                                                          │   │
+│  │   DENGAN ZUSTAND:                                                       │   │
+│  │   ─────────────────                                                       │   │
+│  │                                                                          │   │
+│  │            ┌─────────────────────────────┐                             │   │
+│  │            │     ZUSTAND STORE          │                             │   │
+│  │            │                             │                             │   │
+│  │            │  ┌─────────────────────┐ │                             │   │
+│  │            │  │    authStore        │ │                             │   │
+│  │            │  │  • user: Budi      │ │                             │   │
+│  │            │  │  • token: abc123   │ │                             │   │
+│  │            │  └─────────────────────┘ │                             │   │
+│  │            │                             │                             │   │
+│  │            │  ┌─────────────────────┐ │                             │   │
+│  │            │  │    cartStore        │ │                             │   │
+│  │            │  │  • items: [...]    │ │                             │   │
+│  │            │  │  • total: 150000   │ │                             │   │
+│  │            │  └─────────────────────┘ │                             │   │
+│  │            │                             │                             │   │
+│  │            └──────────────┬──────────────┘                             │   │
+│  │                           │                                            │   │
+│  │         ┌─────────────────┼─────────────────┐                          │   │
+│  │         │                 │                 │                          │   │
+│  │         ▼                 ▼                 ▼                          │   │
+│  │     ┌────────┐       ┌────────┐       ┌────────┐                    │   │
+│  │     │ Navbar │       │CartPage│       │Header  │                    │   │
+│  │     │  User  │       │ Items  │       │  Cart  │                    │   │
+│  │     └────────┘       └────────┘       └────────┘                    │   │
+│  │                                                                          │   │
+│  │   ✅ DATA TERSIMPAN DI SATU TEMPAT!                                    │   │
+│  │   ✅ SEMUA COMPONENT BISA AMBIL DATA!                                 │   │
+│  │   ✅ TIDAK ADA PROP DRILLING!                                          │   │
+│  │   ✅ MUDAH DIKELOLA!                                                  │   │
+│  │                                                                          │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Anatomi Store Zustand
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                      ANATOMI ZUSTAND STORE                                         │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  useAuthStore = create((set, get) => ({                                         │
+│                                                                                  │
+│      ╔════════════════════════════════════════════════════════════════════╗     │
+│      ║                          STATE                                      ║     │
+│      ╠════════════════════════════════════════════════════════════════════╣     │
+│      ║                                                                    ║     │
+│      ║  STATE = Data yang DISIMPAN di store ini                          ║     │
+│      ║          Mirip "variabel" tapi bisa diakses dari mana saja        ║     │
+│      ║                                                                    ║     │
+│      ║  user: null,                                                      ║     │
+│      ║  // → Data user yang login: { id, name, email, roles }            ║     │
+│      ║                                                                    ║     │
+│      ║  token: null,                                                     ║     │
+│      ║  // → Token autentikasi dari API: "1|abc..."                      ║     │
+│      ║                                                                    ║     │
+│      ║  activeRole: null,                                                 ║     │
+│      ║  // → Role yang aktif: "buyer" | "seller" | "driver"             ║     │
+│      ║                                                                    ║     │
+│      ║  isLoading: false,                                                 ║     │
+│      ║  // → Status loading (sedang fetch API atau tidak)                 ║     │
+│      ║                                                                    ║     │
+│      ╚════════════════════════════════════════════════════════════════════╝     │
+│                                                                                  │
+│      ╔════════════════════════════════════════════════════════════════════╗     │
+│      ║                         GETTERS                                     ║     │
+│      ╠════════════════════════════════════════════════════════════════════╣     │
+│      ║                                                                    ║     │
+│      ║  GETTERS = Fungsi untuk MEMBACA data                              ║     │
+│      ║             Nama "getters" karena seperti "get" di class          ║     │
+│      ║                                                                    ║     │
+│      ║  isAuthenticated: () => !!get().token,                           ║     │
+│      ║  // → Cek apakah user sudah login                                 ║     │
+│      ║  // → !!get().token → konversi ke boolean                         ║     │
+│      ║  // → Jika token ada: true, Jika null: false                     ║     │
+│      ║                                                                    ║     │
+│      ║  hasRole: (role) => {                                             ║     │
+│      ║    const { user } = get()                                         ║     │
+│      ║    if (!user || !user.roles) return false                        ║     │
+│      ║    return user.roles.some(r => r.role === role)                  ║     │
+│      ║  },                                                                ║     │
+│      ║  // → Cek apakah user punya role tertentu                        ║     │
+│      ║  // → Contoh: hasRole('seller') → true/false                     ║     │
+│      ║                                                                    ║     │
+│      ╚════════════════════════════════════════════════════════════════════╝     │
+│                                                                                  │
+│      ╔════════════════════════════════════════════════════════════════════╗     │
+│      ║                         ACTIONS                                    ║     │
+│      ╠════════════════════════════════════════════════════════════════════╣     │
+│      ║                                                                    ║     │
+│      ║  ACTIONS = Fungsi untuk MENGUBAH data                             ║     │
+│      ║             Disebut "actions" karena mengubah state (side effect) ║     │
+│      ║                                                                    ║     │
+│      ║  setAuth: (userData, authToken) => {                             ║     │
+│      ║    set({                                                          ║     │
+│      ║      user: userData,                                              ║     │
+│      ║      token: authToken,                                             ║     │
+│      ║      activeRole: userData.active_role,                            ║     │
+│      ║      isLoading: false,                                             ║     │
+│      ║    })                                                              ║     │
+│      ║  },                                                                ║     │
+│      ║  // → Dipanggil saat LOGIN BERHASIL                               ║     │
+│      ║  // → Mengisi user, token, activeRole                            ║     │
+│      ║                                                                    ║     │
+│      ║  logout: () => {                                                  ║     │
+│      ║    set({                                                          ║     │
+│      ║      user: null,                                                  ║     │
+│      ║      token: null,                                                  ║     │
+│      ║      activeRole: null,                                             ║     │
+│      ║      isLoading: false,                                             ║     │
+│      ║    })                                                              ║     │
+│      ║  },                                                                ║     │
+│      ║  // → Dipanggil saat LOGOUT                                        ║     │
+│      ║  // → Mengosongkan semua data                                      ║     │
+│      ║                                                                    ║     │
+│      ║  setActiveRole: (role) => {                                        ║     │
+│      ║    set({ activeRole: role })                                       ║     │
+│      ║  },                                                                ║     │
+│      ║  // → Dipanggil saat GANTI ROLE                                    ║     │
+│      ║                                                                    ║     │
+│      ╚════════════════════════════════════════════════════════════════════╝     │
+│  }),                                                                          │
+│                                                                                  │
+│  // ═══════════════════════════════════════════════════════════════════════════  │
+│  // PERSIST CONFIG                                                            │
+│  // ═══════════════════════════════════════════════════════════════════════════  │
+│  {                                                                            │
+│    name: 'seapedia-auth',    // Key di localStorage                           │
+│    partialize: (state) => ({   // HANYA simpan field ini                      │
+│      user: state.user,                                                        │
+│      token: state.token,                                                      │
+│      activeRole: state.activeRole,                                            │
+│      // isLoading TIDAK disimpan (tidak perlu persist)                        │
+│    }),                                                                        │
+│  }                                                                            │
+│)                                                                               │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### 📁 orderStore.js - Store untuk Pesanan
+
+```javascript
+// File: src/stores/orderStore.js
+// =================================================================
+// ORDER STORE - STATE MANAGEMENT UNTUK PESANAN
+// =================================================================
+//
+// Penjelasan:
+// Store ini menyimpan SEMUA data yang berhubungan dengan PESANAN.
+// Dipakai oleh Buyer, Seller, dan Driver untuk melihat/mengelola pesanan.
+//
+// STATE:
+// - orders: Array semua pesanan
+// - currentOrder: Pesanan yang sedang dilihat detailnya
+// - pagination: Info pagination
+// - isLoading: Status loading
+// - error: Pesan error jika ada
+//
+// ACTIONS:
+// - fetchOrders(): Ambil semua pesanan dari API
+// - fetchById(): Ambil detail satu pesanan
+// - createOrder(): Buat pesanan baru (checkout)
+// - updateStatus(): Update status pesanan
+//
+// GETTERS:
+// - getOrdersByStatus(): Filter pesanan berdasarkan status
+//
+// =================================================================
+
+import { create } from 'zustand'
+import orderService from '../services/orderService'
+
+const useOrderStore = create((set, get) => ({
+  // =================================================================
+  // STATE
+  // =================================================================
+  // State = Data yang disimpan di store ini
+  // Mirip "variabel" tapi bisa diakses dari mana saja
+  
+  /** @type {Array} Daftar pesanan user */
+  // Format: [
+  //   {
+  //     id: 1,
+  //     order_number: 'ORD-20240101-001',
+  //     status: 'packaging',
+  //     total_amount: 75000,
+  //     items: [...],
+  //     created_at: '2024-01-01T10:00:00Z'
+  //   }
+  // ]
+  orders: [],
+  
+  /** @type {Object|null} Pesanan yang sedang dilihat detailnya */
+  // Dipakai di halaman Order Detail
+  currentOrder: null,
+  
+  /** @type {Object} Info pagination */
+  // Untuk navigation antar halaman
+  // {
+  //   current_page: 1,
+  //   per_page: 10,
+  //   total: 45,
+  //   last_page: 5
+  // }
+  pagination: {
+    current_page: 1,
+    per_page: 10,
+    total: 0,
+    last_page: 1,
+  },
+  
+  /** @type {boolean} Loading state */
+  // true = sedang fetch API, false = selesai/tidak ada request
+  isLoading: false,
+  
+  /** @type {string|null} Error message */
+  // Pesan error dari API atau custom error message
+  error: null,
+  
+  /** @type {Object|null} Statistik pesanan untuk dashboard */
+  // { total_orders: 100, pending: 5, completed: 95 }
+  stats: null,
+  
+  // =================================================================
+  // GETTERS
+  // =================================================================
+  // Getters = Fungsi untuk MEMBACA data dari state
+  // Dipanggil dari component dengan: store.getOrdersByStatus()
+  
+  /**
+   * Filter orders berdasarkan status
+   * Contoh: get().getOrdersByStatus('completed')
+   */
+  getOrdersByStatus: (status) => {
+    return get().orders.filter(order => order.status === status)
+  },
+  
+  /**
+   * Cek apakah ada pesanan dengan status tertentu
+   */
+  hasStatus: (status) => {
+    return get().orders.some(order => order.status === status)
+  },
+  
+  // =================================================================
+  // ACTIONS
+  // =================================================================
+  // Actions = Fungsi untuk MENGUBAH state
+  // Selalu menggunakan set() untuk update state
+  // Biasanya memanggil service untuk fetch data dari API
+  
+  /**
+   * Ambil semua pesanan user
+   * 
+   * Alur:
+   * 1. set({ isLoading: true, error: null }) → Tampilkan loading
+   * 2. orderService.getAll(params) → Panggil API
+   * 3. Jika success → set({ orders: response.data, pagination: ... })
+   * 4. Jika error → set({ error: err.message })
+   * 5. set({ isLoading: false }) → Sembunyikan loading
+   * 
+   * @param {Object} params - { page, per_page, status }
+   */
+  fetchOrders: async (params = {}) => {
+    // 1. Set loading state
+    set({ isLoading: true, error: null })
+    
+    try {
+      // 2. Panggil API
+      const response = await orderService.getAll(params)
+      
+      // 3. Jika success, update state
+      if (response.success) {
+        set({
+          // Data pesanan dari response
+          orders: response.data,
+          // Info pagination dari response.meta
+          // Gunakan default value jika meta tidak ada
+          pagination: {
+            current_page: response.meta?.current_page || 1,
+            per_page: response.meta?.per_page || 10,
+            total: response.meta?.total || 0,
+            last_page: response.meta?.last_page || 1,
+          },
+        })
+      }
+    } catch (err) {
+      // 4. Jika error, simpan pesan error
+      // err.response?.data?.message = pesan error dari backend
+      // Jika tidak ada, gunakan pesan default
+      set({ 
+        error: err.response?.data?.message || 'Gagal mengambil pesanan' 
+      })
+    } finally {
+      // 5. Selalu jalankan ini, sukses atau error
+      // Untuk pastikan loading = false
+      set({ isLoading: false })
+    }
+  },
+  
+  /**
+   * Ambil detail satu pesanan
+   * Dipakai di halaman Order Detail
+   * 
+   * @param {number} id - Order ID
+   */
+  fetchById: async (id) => {
+    set({ isLoading: true, error: null })
+    
+    try {
+      const response = await orderService.getById(id)
+      
+      if (response.success) {
+        // Simpan ke currentOrder, bukan orders array
+        set({ currentOrder: response.data })
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Pesanan tidak ditemukan' })
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+  
+  /**
+   * Ambil pesanan berdasarkan status
+   * Dipakai untuk filter di OrdersPage
+   * 
+   * @param {string} status - 'packaging', 'shipping', dll
+   */
+  fetchByStatus: async (status) => {
+    set({ isLoading: true, error: null })
+    
+    try {
+      const response = await orderService.getByStatus(status)
+      
+      if (response.success) {
+        set({ orders: response.data })
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Gagal mengambil pesanan' })
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+  
+  /**
+   * Buat pesanan baru (checkout)
+   * Dipanggil dari CartPage saat user klik Checkout
+   * 
+   * @param {Object} data - { address_id, shipping_address, notes }
+   * @returns {Promise<Object>} - Response dari API
+   * 
+   * ⚠️ IMPORTANT:
+   * Fungsi ini RETURN response, bukan hanya set state
+   * Karena CartPage butuh cek response.success
+   */
+  createOrder: async (data) => {
+    set({ isLoading: true, error: null })
+    
+    try {
+      const response = await orderService.create(data)
+      
+      if (response.success) {
+        // Simpan pesanan baru ke currentOrder
+        set({ currentOrder: response.data })
+        // RETURN response agar caller bisa pakai
+        return response
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Checkout gagal' })
+      // THROW error agar caller bisa catch
+      throw err
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+  
+  /**
+   * Update status pesanan
+   * Dipakai oleh:
+   * - Seller: packaging → waiting_shipper
+   * - Driver: waiting_shipper → shipping → completed
+   * 
+   * @param {number} id - Order ID
+   * @param {string} status - Status baru
+   */
+  updateStatus: async (id, status) => {
+    set({ isLoading: true, error: null })
+    
+    try {
+      const response = await orderService.updateStatus(id, status)
+      
+      if (response.success) {
+        // Update order di array orders
+        // map() membuat array baru dengan order yang di-update
+        const orders = get().orders.map(order =>
+          order.id === id 
+            ? { ...order, status }  // Spread + update status
+            : order
+        )
+        set({ orders })
+        
+        // Update currentOrder jika sedang melihat pesanan ini
+        if (get().currentOrder?.id === id) {
+          set({ 
+            currentOrder: { ...get().currentOrder, status } 
+          })
+        }
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Update status gagal' })
+      throw err
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+  
+  /**
+   * Clear current order
+   * Dipanggil saat unmount dari OrderDetailPage
+   */
+  clearCurrentOrder: () => {
+    set({ currentOrder: null })
+  },
+}))
+
+export default useOrderStore
+```
+
+#### 📁 walletStore.js - Store untuk Wallet
+
+```javascript
+// File: src/stores/walletStore.js
+// =================================================================
+// WALLET STORE - STATE MANAGEMENT UNTUK WALLET
+// =================================================================
+//
+// Penjelasan:
+// Store ini menyimpan SEMUA data yang berhubungan dengan WALLET buyer.
+//
+// STATE:
+// - balance: Saldo wallet (number)
+// - transactions: Array riwayat transaksi
+// - pagination: Info pagination untuk transaksi
+// - isLoading: Loading state
+// - error: Error message
+//
+// KEUNGGULAN:
+// - Balance langsung bisa diakses dari mana saja
+// - Update balance tanpa re-fetch
+// - localStorage persistence (bisa lihat saldo meski refresh)
+//
+// =================================================================
+
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'  // Untuk simpan ke localStorage
+import walletService from '../services/walletService'
+
+const useWalletStore = create(
+  // Wrapped dengan persist untuk localStorage
+  persist(
+    (set, get) => ({
+      // =================================================================
+      // STATE
+      // =================================================================
+      
+      /** @type {number} Saldo wallet */
+      // Format: 500000 (Rp 500.000)
+      // Di-format saat display dengan Intl.NumberFormat
+      balance: 0,
+      
+      /** @type {Array} Riwayat transaksi */
+      // Format: [
+      //   {
+      //     id: 1,
+      //     type: 'topup' | 'purchase' | 'refund' | 'withdrawal',
+      //     amount: 50000,
+      //     description: 'Pembayaran Order #123',
+      //     created_at: '2024-01-01T10:00:00Z'
+      //   }
+      // ]
+      transactions: [],
+      
+      /** @type {Object} Pagination transaksi */
+      pagination: {
+        current_page: 1,
+        per_page: 20,
+        total: 0,
+        last_page: 1,
+      },
+      
+      /** @type {boolean} Loading state */
+      isLoading: false,
+      
+      /** @type {string|null} Error message */
+      error: null,
+      
+      // =================================================================
+      // GETTERS
+      // =================================================================
+      
+      /**
+       * Cek apakah saldo cukup untuk amount tertentu
+       * 
+       * @param {number} amount - Jumlah yang akan dibayar
+       * @returns {boolean} - true jika cukup, false jika kurang
+       * 
+       * Contoh Penggunaan:
+       * ```javascript
+       * const canPay = walletStore.getState().isBalanceEnough(50000)
+       * if (!canPay) {
+       *   showError('Saldo tidak cukup')
+       * }
+       * ```
+       */
+      isBalanceEnough: (amount) => {
+        return get().balance >= amount
+      },
+      
+      /**
+       * Get transaksi berdasarkan type
+       */
+      getTransactionsByType: (type) => {
+        return get().transactions.filter(tx => tx.type === type)
+      },
+      
+      // =================================================================
+      // ACTIONS
+      // =================================================================
+      
+      /**
+       * Ambil data wallet dari API
+       * Dipanggil saat masuk halaman Wallet
+       */
+      fetchWallet: async () => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const response = await walletService.getWallet()
+          
+          if (response.success) {
+            set({ balance: response.data.balance })
+          }
+        } catch (err) {
+          set({ error: err.response?.data?.message || 'Gagal mengambil wallet' })
+        } finally {
+          set({ isLoading: false })
+        }
+      },
+      
+      /**
+       * Ambil riwayat transaksi
+       * 
+       * @param {Object} params - { page, per_page }
+       */
+      fetchTransactions: async (params = {}) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const response = await walletService.getTransactions(params)
+          
+          if (response.success) {
+            set({
+              transactions: response.data,
+              pagination: {
+                current_page: response.meta?.current_page || 1,
+                per_page: response.meta?.per_page || 20,
+                total: response.meta?.total || 0,
+                last_page: response.meta?.last_page || 1,
+              },
+            })
+          }
+        } catch (err) {
+          set({ error: err.response?.data?.message || 'Gagal mengambil transaksi' })
+        } finally {
+          set({ isLoading: false })
+        }
+      },
+      
+      /**
+       * Top up wallet
+       * 
+       * @param {number} amount - Jumlah top up
+       * @returns {Promise<Object>}
+       */
+      topUp: async (amount) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const response = await walletService.topUp({ amount })
+          
+          if (response.success) {
+            // Update balance dari response API
+            set({ balance: response.data.balance })
+            return response
+          }
+        } catch (err) {
+          set({ error: err.response?.data?.message || 'Top up gagal' })
+          throw err
+        } finally {
+          set({ isLoading: false })
+        }
+      },
+      
+      /**
+       * Update balance langsung (tanpa API)
+       * Dipakai setelah checkout berhasil
+       * 
+       * @param {number} newBalance - Balance baru
+       */
+      setBalance: (newBalance) => {
+        set({ balance: newBalance })
+      },
+      
+      /**
+       * Kurangi balance (setelah checkout)
+       * 
+       * @param {number} amount - Jumlah yang dikurangi
+       */
+      deductBalance: (amount) => {
+        set({ balance: get().balance - amount })
+      },
+    }),
+    
+    // =================================================================
+    // PERSIST CONFIG
+    // =================================================================
+    {
+      name: 'seapedia-wallet',  // Key di localStorage
+      
+      // Simpan balance saja, transactions tidak perlu di-persist
+      // karena akan di-fetch dari API saat needed
+      partialize: (state) => ({
+        balance: state.balance,
+      }),
+    }
+  )
+)
+
+export default useWalletStore
+```
+
+#### 📁 addressStore.js - Store untuk Alamat
+
+```javascript
+// File: src/stores/addressStore.js
+// =================================================================
+// ADDRESS STORE - STATE MANAGEMENT UNTUK ALAMAT
+// =================================================================
+//
+// Penjelasan:
+// Store ini menyimpan SEMUA data ALAMAT PENGIRIMAN buyer.
+//
+// STATE:
+// - addresses: Array semua alamat
+// - defaultAddress: Alamat yang ditandai default
+// - isLoading: Loading state
+// - error: Error message
+//
+// GETTERS:
+// - getById(id): Ambil alamat berdasarkan ID
+// - hasAddresses(): Cek apakah ada alamat
+//
+// ACTIONS:
+// - fetchAddresses(): Ambil semua alamat
+// - addAddress(): Tambah alamat baru
+// - updateAddress(): Update alamat
+// - deleteAddress(): Hapus alamat
+// - setDefault(): Set alamat default
+//
+// =================================================================
+
+import { create } from 'zustand'
+import addressService from '../services/addressService'
+
+const useAddressStore = create((set, get) => ({
+  // =================================================================
+  // STATE
+  // =================================================================
+  
+  /** @type {Array} Daftar alamat */
+  addresses: [],
+  
+  /** @type {Object|null} Alamat default */
+  // Dipilih otomatis di CartPage
+  defaultAddress: null,
+  
+  /** @type {boolean} Loading state */
+  isLoading: false,
+  
+  /** @type {string|null} Error message */
+  error: null,
+  
+  // =================================================================
+  // GETTERS
+  // =================================================================
+  
+  /**
+   * Ambil alamat berdasarkan ID
+   * 
+   * @param {number} id - Address ID
+   * @returns {Object|undefined} - Alamat atau undefined
+   */
+  getById: (id) => {
+    return get().addresses.find(addr => addr.id === id)
+  },
+  
+  /**
+   * Cek apakah ada alamat
+   */
+  hasAddresses: () => get().addresses.length > 0,
+  
+  /**
+   * Get jumlah alamat
+   */
+  getCount: () => get().addresses.length,
+  
+  // =================================================================
+  // ACTIONS
+  // =================================================================
+  
+  /**
+   * Ambil semua alamat
+   * Dipanggil saat masuk halaman Addresses atau Cart
+   */
+  fetchAddresses: async () => {
+    set({ isLoading: true, error: null })
+    
+    try {
+      const response = await addressService.getAll()
+      
+      if (response.success) {
+        const addresses = response.data
+        
+        // Cari alamat default
+        // Jika ada yang is_default=true, itu yang jadi default
+        // Jika tidak ada, defaultAddress = null
+        const defaultAddr = addresses.find(addr => addr.is_default) || null
+        
+        set({ 
+          addresses,
+          defaultAddress: defaultAddr 
+        })
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Gagal mengambil alamat' })
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+  
+  /**
+   * Tambah alamat baru
+   * 
+   * @param {Object} data - Data alamat baru
+   * @returns {Promise<Object>}
+   */
+  addAddress: async (data) => {
+    set({ isLoading: true, error: null })
+    
+    try {
+      const response = await addressService.create(data)
+      
+      if (response.success) {
+        const newAddress = response.data
+        
+        // Tambah ke array addresses
+        const addresses = [...get().addresses, newAddress]
+        
+        // Update defaultAddress jika perlu
+        // Jika alamat baru adalah default, maka defaultAddress = newAddress
+        // Jika tidak, tetap alamat default yang lama
+        let defaultAddr = get().defaultAddress
+        if (newAddress.is_default) {
+          defaultAddr = newAddress
+          // Update is_default di alamat lain jadi false
+          addresses.map(addr => 
+            addr.id !== newAddress.id ? { ...addr, is_default: false } : addr
+          )
+        }
+        
+        set({ addresses, defaultAddress: defaultAddr })
+        
+        return response
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Gagal menambah alamat' })
+      throw err
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+  
+  /**
+   * Update alamat
+   * 
+   * @param {number} id - Address ID
+   * @param {Object} data - Data update
+   */
+  updateAddress: async (id, data) => {
+    set({ isLoading: true, error: null })
+    
+    try {
+      const response = await addressService.update(id, data)
+      
+      if (response.success) {
+        // Update di array
+        const addresses = get().addresses.map(addr =>
+          addr.id === id ? response.data : addr
+        )
+        
+        // Update defaultAddress
+        let defaultAddr = get().defaultAddress
+        
+        if (response.data.is_default) {
+          // Jika yang di-update jadi default
+          defaultAddr = response.data
+          // Yang lain bukan default
+          addresses.map(addr => 
+            addr.id !== id ? { ...addr, is_default: false } : addr
+          )
+        } else if (defaultAddr?.id === id) {
+          // Jika yang di-update adalah default yang lama
+          defaultAddr = null
+        }
+        
+        set({ addresses, defaultAddress: defaultAddr })
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Gagal update alamat' })
+      throw err
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+  
+  /**
+   * Hapus alamat
+   * 
+   * @param {number} id - Address ID
+   */
+  deleteAddress: async (id) => {
+    set({ isLoading: true, error: null })
+    
+    try {
+      const response = await addressService.delete(id)
+      
+      if (response.success) {
+        // Hapus dari array
+        const addresses = get().addresses.filter(addr => addr.id !== id)
+        
+        // Update defaultAddress
+        // Jika yang dihapus adalah default, set yang pertama sebagai default
+        // Jika tidak ada yang tersisa, defaultAddress = null
+        let defaultAddr = get().defaultAddress
+        if (defaultAddr?.id === id) {
+          defaultAddr = addresses[0] || null
+        }
+        
+        set({ addresses, defaultAddress: defaultAddr })
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Gagal hapus alamat' })
+      throw err
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+  
+  /**
+   * Set alamat default
+   * Convenience method untuk setDefault tanpa harus write manual
+   * 
+   * @param {number} id - Address ID
+   */
+  setDefault: async (id) => {
+    // Panggil updateAddress dengan is_default: true
+    try {
+      await get().updateAddress(id, { is_default: true })
+    } catch (err) {
+      throw err
+    }
+  },
+}))
+
+export default useAddressStore
+```
+
+---
+
+### 5.16.5 Ringkasan & Best Practices
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                      BEST PRACTICES                                                │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  1. SERVICE PATTERN                                                            │
+│  ─────────────────────────────────────────────────────────────────────────────  │
+│  ✅ Setiap domain punya service sendiri                                         │
+│     authService → auth, productService → products, dll                          │
+│  ✅ Satu fungsi per endpoint                                                   │
+│  ✅ Return Promise<Object> dengan response.data                                 │
+│  ✅ Handle error dengan try/catch                                              │
+│  ✅ Set isLoading di store                                                      │
+│                                                                                  │
+│  2. STORE PATTERN                                                              │
+│  ─────────────────────────────────────────────────────────────────────────────  │
+│  ✅ State minimal - hanya data yang perlu di-share                             │
+│  ✅ Getters untuk computed values                                               │
+│  ✅ Actions untuk semua mutation state                                          │
+│  ✅ Gunakan persist untuk data yang perlu survive refresh                      │
+│  ✅ partialize untuk hemat localStorage                                        │
+│                                                                                  │
+│  3. PAGING COMPONENT VS STORE                                                  │
+│  ─────────────────────────────────────────────────────────────────────────────  │
+│                                                                                  │
+│  COMPONENT (Page)                              STORE                            │
+│  ┌───────────────────────┐                ┌───────────────────────┐            │
+│  │                       │                │                       │            │
+│  │ const [page, setPage] │                │ pagination: {         │            │
+│  │   = useState(1)      │                │   current_page: 1,    │            │
+│  │                       │                │   last_page: 5        │            │
+│  │ useEffect(() => {     │                │ }                     │            │
+│  │   fetchOrders(page)   │                │                       │            │
+│  │ }, [page])            │                │                       │            │
+│  │                       │                │                       │            │
+│  │ return <Pagination    │                │                       │            │
+│  │   onChange={setPage}  │                │                       │            │
+│  │ />                    │                │                       │            │
+│  └───────────────────────┘                └───────────────────────┘            │
+│                                                                                  │
+│  Kenapa page di component, bukan store?                                         │
+│  - Page adalah state LOCAL (halaman ini saja)                                   │
+│  - Tidak perlu di-share ke komponen lain                                       │
+│  - Lebih sederhana dan predictable                                              │
+│                                                                                  │
+│  Tapi pagination metadata di store?                                              │
+│  - Metadata perlu di-share (total pages, total items)                          │
+│  - Dipakai untuk display di berbagai tempat                                    │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 5.17 Checklist BAB 5
 
 - [ ] Buat productStore.js
 - [ ] Buat orderStore.js

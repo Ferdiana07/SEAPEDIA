@@ -59,7 +59,7 @@ const SellerDashboardPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Pesanan Baru</p>
-                <p className="text-3xl font-bold text-warning-600 mt-1">
+                <p className="text-3xl font-bold text-yellow-500 mt-1">
                   {stats.pendingOrders}
                 </p>
               </div>
@@ -71,7 +71,7 @@ const SellerDashboardPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Pesanan Selesai</p>
-                <p className="text-3xl font-bold text-success-600 mt-1">
+                <p className="text-3xl font-bold text-green-600 mt-1">
                   {stats.completedOrders}
                 </p>
               </div>

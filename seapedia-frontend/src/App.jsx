@@ -14,6 +14,8 @@ import RegisterPage from './pages/RegisterPage'
 import CartPage from './pages/dashboard/buyer/CartPage'
 import OrdersPage from './pages/dashboard/buyer/OrdersPage'
 import WalletPage from './pages/dashboard/buyer/WalletPage'
+import AddressListPage from './pages/dashboard/buyer/AddressListPage'
+import AddressFormPage from './pages/dashboard/buyer/AddressFormPage'
 import SellerDashboardPage from './pages/dashboard/seller/DashboardPage'
 import SellerProductsPage from './pages/dashboard/seller/ProductsPage'
 import DriverOrdersPage from './pages/dashboard/driver/OrdersPage'
@@ -151,6 +153,30 @@ function App() {
               element={
                 <RoleRoute role="buyer">
                   <WalletPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="/buyer/addresses"
+              element={
+                <RoleRoute role="buyer">
+                  <AddressListPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="/buyer/addresses/new"
+              element={
+                <RoleRoute role="buyer">
+                  <AddressFormPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="/buyer/addresses/:id/edit"
+              element={
+                <RoleRoute role="buyer">
+                  <AddressFormPage />
                 </RoleRoute>
               }
             />

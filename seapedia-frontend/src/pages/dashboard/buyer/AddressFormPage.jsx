@@ -1,5 +1,5 @@
 // File: src/pages/dashboard/buyer/AddressFormPage.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
@@ -14,11 +14,11 @@ const AddressFormPage = () => {
   const navigate = useNavigate()
   const { id } = useParams()
   const isEdit = !!id
-  
+
   // Stores
-  const { addAddress, updateAddress } = useAddressStore()
+  const { addresses, addAddress, updateAddress, fetchAddresses } = useAddressStore()
   const { success, error: showError } = useUIStore()
-  
+
   // Form state
   const [formData, setFormData] = useState({
     label: '',
@@ -29,6 +29,27 @@ const AddressFormPage = () => {
   })
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
+
+  // Fetch addresses and populate form when editing
+  useEffect(() => {
+    fetchAddresses()
+  }, [])
+
+  // Populate form when addresses are loaded (edit mode)
+  useEffect(() => {
+    if (isEdit && id && addresses.length > 0) {
+      const address = addresses.find(a => a.id === parseInt(id))
+      if (address) {
+        setFormData({
+          label: address.label || '',
+          recipient_name: address.recipient_name || '',
+          phone: address.phone || '',
+          full_address: address.full_address || '',
+          is_default: address.is_default || false,
+        })
+      }
+    }
+  }, [id, isEdit, addresses])
   
   // Handle input change
   const handleChange = (e) => {
@@ -129,13 +150,13 @@ const AddressFormPage = () => {
               )}
             </div>
             
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 name="is_default"
                 checked={formData.is_default}
                 onChange={handleChange}
-                className="rounded"
+                className="rounded text-primary-500 focus:ring-primary-500"
               />
               <span className="text-gray-700">Jadikan alamat default</span>
             </label>

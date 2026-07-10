@@ -1,5 +1,5 @@
 // File: src/pages/dashboard/buyer/CartPage.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
@@ -28,10 +28,10 @@ const CartPage = () => {
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   
   // Fetch data on mount
-  useState(() => {
+  useEffect(() => {
     fetchAddresses()
     fetchWallet()
-  })
+  }, [])
   
   // Set initial selected address
   const selectedAddress = selectedAddressId 
