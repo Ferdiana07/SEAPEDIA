@@ -1,18 +1,19 @@
 <?php
+// File: app/Models/Product.php
+// Penjelasan: Model Product untuk interaksi dengan tabel products
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
     use HasFactory;
-
+    
     /**
-     * Atribut yang dapat diisi secara massal.
-     *
-     * @var array<int, string>
+     * Mass assignable attributes.
      */
     protected $fillable = [
         'store_id',
@@ -21,159 +22,159 @@ class Product extends Model
         'price',
         'stock',
         'image_url',
-        'is_active',
+        // 'is_active' ← sebaiknya tidakfillable
     ];
-
+    
     /**
-     * Atribut yang perlu di-cast ke tipe tertentu.
-     *
-     * @var array<string, string>
+     * Castable attributes.
      */
     protected $casts = [
-        'price' => 'decimal:2',
+        'price' => 'integer',  // ⭐ Simpan sebagai integer
         'stock' => 'integer',
         'is_active' => 'boolean',
     ];
-
+    
     /**
-     * ============================================================
-     * RELASI
-     * ============================================================
+     * Default attribute values.
      */
-
+    protected $attributes = [
+        'stock' => 0,
+        'is_active' => true,
+    ];
+    
+    // =================================================================
+    // RELATIONSHIPS
+    // =================================================================
+    
     /**
-     * Mendapatkan toko yang memiliki produk ini
+     * Product dimiliki oleh satu Store
+     * 
+     * @return BelongsTo
+     * 
+     * Penggunaan:
+     * ```php
+     * $product = Product::find(1);
+     * $store = $product->store; // Returns Store object
+     * $seller = $product->store->user; // Returns User (seller)
+     * ```
      */
-    public function store()
+    public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
     }
-
+    
+    // =================================================================
+    // SCOPES
+    // =================================================================
+    
     /**
-     * Mendapatkan semua item cart untuk produk ini
-     */
-    public function cartItems()
-    {
-        return $this->hasMany(CartItem::class);
-    }
-
-    /**
-     * Mendapatkan semua review untuk produk ini
-     */
-    public function reviews()
-    {
-        return $this->hasMany(Review::class);
-    }
-
-    /**
-     * Mendapatkan semua item pesanan untuk produk ini
-     */
-    public function orderItems()
-    {
-        return $this->hasMany(OrderItem::class);
-    }
-
-    /**
-     * ============================================================
-     * SCOPE QUERY
-     * ============================================================
-     */
-
-    /**
-     * Scope untuk mendapatkan hanya produk yang aktif
+     * Scope: Hanya produk aktif
      */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
-
+    
     /**
-     * Scope untuk mendapatkan produk yang memiliki stok
+     * Scope: Hanya produk dengan stok
      */
     public function scopeInStock($query)
     {
         return $query->where('stock', '>', 0);
     }
-
+    
     /**
-     * Scope untuk mencari produk berdasarkan nama
+     * Scope: Pencarian berdasarkan nama
      */
-    public function scopeSearch($query, string $search)
+    public function scopeSearch($query, $keyword)
     {
-        return $query->where('name', 'like', "%{$search}%");
+        return $query->where('name', 'LIKE', "%{$keyword}%");
     }
-
+    
     /**
-     * Scope untuk menyaring berdasarkan rentang harga
+     * Scope: Filter berdasarkan range harga
      */
-    public function scopePriceRange($query, $min = null, $max = null)
+    public function scopePriceRange($query, $min, $max)
     {
-        if ($min !== null) {
-            $query->where('price', '>=', $min);
-        }
-        if ($max !== null) {
-            $query->where('price', '<=', $max);
-        }
-        return $query;
+        return $query->whereBetween('price', [$min, $max]);
     }
-
+    
+    // =================================================================
+    // ACCESSORS & MUTATORS
+    // =================================================================
+    
     /**
-     * ============================================================
-     * METHOD HELPER
-     * ============================================================
-     */
-
-    /**
-     * Memeriksa apakah produk ada stoknya
-     */
-    public function isInStock(): bool
-    {
-        return $this->stock > 0;
-    }
-
-    /**
-     * Mengurangi stok sebanyak jumlah tertentu
-     */
-    public function reduceStock(int $quantity): bool
-    {
-        if ($this->stock < $quantity) {
-            return false;
-        }
-
-        $this->decrement('stock', $quantity);
-        return true;
-    }
-
-    /**
-     * Menambah stok sebanyak jumlah tertentu
-     */
-    public function addStock(int $quantity): void
-    {
-        $this->increment('stock', $quantity);
-    }
-
-    /**
-     * Mendapatkan harga yang sudah diformat
+     * Accessor: Format harga untuk display
+     * 
+     * Penggunaan:
+     * ```php
+     * $product = Product::find(1);
+     * echo $product->formatted_price;
+     * // "Rp 25.000"
+     * ```
      */
     public function getFormattedPriceAttribute(): string
     {
         return 'Rp ' . number_format($this->price, 0, ',', '.');
     }
-
+    
     /**
-     * Mendapatkan rating rata-rata dari review
+     * Accessor: Cek apakah stok cukup
      */
-    public function getAverageRatingAttribute(): ?float
+    public function getHasStockAttribute(): bool
     {
-        $avg = $this->reviews()->avg('rating');
-        return $avg ? round($avg, 1) : null;
+        return $this->stock > 0;
     }
-
+    
     /**
-     * Mendapatkan jumlah review
+     * Mutator: Set price dari input user
+     * 
+     * Penjelasan:
+     * Jika user input "25000" (string), konversi ke integer
+     * Hapus titik ribuan: "Rp 25.000" → 25000
      */
-    public function getReviewCountAttribute(): int
+    public function setPriceAttribute($value)
     {
-        return $this->reviews()->count();
+        // Hapus karakter non-numerik (titik, koma, Rp, spasi)
+        $cleaned = preg_replace('/[^0-9]/', '', $value);
+        $this->attributes['price'] = (int) $cleaned;
+    }
+    
+    // =================================================================
+    // HELPER METHODS
+    // =================================================================
+    
+    /**
+     * Kurangi stok
+     * 
+     * @param int $quantity
+     * @return bool
+     */
+    public function reduceStock(int $quantity): bool
+    {
+        if ($this->stock < $quantity) {
+            return false; // Stok tidak cukup
+        }
+        
+        $this->decrement('stock', $quantity);
+        return true;
+    }
+    
+    /**
+     * Tambah stok
+     * 
+     * @param int $quantity
+     */
+    public function addStock(int $quantity): void
+    {
+        $this->increment('stock', $quantity);
+    }
+    
+    /**
+     * Cek apakah dimiliki oleh user tertentu
+     */
+    public function isOwnedByUser(int $userId): bool
+    {
+        return $this->store->user_id === $userId;
     }
 }
