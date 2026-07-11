@@ -1,78 +1,129 @@
 <?php
-// File: database/migrations/2024_01_15_000001_create_stores_table.php
-// Penjelasan: Membuat tabel stores untuk menyimpan data toko seller
+// File: app/Http/Requests/ProductRequest.php
+// Penjelasan: Validasi untuk request CRUD produk
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace App\Http\Requests;
 
-return new class extends Migration
+use Illuminate\Foundation\Http\FormRequest;
+
+class ProductRequest extends FormRequest
 {
     /**
-     * Run the migrations.
-     * 
-     * Penjelasan:
-     * Migration ini membuat tabel stores yang menyimpan informasi toko.
-     * 
-     * Relasi:
-     * - 1 User memiliki 1 Store (1:1)
-     * - 1 Store memiliki banyak Products (1:N)
-     * 
-     * Kenapa user_id UNIQUE?
-     * → Karena 1 user (seller) hanya boleh punya 1 toko
-     * → Jika tidak unique, 1 user bisa punya banyak toko
+     * Determine if the user is authorized to make this request.
+     *
+     * @return bool
      */
-    public function up(): void
+    public function authorize(): bool
     {
-        Schema::create('stores', function (Blueprint $table) {
-            // Primary Key
-            $table->id();
-            
-            // Foreign Key ke users
-            // onDelete('cascade') → jika user dihapus, store ikut terhapus
-            // unique() → 1 user = 1 store
-            $table->foreignId('user_id')
-                  ->unique()  // ⭐ Kunci: 1 user hanya boleh punya 1 toko
-                  ->constrained('users')
-                  ->onDelete('cascade');
-            
-            // Nama toko (UNIQUE untuk prevent duplicate names)
-            // Ini penting karena storefronts mencari toko berdasarkan nama
-            $table->string('name')->unique();
-            
-            // Deskripsi toko (nullable karena boleh kosong)
-            $table->text('description')->nullable();
-            
-            // Alamat fisik toko
-            $table->string('address');
-            
-            // Nomor telepon toko
-            $table->string('phone');
-            
-            // URL gambar/logo toko (nullable, bisa ditambahkan nanti)
-            $table->string('image_url')->nullable();
-            
-            // Status aktif/tidak
-            // false = toko dinonaktifkan (bisa terjadi jika违反规则)
-            $table->boolean('is_active')->default(true);
-            
-            // Timestamps (created_at, updated_at)
-            $table->timestamps();
-            
-            // Index untuk query yang sering
-            // Sering dicari berdasarkan nama
-            $table->index('name');
-            
-            // Sering filter berdasarkan status aktif
-            $table->index('is_active');
-        });
+        // User harus seller dan punya toko
+        return auth()->check()
+            && auth()->user()->hasRole('seller')
+            && auth()->user()->store;
     }
 
     /**
-     * Reverse the migrations.
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, mixed>
      */
-    public function down(): void
+    public function rules(): array
     {
-        Schema::dropIfExists('stores');
+        // Tentukan apakah ini create atau update
+        $isCreate = $this->isMethod('post');
+
+        return [
+            'name' => [
+                $isCreate ? 'required' : 'sometimes',
+                'string',
+                'max:255',
+            ],
+
+            'description' => [
+                'nullable',
+                'string',
+                'max:2000',
+            ],
+
+            'price' => [
+                $isCreate ? 'required' : 'sometimes',
+                'integer',
+                'min:100',
+                'max:999999999',
+            ],
+
+            'stock' => [
+                $isCreate ? 'required' : 'sometimes',
+                'integer',
+                'min:0',
+                'max:999999',
+            ],
+
+            'image_url' => [
+                'nullable',
+                'url',
+                'max:500',
+            ],
+        ];
     }
-};
+
+    /**
+     * Custom error messages.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Nama produk wajib diisi',
+            'name.max' => 'Nama produk maksimal 255 karakter',
+
+            'price.required' => 'Harga produk wajib diisi',
+            'price.integer' => 'Harga harus berupa angka bulat',
+            'price.min' => 'Harga minimal Rp 100',
+            'price.max' => 'Harga maksimal Rp 1.000.000.000',
+
+            'stock.required' => 'Stok produk wajib diisi',
+            'stock.integer' => 'Stok harus berupa angka bulat',
+            'stock.min' => 'Stok minimal 0',
+            'stock.max' => 'Stok maksimal 999.999',
+
+            'image_url.url' => 'URL gambar tidak valid',
+        ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        // Jika price ada dan berupa string dengan formatting
+        if ($this->has('price') && is_string($this->price)) {
+            // Hapus karakter non-numerik
+            $cleaned = preg_replace('/[^0-9]/', '', $this->price);
+            $this->merge(['price' => (int) $cleaned]);
+        }
+
+        // Pastikan stock adalah integer
+        if ($this->has('stock')) {
+            $this->merge(['stock' => (int) $this->stock]);
+        }
+    }
+
+    /**
+     * Handle a failed authorization attempt.
+     */
+    protected function failedAuthorization()
+    {
+        if (!auth()->check()) {
+            abort(401, 'Silakan login terlebih dahulu');
+        }
+
+        if (!auth()->user()->hasRole('seller')) {
+            abort(403, 'Hanya pengguna dengan role Seller yang dapat mengelola produk');
+        }
+
+        if (!auth()->user()->store) {
+            abort(400, 'Anda harus membuat toko terlebih dahulu');
+        }
+    }
+}

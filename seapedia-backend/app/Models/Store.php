@@ -30,7 +30,7 @@ class Store extends Model
         'description',
         'address',
         'phone',
-        'image_url',
+        'logo_url',
         // 'is_active' ← sebaiknya tidakfillable untuk keamanan
     ];
     

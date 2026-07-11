@@ -80,7 +80,7 @@ class CreateStoreRequest extends FormRequest
             ],
             
             // Gambar (optional)
-            'image_url' => [
+            'logo_url' => [
                 'nullable',             // Boleh kosong
                 'url',                  // Harus valid URL
                 'max:500',              // Maksimal 500 karakter
@@ -112,7 +112,7 @@ class CreateStoreRequest extends FormRequest
             'phone.required' => 'Nomor telepon wajib diisi',
             'phone.max' => 'Nomor telepon maksimal 20 karakter',
             
-            'image_url.url' => 'URL gambar tidak valid',
+            'logo_url.url' => 'URL logo tidak valid',
         ];
     }
     

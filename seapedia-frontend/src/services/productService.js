@@ -1,14 +1,14 @@
+// File: src/services/productService.js
+// Penjelasan: Service untuk operasi Product di frontend
+
 import api from './api'
 
-// ============================================================
-// PRODUCT SERVICE
-// ============================================================
-// Fungsi-fungsi untuk CRUD produk
-
 const productService = {
+  // =================================================================
+  // PUBLIC: Ambil semua produk aktif
+  // =================================================================
   /**
-   * Ambil semua produk
-   * @param {Object} params - { page, per_page, search, category }
+   * @param {Object} params - { search, store_id, min_price, max_price, sort_by, sort_order, page, per_page }
    * @returns {Promise<Object>}
    */
   getAll: async (params = {}) => {
@@ -16,8 +16,10 @@ const productService = {
     return response.data
   },
   
+  // =================================================================
+  // PUBLIC: Ambil detail satu produk
+  // =================================================================
   /**
-   * Ambil satu produk
    * @param {number} id - Product ID
    * @returns {Promise<Object>}
    */
@@ -26,44 +28,62 @@ const productService = {
     return response.data
   },
   
+  // =================================================================
+  // SELLER: Ambil produk sendiri
+  // =================================================================
   /**
-   * Ambil produk dari toko tertentu
-   * @param {number} storeId - Store ID
    * @returns {Promise<Object>}
    */
-  getByStore: async (storeId) => {
-    const response = await api.get(`/stores/${storeId}/products`)
+  getMyProducts: async () => {
+    const response = await api.get('/seller/products')
     return response.data
   },
   
+  // =================================================================
+  // SELLER: Statistik produk
+  // =================================================================
   /**
-   * Buat produk baru (Seller)
-   * @param {Object} data - Product data
+   * @returns {Promise<Object>} { total_products, active_products, out_of_stock }
+   */
+  getMyStats: async () => {
+    const response = await api.get('/seller/products/stats')
+    return response.data
+  },
+  
+  // =================================================================
+  // SELLER: Tambah produk baru
+  // =================================================================
+  /**
+   * @param {Object} data - { name, description, price, stock, image_url }
    * @returns {Promise<Object>}
    */
   create: async (data) => {
-    const response = await api.post('/products', data)
+    const response = await api.post('/seller/products', data)
     return response.data
   },
   
+  // =================================================================
+  // SELLER: Update produk
+  // =================================================================
   /**
-   * Update produk (Seller)
    * @param {number} id - Product ID
-   * @param {Object} data - Product data
+   * @param {Object} data - Field yang diupdate
    * @returns {Promise<Object>}
    */
   update: async (id, data) => {
-    const response = await api.put(`/products/${id}`, data)
+    const response = await api.put(`/seller/products/${id}`, data)
     return response.data
   },
   
+  // =================================================================
+  // SELLER: Hapus produk
+  // =================================================================
   /**
-   * Hapus produk (Seller)
    * @param {number} id - Product ID
    * @returns {Promise<Object>}
    */
   delete: async (id) => {
-    const response = await api.delete(`/products/${id}`)
+    const response = await api.delete(`/seller/products/${id}`)
     return response.data
   },
 }

@@ -11,9 +11,9 @@ Dokumentasi pembelajaran membangun platform e-commerce SEAPEDIA dari nol.
 | 02 | Database & Migration | ✅ Selesai |
 | 03 | Backend - User & Auth | ✅ Selesai |
 | 04 | Frontend - UI Foundations | ✅ Selesai |
-| 05 | Frontend - Pages & State | 🔜 Mendatang |
-| 06 | Backend - Store & Products | 🔜 Mendatang |
-| 07 | Backend - Wallet, Cart, Orders | 🔜 Mendatang |
+| 05 | Frontend - Pages & State | ✅ Selesai |
+| 06 | Backend - Store & Products | ✅ Selesai |
+| 07 | Backend - Wallet, Cart, Orders | ✅ Selesai |
 | 08 | Frontend - Dashboards | 🔜 Mendatang |
 | 09 | Reviews & Delivery | 🔜 Mendatang |
 | 10 | Deployment & Documentation | 🔜 Mendatang |

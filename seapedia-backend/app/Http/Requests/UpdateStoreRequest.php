@@ -3,6 +3,9 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
 class UpdateStoreRequest extends FormRequest
 {
     public function authorize(): bool
@@ -45,7 +48,7 @@ class UpdateStoreRequest extends FormRequest
                 'max:20',
             ],
             
-            'image_url' => [
+            'logo_url' => [
                 'nullable',
                 'url',
                 'max:500',
@@ -57,7 +60,7 @@ class UpdateStoreRequest extends FormRequest
     {
         return [
             'name.unique' => 'Nama toko sudah digunakan oleh toko lain',
-            'image_url.url' => 'URL gambar tidak valid',
+            'logo_url.url' => 'URL logo tidak valid',
         ];
     }
 }
