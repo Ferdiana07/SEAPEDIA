@@ -150,7 +150,8 @@ class Transaction extends Model
     public function getFormattedAmountAttribute(): string
     {
         $prefix = $this->isPositive() ? '+' : '-';
-        return $prefix . 'Rp ' . number_format(abs($this->amount), 0, ',', '.');
+        $amount = (float) $this->amount;
+        return $prefix . 'Rp ' . number_format(abs($amount), 0, ',', '.');
     }
 
     /**

@@ -221,7 +221,8 @@ class Order extends Model
      */
     public function getFormattedTotalAttribute(): string
     {
-        return 'Rp ' . number_format($this->total_amount, 0, ',', '.');
+        $amount = (float) $this->total_amount;
+        return 'Rp ' . number_format($amount, 0, ',', '.');
     }
 
     /**
@@ -235,11 +236,19 @@ class Order extends Model
     /**
      * Memeriksa apakah pesanan dapat dibatalkan
      */
-    public function isCancellable(): bool
+    public function canBeCancelled(): bool
     {
         return in_array($this->status, [
             self::STATUS_PACKAGING,
             self::STATUS_WAITING_SHIPPER,
         ]);
+    }
+
+    /**
+     * Memeriksa apakah pesanan dapat dibatalkan (alias)
+     */
+    public function isCancellable(): bool
+    {
+        return $this->canBeCancelled();
     }
 }

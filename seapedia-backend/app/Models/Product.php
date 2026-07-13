@@ -115,7 +115,8 @@ class Product extends Model
      */
     public function getFormattedPriceAttribute(): string
     {
-        return 'Rp ' . number_format($this->price, 0, ',', '.');
+        $price = (float) $this->price;
+        return 'Rp ' . number_format($price, 0, ',', '.');
     }
     
     /**

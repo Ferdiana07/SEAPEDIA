@@ -1,10 +1,14 @@
 <?php
 // File: routes/api.php
-// Penjelasan: Definisi API routes untuk Auth, Store & Product
+// Penjelasan: Definisi API routes untuk SEAPEDIA
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StoreController;
+use App\Http\Controllers\WalletController;
+use App\Http\Controllers\AddressController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\OrderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -78,10 +82,87 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // =================================================================
-    // SELLER: MY STORE
+    // BUYER ROUTES
     // =================================================================
-    // Routes untuk seller mengelola toko dan produk mereka sendiri
-    // Path prefix: /api/stores/my atau /api/seller/products
+
+    // Wallet
+    Route::prefix('wallet')->group(function () {
+        // GET /api/wallet - Ambil data wallet
+        Route::get('/', [WalletController::class, 'show']);
+
+        // POST /api/wallet/topup - Top up saldo
+        Route::post('/topup', [WalletController::class, 'topUp']);
+    });
+
+    // Transactions
+    // GET /api/transactions - Riwayat transaksi
+    Route::get('/transactions', [WalletController::class, 'transactions']);
+
+    // Addresses
+    Route::prefix('addresses')->group(function () {
+        // GET /api/addresses - List semua alamat
+        Route::get('/', [AddressController::class, 'index']);
+
+        // POST /api/addresses - Tambah alamat baru
+        Route::post('/', [AddressController::class, 'store']);
+
+        // GET /api/addresses/{id} - Detail alamat
+        Route::get('/{id}', [AddressController::class, 'show'])
+            ->where('id', '[0-9]+');
+
+        // PUT /api/addresses/{id} - Update alamat
+        Route::put('/{id}', [AddressController::class, 'update'])
+            ->where('id', '[0-9]+');
+
+        // DELETE /api/addresses/{id} - Hapus alamat
+        Route::delete('/{id}', [AddressController::class, 'destroy'])
+            ->where('id', '[0-9]+');
+
+        // POST /api/addresses/{id}/set-default - Set alamat default
+        Route::post('/{id}/set-default', [AddressController::class, 'setDefault'])
+            ->where('id', '[0-9]+');
+    });
+
+    // Cart
+    Route::prefix('cart')->group(function () {
+        // GET /api/cart - Ambil isi cart
+        Route::get('/', [CartController::class, 'index']);
+
+        // POST /api/cart/items - Tambah item
+        Route::post('/items', [CartController::class, 'addItem']);
+
+        // PUT /api/cart/items/{id} - Update quantity
+        Route::put('/items/{id}', [CartController::class, 'updateItem'])
+            ->where('id', '[0-9]+');
+
+        // DELETE /api/cart/items/{id} - Hapus item
+        Route::delete('/items/{id}', [CartController::class, 'removeItem'])
+            ->where('id', '[0-9]+');
+
+        // DELETE /api/cart - Kosongkan cart
+        Route::delete('/', [CartController::class, 'clear']);
+    });
+
+    // Orders - Buyer
+    Route::prefix('orders')->group(function () {
+        // GET /api/orders - List pesanan buyer
+        Route::get('/', [OrderController::class, 'index']);
+
+        // POST /api/orders - Checkout (buat pesanan)
+        Route::post('/', [OrderController::class, 'store']);
+
+        // GET /api/orders/{id} - Detail pesanan
+        Route::get('/{id}', [OrderController::class, 'show'])
+            ->where('id', '[0-9]+');
+
+        // POST /api/orders/{id}/cancel - Batalkan pesanan
+        Route::post('/{id}/cancel', [OrderController::class, 'cancel'])
+            ->where('id', '[0-9]+');
+    });
+
+    // =================================================================
+    // SELLER ROUTES
+    // =================================================================
 
     // Store - Milik Seller
     Route::prefix('stores')->group(function () {
@@ -112,6 +193,33 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // DELETE /api/seller/products/{id} - Hapus produk
         Route::delete('/{id}', [ProductController::class, 'destroy'])
+            ->where('id', '[0-9]+');
+    });
+
+    // Seller Orders
+    Route::prefix('seller/orders')->group(function () {
+        // GET /api/seller/orders - List pesanan masuk
+        Route::get('/', [OrderController::class, 'sellerOrders']);
+
+        // PUT /api/seller/orders/{id}/status - Update status
+        Route::put('/{id}/status', [OrderController::class, 'updateStatus'])
+            ->where('id', '[0-9]+');
+    });
+
+    // =================================================================
+    // DRIVER ROUTES
+    // =================================================================
+
+    Route::prefix('driver/orders')->group(function () {
+        // GET /api/driver/orders - List pesanan untuk driver
+        Route::get('/', [OrderController::class, 'driverOrders']);
+
+        // POST /api/driver/orders/{id}/pickup - Ambil pesanan
+        Route::post('/{id}/pickup', [OrderController::class, 'pickupOrder'])
+            ->where('id', '[0-9]+');
+
+        // POST /api/driver/orders/{id}/complete - Selesaikan pesanan
+        Route::post('/{id}/complete', [OrderController::class, 'completeOrder'])
             ->where('id', '[0-9]+');
     });
 });

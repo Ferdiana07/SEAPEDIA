@@ -25,7 +25,7 @@ class Wallet extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'balance' => 'decimal:2',
+        'balance' => 'float',
     ];
 
     /**
@@ -67,7 +67,7 @@ class Wallet extends Model
     /**
      * Menambah (kredit) saldo
      */
-    public function credit(float $amount, string $description = null): Transaction
+    public function credit(float $amount, ?string $description = null): Transaction
     {
         $this->increment('balance', $amount);
 
@@ -81,7 +81,7 @@ class Wallet extends Model
     /**
      * Mengurangi (debit) saldo
      */
-    public function debit(float $amount, ?int $orderId = null, string $description = null): bool
+    public function debit(float $amount, ?int $orderId = null, ?string $description = null): bool
     {
         if (!$this->hasSufficientBalance($amount)) {
             return false;
@@ -102,7 +102,7 @@ class Wallet extends Model
     /**
      * Mengembalikan (refund) saldo
      */
-    public function refund(float $amount, ?int $orderId = null, string $description = null): Transaction
+    public function refund(float $amount, ?int $orderId = null, ?string $description = null): Transaction
     {
         $this->increment('balance', $amount);
 
@@ -119,6 +119,7 @@ class Wallet extends Model
      */
     public function getFormattedBalanceAttribute(): string
     {
-        return 'Rp ' . number_format($this->balance, 0, ',', '.');
+        $balance = (float) $this->balance;
+        return 'Rp ' . number_format($balance, 0, ',', '.');
     }
 }
