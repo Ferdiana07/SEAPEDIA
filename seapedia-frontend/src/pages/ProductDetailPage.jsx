@@ -175,207 +175,212 @@ const ProductDetailPage = () => {
           </ol>
         </nav>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Image */}
-          <div className="bg-white rounded-xl overflow-hidden">
-            <div className="aspect-square">
-              {currentProduct.image_url ? (
-                <img
-                  src={currentProduct.image_url}
-                  alt={currentProduct.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                  <span className="text-6xl text-gray-300">📦</span>
-                </div>
-              )}
+        <div className="flex flex-col lg:flex-row gap-8">
+          
+          {/* ==================== LEFT: IMAGE ==================== */}
+          <div className="w-full lg:w-1/3 flex-shrink-0">
+            <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm sticky top-24">
+              <div className="aspect-square">
+                {currentProduct.image_url ? (
+                  <img
+                    src={currentProduct.image_url}
+                    alt={currentProduct.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <span className="text-6xl text-gray-300">📦</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
-          {/* Product Info */}
-          <div>
-            <Card>
-              {/* Store */}
-              {currentProduct.store && (
-                <Link 
-                  to={`/stores/${currentProduct.store_id}`}
-                  className="inline-block mb-4"
-                >
-                  <Badge variant="secondary" size="md">
-                    🏪 {currentProduct.store.name}
-                  </Badge>
-                </Link>
-              )}
+          {/* ==================== MIDDLE: INFO & REVIEWS ==================== */}
+          <div className="flex-1">
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-6">
               
               {/* Name */}
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 {currentProduct.name}
               </h1>
               
+              {/* Rating Summary (Top) */}
+              <div className="flex items-center text-sm mb-4 pb-4 border-b border-gray-100 gap-4">
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-400">★</span>
+                  <span className="font-bold">{reviewSummary.average_rating ? Number(reviewSummary.average_rating).toFixed(1) : '-'}</span>
+                  <span className="text-gray-500">({reviewSummary.total_reviews} rating)</span>
+                </div>
+                <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                <div className="text-gray-600">
+                  Terjual <span className="font-bold">100+</span>
+                </div>
+              </div>
+
               {/* Price */}
-              <p className="text-3xl font-bold text-primary-600 mb-4">
+              <h2 className="text-3xl font-extrabold text-gray-900 mb-6">
                 {formatPrice(currentProduct.price)}
-              </p>
-              
-              {/* Stock */}
-              <div className="flex items-center gap-4 mb-6">
-                <Badge variant={currentProduct.stock > 0 ? 'success' : 'danger'} dot>
-                  {currentProduct.stock > 0 ? 'Tersedia' : 'Stok Habis'}
-                </Badge>
-                <span className="text-gray-600">
-                  Stok: {currentProduct.stock}
-                </span>
+              </h2>
+
+              {/* Description Tabs */}
+              <div className="mb-2">
+                <h3 className="font-bold text-gray-900 border-b-2 border-primary-500 inline-block pb-2 text-primary-600">
+                  Detail
+                </h3>
               </div>
-              
-              {/* Description */}
-              <div className="mb-6">
-                <h3 className="font-semibold text-gray-900 mb-2">Deskripsi</h3>
-                <p className="text-gray-600 whitespace-pre-line">
-                  {currentProduct.description || 'Tidak ada deskripsi'}
-                </p>
+              <div className="text-gray-700 whitespace-pre-line text-sm leading-relaxed pb-6 border-b border-gray-100 mb-6">
+                {currentProduct.description || 'Tidak ada deskripsi'}
               </div>
-              
-              {/* Quantity & Add to Cart */}
-              {currentProduct.stock > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <label className="font-medium text-gray-700">Jumlah:</label>
-                    <div className="flex items-center border rounded-lg">
-                      <button
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="px-4 py-2 text-gray-600 hover:bg-gray-100"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, Math.min(currentProduct.stock, parseInt(e.target.value) || 1)))}
-                        className="w-16 text-center border-none focus:ring-0"
-                        min="1"
-                        max={currentProduct.stock}
-                      />
-                      <button
-                        onClick={() => setQuantity(Math.min(currentProduct.stock, quantity + 1))}
-                        className="px-4 py-2 text-gray-600 hover:bg-gray-100"
-                      >
-                        +
-                      </button>
-                    </div>
+
+              {/* Store Profile */}
+              {currentProduct.store && (
+                <div className="flex items-center gap-4 py-4">
+                  <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold text-xl">
+                    {currentProduct.store.name.charAt(0)}
                   </div>
-                  
-                  <div className="flex gap-4">
-                    <Button
-                      onClick={handleAddToCart}
-                      className="flex-1"
-                      leftIcon={
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                      }
-                    >
-                      Tambah ke Cart
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        if (!isAuthenticated()) {
-                          warning('Silakan login untuk memberi review')
-                          return
-                        }
-                        setShowReviewModal(true)
-                      }}
-                    >
-                      📝 Beri Review
-                    </Button>
+                  <div>
+                    <Link to={`/stores/${currentProduct.store_id}`} className="font-bold text-gray-900 hover:text-primary-600">
+                      {currentProduct.store.name}
+                    </Link>
+                    <p className="text-xs text-green-600 font-semibold mt-1">• Online</p>
                   </div>
+                  <Button variant="outline" size="sm" className="ml-auto rounded-full font-bold">
+                    Follow
+                  </Button>
                 </div>
               )}
-              
-              {/* Share */}
-              <div className="mt-6 pt-6 border-t">
-                <p className="text-sm text-gray-500">
-                  Bagikan: 
-                  <button className="text-primary-500 hover:underline ml-2">Facebook</button>
-                  <button className="text-primary-500 hover:underline ml-2">Twitter</button>
-                  <button className="text-primary-500 hover:underline ml-2">WhatsApp</button>
-                </p>
-              </div>
-            </Card>
-          </div>
-        </div>
-        
-        {/* Reviews Section */}
-        <div className="mt-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Ulasan Produk</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-yellow-400 text-xl">
-                {'★'.repeat(Math.round(reviewSummary.average_rating || 0))}
-                {'☆'.repeat(5 - Math.round(reviewSummary.average_rating || 0))}
-              </span>
-              <span className="text-gray-700 font-semibold">
-                {(reviewSummary.average_rating || 0).toFixed(1)}
-              </span>
-              <span className="text-gray-500 text-sm">
-                ({reviewSummary.total_reviews || 0} ulasan)
-              </span>
             </div>
-          </div>
-
-          {reviewsLoading ? (
-            <div className="text-center py-8 text-gray-500">Memuat ulasan...</div>
-          ) : reviews.length > 0 ? (
-            <div className="grid gap-4">
-              {reviews.map((review) => (
-                <Card key={review.id}>
-                  <div className="flex items-start gap-4">
-                    {/* Avatar */}
-                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                      {review.user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-gray-900">
-                          {review.user?.name || 'Anonymous'}
-                        </span>
-                        <span className="text-yellow-400">
-                          {'★'.repeat(review.rating)}
-                          {'☆'.repeat(5 - review.rating)}
-                        </span>
-                      </div>
-                      {review.comment && (
-                        <p className="text-gray-600 whitespace-pre-line">{review.comment}</p>
-                      )}
-                      <p className="text-sm text-gray-400 mt-2">
-                        {new Date(review.created_at).toLocaleDateString('id-ID')}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="text-center py-8">
-              <p className="text-gray-500">Belum ada ulasan untuk produk ini</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => {
+            
+            {/* ==================== REVIEWS SECTION ==================== */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" id="reviews-section">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Ulasan Pembeli</h2>
+                <Button variant="ghost" size="sm" className="text-primary-600 font-bold" onClick={() => {
                   if (!isAuthenticated()) {
                     warning('Silakan login untuk memberi review')
                     return
                   }
                   setShowReviewModal(true)
-                }}
-              >
-                Jadilah yang pertama memberikan review
-              </Button>
-            </Card>
-          )}
+                }}>
+                  Tulis Ulasan
+                </Button>
+              </div>
+
+              {reviewsLoading ? (
+                <div className="text-center py-8 text-gray-500">Memuat ulasan...</div>
+              ) : reviews.length > 0 ? (
+                <div className="space-y-6">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="pb-6 border-b border-gray-100 last:border-0 last:pb-0">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-600">
+                          {review.user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-yellow-400 text-sm">
+                              {'★'.repeat(review.rating)}
+                              {'☆'.repeat(5 - review.rating)}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(review.created_at).toLocaleDateString('id-ID')}
+                            </span>
+                          </div>
+                          <span className="font-semibold text-gray-900 text-sm block mb-2">
+                            {review.user?.name || 'Anonymous'}
+                          </span>
+                          {review.comment && (
+                            <p className="text-gray-700 text-sm whitespace-pre-line">{review.comment}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-5xl mb-4">💬</div>
+                  <p className="font-bold text-gray-900 mb-1">Belum ada ulasan</p>
+                  <p className="text-sm text-gray-500 mb-4">Jadilah yang pertama memberikan ulasan untuk produk ini.</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* ==================== RIGHT: KOTAK BELI ==================== */}
+          <div className="w-full lg:w-[320px] flex-shrink-0">
+            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm sticky top-24">
+              <h3 className="font-bold text-gray-900 mb-4">Atur jumlah dan catatan</h3>
+              
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden h-9 w-24">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-8 h-full flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, Math.min(currentProduct.stock, parseInt(e.target.value) || 1)))}
+                    className="w-8 h-full text-center border-none focus:ring-0 p-0 text-sm font-semibold"
+                    min="1"
+                    max={currentProduct.stock}
+                  />
+                  <button
+                    onClick={() => setQuantity(Math.min(currentProduct.stock, quantity + 1))}
+                    className="w-8 h-full flex items-center justify-center text-primary-500 font-bold hover:bg-gray-100 active:bg-gray-200"
+                  >
+                    +
+                  </button>
+                </div>
+                <span className="text-sm text-gray-600">
+                  Stok: <span className="font-bold">{currentProduct.stock}</span>
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center mb-6">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-bold text-lg text-gray-900">
+                  {formatPrice(currentProduct.price * quantity)}
+                </span>
+              </div>
+
+              {currentProduct.stock > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={handleAddToCart}
+                    className="w-full rounded-xl"
+                  >
+                    + Keranjang
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl"
+                  >
+                    Beli Langsung
+                  </Button>
+                </div>
+              ) : (
+                <Button className="w-full rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed" disabled>
+                  Stok Habis
+                </Button>
+              )}
+
+              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-center gap-4 text-gray-500 text-sm">
+                <button className="flex items-center gap-1 hover:text-gray-900">
+                  <span>♡</span> Wishlist
+                </button>
+                <div className="w-px h-4 bg-gray-300"></div>
+                <button className="flex items-center gap-1 hover:text-gray-900">
+                  <span>↗</span> Share
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
       

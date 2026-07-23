@@ -16,7 +16,8 @@ Dokumentasi pembelajaran membangun platform e-commerce SEAPEDIA dari nol.
 | 07 | Backend - Wallet, Cart, Orders | ✅ Selesai |
 | 08 | Frontend - Dashboards | ✅ Selesai |
 | 09 | Reviews & Delivery | ✅ Selesai |
-| 10 | Deployment & Documentation | 🔜 Mendatang |
+| 10 | UI/UX Upgrade (Modern Design) | ✅ Selesai |
+| 11 | Deployment & Documentation | 🔜 Mendatang |
 
 ## 📁 Struktur Folder
 
@@ -56,6 +57,9 @@ docs/
 │
 ├── 09-reviews-delivery/
 │   └── 09-reviews-delivery.md ← BAB 9: Reviews & Delivery
+│
+├── 10-ui-ux-upgrade/
+│   └── 10-ui-ux-upgrade.md    ← BAB 10: UI/UX Upgrade
 │
 └── _reference/
     └── 01-tools-dan-framework.md

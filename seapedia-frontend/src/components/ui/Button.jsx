@@ -64,8 +64,8 @@ const Button = ({
       onClick={onClick}
       className={`
         inline-flex items-center justify-center gap-2
-        font-medium rounded-lg
-        transition-all duration-200
+        font-bold rounded-xl
+        transition-all duration-200 active:scale-[0.98]
         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500
         disabled:cursor-not-allowed
         ${variantStyles[variant]}

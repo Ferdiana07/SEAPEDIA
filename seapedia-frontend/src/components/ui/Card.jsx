@@ -44,8 +44,8 @@ const Card = ({
     <div
       onClick={onClick}
       className={`
-        bg-white rounded-xl
-        ${border ? 'border border-gray-200' : ''}
+        bg-white rounded-2xl
+        ${border ? 'border border-gray-100' : ''}
         ${paddingStyles[padding]}
         ${shadowStyles[shadow]}
         ${hoverStyles}

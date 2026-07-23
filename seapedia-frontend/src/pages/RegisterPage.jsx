@@ -63,16 +63,22 @@ const RegisterPage = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-600 mt-2">Daftar untuk mulai menggunakan SEAPEDIA</p>
-        </div>
         
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="font-extrabold text-3xl text-primary-500 tracking-tight">SEAPEDIA</span>
+          </Link>
+        </div>
+
         {/* Form Card */}
-        <Card padding="lg">
+        <div className="bg-white rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.05)] border border-gray-100 p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-900">Daftar Sekarang</h1>
+            <p className="text-gray-500 mt-2 text-sm">Bergabung dan nikmati kemudahan bertransaksi</p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name */}
             <Input
@@ -154,15 +160,15 @@ const RegisterPage = () => {
           </form>
           
           {/* Login Link */}
-          <div className="mt-6 text-center">
+          <div className="mt-8 text-center text-sm">
             <p className="text-gray-600">
               Sudah punya akun?{' '}
-              <Link to="/login" className="text-primary-500 hover:text-primary-600 font-medium">
-                Login di sini
+              <Link to="/login" className="text-primary-500 hover:text-primary-600 font-bold">
+                Masuk di sini
               </Link>
             </p>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   )

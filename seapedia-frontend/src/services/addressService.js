@@ -54,6 +54,16 @@ const addressService = {
     const response = await api.delete(`/addresses/${id}`)
     return response.data
   },
+
+  /**
+   * Set alamat sebagai default
+   * @param {number} id - Address ID
+   * @returns {Promise<Object>}
+   */
+  setDefault: async (id) => {
+    const response = await api.post(`/addresses/${id}/set-default`)
+    return response.data
+  },
 }
 
 export default addressService

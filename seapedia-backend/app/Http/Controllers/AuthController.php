@@ -43,6 +43,12 @@ class AuthController extends Controller
             'balance' => 0,
         ]);
 
+        // Buat role buyer default dan aktifkan
+        $user->roles()->create([
+            'role' => 'buyer',
+            'is_active' => true,
+        ]);
+
         // Return success (user harus login dulu untuk dapat token)
         return response()->json([
             'success' => true,
@@ -208,14 +214,79 @@ class AuthController extends Controller
 
         // Buat role baru
         $user->roles()->create([
-            'role' => $role,
+            'role'      => $role,
             'is_active' => false, // Default tidak aktif
         ]);
 
         return response()->json([
             'success' => true,
             'message' => "Role '$role' berhasil ditambahkan!",
-            'user' => $this->getUserWithRoles($user->fresh()),
+            'user'    => $this->getUserWithRoles($user->fresh()),
+        ]);
+    }
+
+    /**
+     * ============================================================
+     * UPDATE PROFILE
+     * ============================================================
+     * Update data profil user (name, phone, bio, birth_date, gender, avatar_url)
+     *
+     * Request: { name, phone, bio, birth_date, gender, avatar_url }
+     * Response: { user, message }
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name'       => ['sometimes', 'string', 'max:255'],
+            'phone'      => ['sometimes', 'nullable', 'string', 'max:20'],
+            'bio'        => ['sometimes', 'nullable', 'string', 'max:255'],
+            'birth_date' => ['sometimes', 'nullable', 'date'],
+            'gender'     => ['sometimes', 'nullable', 'in:male,female,other'],
+            'avatar_url' => ['sometimes', 'nullable', 'url', 'max:500'],
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui!',
+            'user'    => $this->getUserWithRoles($user->fresh()),
+        ]);
+    }
+
+    /**
+     * ============================================================
+     * CHANGE PASSWORD
+     * ============================================================
+     * Ganti password user
+     *
+     * Request: { current_password, password, password_confirmation }
+     * Response: { message }
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password'         => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        // Cek current password
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password lama tidak sesuai.',
+            ], 422);
+        }
+
+        $user->update(['password' => Hash::make($validated['password'])]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil diubah!',
         ]);
     }
 
@@ -227,13 +298,17 @@ class AuthController extends Controller
     private function getUserWithRoles(User $user): array
     {
         return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
+            'id'         => $user->id,
+            'name'       => $user->name,
+            'email'      => $user->email,
+            'phone'      => $user->phone,
+            'bio'        => $user->bio,
+            'birth_date' => $user->birth_date,
+            'gender'     => $user->gender,
             'avatar_url' => $user->avatar_url,
-            'roles' => $user->roles->map(function ($role) {
+            'roles'      => $user->roles->map(function ($role) {
                 return [
-                    'role' => $role->role,
+                    'role'      => $role->role,
                     'is_active' => $role->is_active,
                 ];
             }),

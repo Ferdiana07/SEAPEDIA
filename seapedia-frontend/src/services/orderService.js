@@ -112,6 +112,63 @@ const orderService = {
     const response = await api.post(`/driver/orders/${id}/return`, { reason })
     return response.data
   },
+
+  // =================================================================
+  // SELLER ORDER METHODS
+  // =================================================================
+
+  /**
+   * Ambil pesanan masuk untuk seller
+   * Backend: GET /api/seller/orders
+   * @param {Object} params - { status }
+   */
+  getSellerOrders: async (params = {}) => {
+    const response = await api.get('/seller/orders', { params })
+    return response.data
+  },
+
+  /**
+   * Update status pesanan (seller side)
+   * Backend: PUT /api/seller/orders/{id}/status
+   * @param {number} id - Order ID
+   * @param {string} status - Status baru (packaging -> waiting_shipper)
+   */
+  updateSellerOrderStatus: async (id, status) => {
+    const response = await api.put(`/seller/orders/${id}/status`, { status })
+    return response.data
+  },
+
+  // =================================================================
+  // DRIVER ORDER METHODS (alias yang lebih eksplisit)
+  // =================================================================
+
+  /**
+   * Ambil pesanan tersedia untuk driver
+   * Backend: GET /api/driver/orders
+   * @param {Object} params - { status }
+   */
+  getDriverOrders: async (params = {}) => {
+    const response = await api.get('/driver/orders', { params })
+    return response.data
+  },
+
+  /**
+   * Driver ambil pesanan (pickup)
+   * Backend: POST /api/driver/orders/{id}/pickup
+   */
+  pickupOrder: async (id) => {
+    const response = await api.post(`/driver/orders/${id}/pickup`)
+    return response.data
+  },
+
+  /**
+   * Driver selesaikan pesanan
+   * Backend: POST /api/driver/orders/{id}/complete
+   */
+  completeOrder: async (id) => {
+    const response = await api.post(`/driver/orders/${id}/complete`)
+    return response.data
+  },
 }
 
 export default orderService

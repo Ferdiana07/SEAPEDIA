@@ -35,8 +35,8 @@ const productService = {
   /**
    * @returns {Promise<Object>}
    */
-  getMyProducts: async () => {
-    const response = await api.get('/seller/products')
+  getMyProducts: async (params = {}) => {
+    const response = await api.get('/seller/products', { params })
     return response.data
   },
   

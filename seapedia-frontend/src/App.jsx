@@ -19,8 +19,11 @@ import AddressFormPage from './pages/dashboard/buyer/AddressFormPage'
 import SellerDashboardPage from './pages/dashboard/seller/DashboardPage'
 import SellerProductsPage from './pages/dashboard/seller/ProductsPage'
 import SellerStorePage from './pages/dashboard/seller/StorePage'
+import SellerOrdersPage from './pages/dashboard/seller/OrdersPage'
 import DriverDashboardPage from './pages/dashboard/driver/DashboardPage'
 import DriverOrdersPage from './pages/dashboard/driver/OrdersPage'
+import AdminDashboardPage from './pages/dashboard/admin/DashboardPage'
+import AdminUsersPage from './pages/dashboard/admin/UsersPage'
 
 // Stores
 import useAuthStore from './stores/authStore'
@@ -217,6 +220,15 @@ function App() {
               }
             />
 
+            <Route
+              path="/seller/orders"
+              element={
+                <RoleRoute role="seller">
+                  <SellerOrdersPage />
+                </RoleRoute>
+              }
+            />
+
             {/* Driver Routes */}
             <Route
               path="/driver/dashboard"
@@ -231,6 +243,24 @@ function App() {
               element={
                 <RoleRoute role="driver">
                   <DriverOrdersPage />
+                </RoleRoute>
+              }
+            />
+
+            {/* Admin Routes */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <RoleRoute role="admin">
+                  <AdminDashboardPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <RoleRoute role="admin">
+                  <AdminUsersPage />
                 </RoleRoute>
               }
             />

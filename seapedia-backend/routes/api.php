@@ -10,6 +10,7 @@ use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -100,6 +101,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // GET /api/auth/me - Ambil data user yang login
         Route::get('/me', [AuthController::class, 'me']);
+
+        // PUT /api/auth/profile - Update profil
+        Route::put('/profile', [AuthController::class, 'updateProfile']);
+
+        // PUT /api/auth/password - Ganti password
+        Route::put('/password', [AuthController::class, 'changePassword']);
 
         // POST /api/auth/select-role - Pilih role aktif
         Route::post('/select-role', [AuthController::class, 'selectRole']);
@@ -252,5 +259,16 @@ Route::middleware('auth:sanctum')->group(function () {
         // POST /api/driver/orders/{id}/return - Kembalikan pesanan (BAB 9)
         Route::post('/{id}/return', [OrderController::class, 'returnOrder'])
             ->where('id', '[0-9]+');
+    });
+
+    // =================================================================
+    // ADMIN ROUTES
+    // =================================================================
+    Route::prefix('admin')->group(function () {
+        // GET /api/admin/stats - Statistik platform
+        Route::get('/stats', [AdminController::class, 'stats']);
+
+        // GET /api/admin/users - Daftar semua user
+        Route::get('/users', [AdminController::class, 'users']);
     });
 });

@@ -9,16 +9,16 @@ export default {
       // Color palette untuk SEAPEDIA
       colors: {
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',  // Primary color
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#eafff2',
+          100: '#ccfadd',
+          200: '#9df3c0',
+          300: '#5de499',
+          400: '#26ce73',
+          500: '#00aa5b',  // Tokopedia Green
+          600: '#008a47',
+          700: '#006d3a',
+          800: '#005730',
+          900: '#004729',
         },
         secondary: {
           50: '#faf5ff',

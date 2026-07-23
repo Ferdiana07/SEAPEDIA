@@ -63,6 +63,26 @@ const authService = {
     const response = await api.post('/auth/assign-role', { role })
     return response.data
   },
+
+  /**
+   * Update profil user (name, phone, bio, birth_date, gender, avatar_url)
+   * @param {Object} data - Field yang ingin diupdate
+   * @returns {Promise<Object>} { user }
+   */
+  updateProfile: async (data) => {
+    const response = await api.put('/auth/profile', data)
+    return response.data
+  },
+
+  /**
+   * Ganti password user
+   * @param {Object} data - { current_password, password, password_confirmation }
+   * @returns {Promise<Object>}
+   */
+  changePassword: async (data) => {
+    const response = await api.put('/auth/password', data)
+    return response.data
+  },
 }
 
 export default authService

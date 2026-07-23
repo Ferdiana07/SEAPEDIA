@@ -12,7 +12,7 @@
 /* Component styles */
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply px-4 py-2 rounded-xl font-bold transition-all duration-200 active:scale-[0.98];
   }
   
   .btn-primary {
@@ -32,8 +32,8 @@
   }
   
   .input {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 
-           focus:ring-primary-500 focus:border-primary-500 transition-all;
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 
+           focus:ring-primary-500 focus:border-primary-500 transition-all outline-none;
   }
   
   .input-error {
@@ -41,11 +41,15 @@
   }
   
   .card {
-    @apply bg-white rounded-xl shadow-card p-6;
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6;
   }
   
   .card-hover {
-    @apply hover:shadow-card-hover transition-shadow duration-200;
+    @apply hover:shadow-md hover:border-gray-200 transition-all duration-200;
+  }
+  
+  .product-card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200;
   }
 }
 
