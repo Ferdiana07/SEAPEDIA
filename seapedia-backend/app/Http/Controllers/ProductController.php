@@ -97,7 +97,8 @@ class ProductController extends Controller
     {
         $product = Product::with([
             'store:id,name,description,address,phone',
-            'store.user:id,name'  // Info seller
+            'store.user:id,name',  // Info seller
+            'reviews.user:id,name', // Reviews + nama reviewer (BAB 9)
         ])->find($id);
         
         if (!$product) {

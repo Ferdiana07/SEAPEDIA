@@ -1,10 +1,12 @@
 // File: src/pages/dashboard/driver/OrdersPage.jsx
-// Penjelasan: Halaman untuk driver mengelola pesanan
+// Penjelasan: Halaman untuk driver mengelola pesanan.
+// BAB 9: pakai endpoint baru /driver/orders/{id}/{pickup|complete|return}.
 
 import { useState, useEffect } from 'react'
 import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
 import Badge from '../../../components/ui/Badge'
+import Modal from '../../../components/ui/Modal'
 import useOrderStore from '../../../stores/orderStore'
 import useUIStore from '../../../stores/uiStore'
 
@@ -12,12 +14,22 @@ import useUIStore from '../../../stores/uiStore'
 // DRIVER ORDERS PAGE
 // ============================================================
 const DriverOrdersPage = () => {
-  // Stores
-  const { orders, isLoading, fetchOrders, updateStatus } = useOrderStore()
+  // Stores - BAB 9: pakai helper khusus driver
+  const {
+    orders,
+    isLoading,
+    fetchOrders,
+    pickupOrder,
+    deliverOrder,
+    returnOrder,
+  } = useOrderStore()
   const { success, error: showError } = useUIStore()
 
-  // Local state for tab
+  // Local state for tab & return modal
   const [activeTab, setActiveTab] = useState('available') // 'available' | 'active'
+  const [returnTarget, setReturnTarget] = useState(null) // order yg akan di-return
+  const [returnReason, setReturnReason] = useState('')
+  const [submittingReturn, setSubmittingReturn] = useState(false)
 
   // Fetch orders based on tab
   useEffect(() => {
@@ -48,29 +60,46 @@ const DriverOrdersPage = () => {
     })
   }
 
-  // Handle pickup
+  // BAB 9: Handle pickup -> POST /driver/orders/{id}/pickup
   const handlePickup = async (orderId) => {
     try {
-      await updateStatus(orderId, 'shipping')
+      await pickupOrder(orderId)
       success('Pesanan berhasil diambil!')
-      // Refresh list
       fetchOrders({ status: 'waiting_shipper' })
-      setActiveTab('available')
     } catch (err) {
-      showError('Gagal mengambil pesanan')
+      showError(err.message || 'Gagal mengambil pesanan')
     }
   }
 
-  // Handle deliver
+  // BAB 9: Handle deliver -> POST /driver/orders/{id}/complete
   const handleDeliver = async (orderId) => {
     try {
-      await updateStatus(orderId, 'completed')
+      await deliverOrder(orderId)
       success('Pesanan berhasil diantar!')
-      // Refresh list
       fetchOrders({ status: 'shipping' })
-      setActiveTab('active')
     } catch (err) {
-      showError('Gagal mengkonfirmasi pengantaran')
+      showError(err.message || 'Gagal mengkonfirmasi pengantaran')
+    }
+  }
+
+  // BAB 9: Handle return -> POST /driver/orders/{id}/return
+  const handleReturnSubmit = async () => {
+    if (!returnTarget) return
+    if (!returnReason.trim()) {
+      showError('Alasan pengembalian wajib diisi')
+      return
+    }
+    setSubmittingReturn(true)
+    try {
+      await returnOrder(returnTarget.id, returnReason.trim())
+      success('Pesanan dikembalikan. Stok direstore & saldo buyer direfund.')
+      setReturnTarget(null)
+      setReturnReason('')
+      fetchOrders({ status: 'shipping' })
+    } catch (err) {
+      showError(err.message || 'Gagal mengembalikan pesanan')
+    } finally {
+      setSubmittingReturn(false)
     }
   }
 
@@ -180,7 +209,7 @@ const DriverOrdersPage = () => {
                 )}
 
                 {/* Actions */}
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   {order.status === 'waiting_shipper' && (
                     <Button
                       onClick={() => handlePickup(order.id)}
@@ -192,14 +221,26 @@ const DriverOrdersPage = () => {
                   )}
 
                   {order.status === 'shipping' && (
-                    <Button
-                      onClick={() => handleDeliver(order.id)}
-                      className="flex-1"
-                      variant="success"
-                      leftIcon={<span>✅</span>}
-                    >
-                      Konfirmasi Selesai
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => handleDeliver(order.id)}
+                        className="flex-1"
+                        variant="success"
+                        leftIcon={<span>✅</span>}
+                      >
+                        Konfirmasi Selesai
+                      </Button>
+                      <Button
+                        variant="danger"
+                        leftIcon={<span>↩️</span>}
+                        onClick={() => {
+                          setReturnTarget(order)
+                          setReturnReason('')
+                        }}
+                      >
+                        Kembalikan
+                      </Button>
+                    </>
                   )}
                 </div>
               </Card>
@@ -207,6 +248,48 @@ const DriverOrdersPage = () => {
           </div>
         )}
       </div>
+
+      {/* BAB 9: Modal Return Order */}
+      <Modal
+        isOpen={!!returnTarget}
+        onClose={() => setReturnTarget(null)}
+        title={`Kembalikan Pesanan ${returnTarget?.order_number || ''}`}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Pesanan akan ditandai <b>dikembalikan</b>. Stok produk akan
+            di-restore dan saldo buyer akan di-refund otomatis.
+          </p>
+          <div>
+            <label className="block font-medium text-gray-700 mb-2">
+              Alasan Pengembalian <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              rows={3}
+              maxLength={500}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Contoh: Alamat tidak ditemukan, buyer tidak di rumah..."
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              {returnReason.length}/500 karakter
+            </p>
+          </div>
+          <div className="flex gap-4 justify-end">
+            <Button variant="ghost" onClick={() => setReturnTarget(null)}>
+              Batal
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleReturnSubmit}
+              disabled={submittingReturn || !returnReason.trim()}
+            >
+              {submittingReturn ? 'Memproses...' : 'Kembalikan Pesanan'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -110,26 +110,34 @@ const Navbar = () => {
                       
                       {/* Role-specific links */}
                       {activeRole === 'buyer' && (
-                        <Link 
-                          to="/buyer/orders" 
-                          className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        >
-                          My Orders
-                        </Link>
+                        <>
+                          <Link
+                            to="/buyer/dashboard"
+                            className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          >
+                            Dashboard
+                          </Link>
+                          <Link
+                            to="/buyer/orders"
+                            className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                          >
+                            Pesanan Saya
+                          </Link>
+                        </>
                       )}
-                      
+
                       {activeRole === 'seller' && (
-                        <Link 
-                          to="/seller/dashboard" 
+                        <Link
+                          to="/seller/dashboard"
                           className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         >
                           Seller Dashboard
                         </Link>
                       )}
-                      
+
                       {activeRole === 'driver' && (
-                        <Link 
-                          to="/driver/orders" 
+                        <Link
+                          to="/driver/dashboard"
                           className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         >
                           Driver Dashboard

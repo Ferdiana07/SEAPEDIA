@@ -9,6 +9,7 @@ use App\Http\Controllers\WalletController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -50,7 +51,18 @@ Route::prefix('products')->group(function () {
     // GET /api/products/{id} - Detail produk
     Route::get('/{id}', [ProductController::class, 'show'])
         ->where('id', '[0-9]+');
+
+    // ============================================================
+    // REVIEW ROUTES (BAB 9)
+    // ============================================================
+    // GET /api/products/{id}/reviews - Lihat semua review produk
+    //     Bisa diakses publik (guest & user login).
+    Route::get('/{id}/reviews', [ReviewController::class, 'index'])
+        ->where('id', '[0-9]+');
 });
+
+// Review routes - Protected (butuh login)
+// Dipindahkan ke dalam Route::middleware('auth:sanctum') utama di bawah.
 
 /*
 |--------------------------------------------------------------------------
@@ -63,6 +75,21 @@ Route::prefix('products')->group(function () {
 */
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    // =================================================================
+    // REVIEW ROUTES (BAB 9) - butuh login
+    // =================================================================
+    // POST /api/products/{id}/reviews - Buat review
+    Route::post('/products/{id}/reviews', [ReviewController::class, 'store'])
+        ->where('id', '[0-9]+');
+
+    // PUT /api/reviews/{id} - Update review milik sendiri
+    Route::put('/reviews/{id}', [ReviewController::class, 'update'])
+        ->where('id', '[0-9]+');
+
+    // DELETE /api/reviews/{id} - Hapus review milik sendiri
+    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy'])
+        ->where('id', '[0-9]+');
 
     // =================================================================
     // AUTH ROUTES - Protected
@@ -220,6 +247,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // POST /api/driver/orders/{id}/complete - Selesaikan pesanan
         Route::post('/{id}/complete', [OrderController::class, 'completeOrder'])
+            ->where('id', '[0-9]+');
+
+        // POST /api/driver/orders/{id}/return - Kembalikan pesanan (BAB 9)
+        Route::post('/{id}/return', [OrderController::class, 'returnOrder'])
             ->where('id', '[0-9]+');
     });
 });

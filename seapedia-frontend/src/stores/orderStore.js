@@ -159,6 +159,88 @@ const useOrderStore = create((set, get) => ({
   },
   
   /**
+   * Driver: ambil pesanan (status -> shipping).
+   * Menggunakan endpoint POST /driver/orders/{id}/pickup.
+   */
+  pickupOrder: async (id) => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await orderService.pickup(id)
+      if (response.success) {
+        // Update order di list & currentOrder (kalau ada)
+        const orders = get().orders.map(order =>
+          order.id === id ? { ...order, status: 'shipping', driver_id: response.data?.id ? response.data.id : order.driver_id } : order
+        )
+        set({ orders })
+        if (get().currentOrder?.id === id) {
+          set({ currentOrder: { ...get().currentOrder, status: 'shipping' } })
+        }
+        return response
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Gagal mengambil pesanan' })
+      throw err
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  /**
+   * Driver: selesaikan pengantaran (status -> completed).
+   * Menggunakan endpoint POST /driver/orders/{id}/complete.
+   */
+  deliverOrder: async (id) => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await orderService.deliver(id)
+      if (response.success) {
+        const orders = get().orders.map(order =>
+          order.id === id ? { ...order, status: 'completed' } : order
+        )
+        set({ orders })
+        if (get().currentOrder?.id === id) {
+          set({ currentOrder: { ...get().currentOrder, status: 'completed' } })
+        }
+        return response
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Gagal menyelesaikan pesanan' })
+      throw err
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  /**
+   * Driver: kembalikan pesanan (status -> returned, BAB 9).
+   * Backend otomatis me-restore stok & me-refund wallet buyer.
+   *
+   * @param {number} id - Order ID
+   * @param {string} reason - Alasan pengembalian
+   */
+  returnOrder: async (id, reason) => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await orderService.returnOrder(id, reason)
+      if (response.success) {
+        const orders = get().orders.map(order =>
+          order.id === id ? { ...order, status: 'returned', cancellation_reason: `Dikembalikan driver: ${reason}` } : order
+        )
+        set({ orders })
+        if (get().currentOrder?.id === id) {
+          set({ currentOrder: { ...get().currentOrder, status: 'returned' } })
+        }
+        return response
+      }
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Gagal mengembalikan pesanan' })
+      throw err
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  /**
    * Clear current order
    */
   clearCurrentOrder: () => {

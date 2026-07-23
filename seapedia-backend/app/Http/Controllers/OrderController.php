@@ -506,11 +506,19 @@ class OrderController extends Controller
      * ============================================================
      * DRIVER: COMPLETE ORDER
      * ============================================================
-     * Driver menyelesaikan pesanan
+     * Driver menyelesaikan pesanan (barang terkirim ke buyer).
+     * Status: shipping -> completed
      */
     public function completeOrder(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
+
+        if (!$user->hasRole('driver')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya driver yang bisa menyelesaikan pesanan',
+            ], 403);
+        }
 
         $order = Order::where('id', $id)
             ->where('driver_id', $user->id)
@@ -520,7 +528,7 @@ class OrderController extends Controller
         if (!$order) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pesanan tidak ditemukan',
+                'message' => 'Pesanan tidak ditemukan atau bukan tanggung jawab kamu',
             ], 404);
         }
 
@@ -535,5 +543,85 @@ class OrderController extends Controller
                 'status' => $order->status,
             ],
         ]);
+    }
+
+    /**
+     * ============================================================
+     * DRIVER: RETURN ORDER (BAB 9)
+     * ============================================================
+     * Driver menandai pesanan gagal diantar (misal: alamat salah,
+     * buyer tidak ditemukan). Status: shipping -> returned.
+     * Stok produk akan di-restore agar bisa dijual lagi.
+     */
+    public function returnOrder(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->hasRole('driver')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya driver yang bisa mengembalikan pesanan',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        $order = Order::where('id', $id)
+            ->where('driver_id', $user->id)
+            ->where('status', Order::STATUS_SHIPPING)
+            ->first();
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pesanan tidak ditemukan atau bukan tanggung jawab kamu',
+            ], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Kembalikan stok produk
+            foreach ($order->items as $item) {
+                $item->product->increment('stock', $item->quantity);
+            }
+
+            // Kembalikan saldo buyer (refund)
+            $buyer = $order->user;
+            $wallet = Wallet::where('user_id', $buyer->id)->first();
+
+            if ($wallet) {
+                $wallet->refund(
+                    $order->total_amount,
+                    $order->order_number,
+                    "Refund order #{$order->order_number} dikembalikan driver: {$validated['reason']}"
+                );
+            }
+
+            $order->update([
+                'status' => Order::STATUS_RETURNED,
+                'cancellation_reason' => "Dikembalikan driver: {$validated['reason']}",
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pesanan dikembalikan. Stok direstore & saldo buyer direfund.',
+                'data' => [
+                    'id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $order->status,
+                    'reason' => $validated['reason'],
+                ],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengembalikan pesanan',
+            ], 500);
+        }
     }
 }

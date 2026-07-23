@@ -70,21 +70,46 @@ const orderService = {
   
   /**
    * Driver pickup pesanan
+   * Backend: POST /api/driver/orders/{id}/pickup
+   * - Hanya driver yang bisa memanggil
+   * - Pesanan harus status waiting_shipper & belum punya driver
+   * - Setelah sukses: status -> shipping, driver_id = current user
    * @param {number} id - Order ID
    * @returns {Promise<Object>}
    */
   pickup: async (id) => {
-    const response = await api.post(`/orders/${id}/pickup`)
+    const response = await api.post(`/driver/orders/${id}/pickup`)
     return response.data
   },
-  
+
   /**
-   * Driver deliver pesanan
+   * Driver selesaikan pengantaran (barang sampai ke buyer).
+   * Backend: POST /api/driver/orders/{id}/complete
+   * - Hanya driver yang ditugaskan (driver_id = current user)
+   * - Pesanan harus status shipping
+   * - Setelah sukses: status -> completed
    * @param {number} id - Order ID
    * @returns {Promise<Object>}
    */
   deliver: async (id) => {
-    const response = await api.post(`/orders/${id}/deliver`)
+    const response = await api.post(`/driver/orders/${id}/complete`)
+    return response.data
+  },
+
+  /**
+   * Driver mengembalikan pesanan (BARU - BAB 9).
+   * Backend: POST /api/driver/orders/{id}/return
+   * - Hanya driver yang ditugaskan
+   * - Pesanan harus status shipping
+   * - Wajib menyertakan `reason` (alasan pengembalian)
+   * - Setelah sukses: status -> returned, stok direstore, wallet buyer direfund
+   *
+   * @param {number} id - Order ID
+   * @param {string} reason - Alasan pengembalian (misal: alamat salah, buyer tidak ditemukan)
+   * @returns {Promise<Object>}
+   */
+  returnOrder: async (id, reason) => {
+    const response = await api.post(`/driver/orders/${id}/return`, { reason })
     return response.data
   },
 }

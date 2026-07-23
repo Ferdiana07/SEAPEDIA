@@ -23,6 +23,7 @@ class Order extends Model
         'status',
         'total_amount',
         'shipping_address',
+        'cancellation_reason',
     ];
 
     /**

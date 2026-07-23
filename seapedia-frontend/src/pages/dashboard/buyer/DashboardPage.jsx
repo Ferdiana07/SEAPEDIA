@@ -1,4 +1,4 @@
-// File: src/pages/dashboard/seller/DashboardPage.jsx
+// File: src/pages/dashboard/buyer/DashboardPage.jsx
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Card from '../../../components/ui/Card'
@@ -6,56 +6,63 @@ import Button from '../../../components/ui/Button'
 import Badge from '../../../components/ui/Badge'
 import useAuthStore from '../../../stores/authStore'
 import useUIStore from '../../../stores/uiStore'
-import productService from '../../../services/productService'
+import walletService from '../../../services/walletService'
 import orderService from '../../../services/orderService'
 
 // ============================================================
-// SELLER DASHBOARD PAGE
+// BUYER DASHBOARD PAGE
 // ============================================================
-const SellerDashboardPage = () => {
+const BuyerDashboardPage = () => {
   const { user } = useAuthStore()
   const { error: showError } = useUIStore()
 
   // State untuk data
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
-    totalProducts: 0,
-    activeProducts: 0,
-    outOfStock: 0,
+    balance: 0,
+    activeOrders: 0,
+    completedOrders: 0,
   })
   const [recentOrders, setRecentOrders] = useState([])
-  const [hasStore, setHasStore] = useState(true)
-
-  // Cek apakah seller punya toko
-  useEffect(() => {
-    if (!user?.store) {
-      setHasStore(false)
-    }
-  }, [user])
 
   // Fetch dashboard data
   useEffect(() => {
     const fetchDashboardData = async () => {
-      if (!hasStore) return
-
       setLoading(true)
       try {
-        // Fetch stats dan orders secara parallel
-        const [statsRes, ordersRes] = await Promise.all([
-          productService.getMyStats(),
-          orderService.getAll({ status: 'packaging' })
+        // Fetch wallet dan orders secara parallel
+        const [walletRes, activeOrdersRes, completedOrdersRes] = await Promise.all([
+          walletService.getWallet(),
+          orderService.getAll({ status: 'packaging,waiting_shipper,shipping' }),
+          orderService.getAll({ status: 'completed' })
         ])
 
-        if (statsRes.success) {
-          setStats({
-            totalProducts: statsRes.data.total_products || 0,
-            activeProducts: statsRes.data.active_products || 0,
-            outOfStock: statsRes.data.out_of_stock || 0,
-          })
+        // Update wallet stats
+        if (walletRes.success) {
+          setStats(prev => ({
+            ...prev,
+            balance: walletRes.data.balance || 0,
+          }))
         }
 
-        if (ordersRes.success) {
-          setRecentOrders(ordersRes.data.slice(0, 5))
+        // Update order stats
+        if (activeOrdersRes.success) {
+          setStats(prev => ({
+            ...prev,
+            activeOrders: activeOrdersRes.data.length || 0,
+          }))
+        }
+
+        if (completedOrdersRes.success) {
+          setStats(prev => ({
+            ...prev,
+            completedOrders: completedOrdersRes.data.length || 0,
+          }))
+        }
+
+        // Set recent orders (dari active orders)
+        if (activeOrdersRes.success) {
+          setRecentOrders(activeOrdersRes.data.slice(0, 5))
         }
       } catch (err) {
         console.error('Gagal memuat dashboard:', err)
@@ -66,7 +73,7 @@ const SellerDashboardPage = () => {
     }
 
     fetchDashboardData()
-  }, [hasStore])
+  }, [])
 
   // Format currency
   const formatPrice = (price) => {
@@ -74,7 +81,7 @@ const SellerDashboardPage = () => {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
-    }).format(price)
+    }).format(price || 0)
   }
 
   // Get status label
@@ -101,28 +108,6 @@ const SellerDashboardPage = () => {
     return variants[status] || 'default'
   }
 
-  // Jika belum punya toko - tampilkan placeholder
-  if (!hasStore) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <Card className="text-center py-12">
-            <span className="text-6xl">🏪</span>
-            <h2 className="text-2xl font-bold text-gray-900 mt-4 mb-2">
-              Kamu Belum Punya Toko
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Buat toko terlebih dahulu untuk mulai berjualan
-            </p>
-            <Link to="/seller/store/new">
-              <Button>Buat Toko Sekarang</Button>
-            </Link>
-          </Card>
-        </div>
-      </div>
-    )
-  }
-
   // Loading state
   if (loading) {
     return (
@@ -139,26 +124,31 @@ const SellerDashboardPage = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Seller Dashboard</h1>
-            <p className="text-gray-600 mt-1">Selamat datang, {user?.name}!</p>
-          </div>
-          <Link to="/seller/products/new">
-            <Button leftIcon={<span>➕</span>}>
-              Tambah Produk
-            </Button>
-          </Link>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Buyer Dashboard</h1>
+          <p className="text-gray-600 mt-1">Selamat datang, {user?.name}!</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Total Produk</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {stats.totalProducts}
+                <p className="text-sm text-gray-500">Saldo Wallet</p>
+                <p className="text-2xl font-bold text-green-600 mt-1">
+                  {formatPrice(stats.balance)}
+                </p>
+              </div>
+              <span className="text-4xl">💰</span>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Pesanan Aktif</p>
+                <p className="text-3xl font-bold text-yellow-500 mt-1">
+                  {stats.activeOrders}
                 </p>
               </div>
               <span className="text-4xl">📦</span>
@@ -168,36 +158,12 @@ const SellerDashboardPage = () => {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Produk Aktif</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">
-                  {stats.activeProducts}
+                <p className="text-sm text-gray-500">Pesanan Selesai</p>
+                <p className="text-3xl font-bold text-green-500 mt-1">
+                  {stats.completedOrders}
                 </p>
               </div>
               <span className="text-4xl">✅</span>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Stok Habis</p>
-                <p className="text-3xl font-bold text-red-500 mt-1">
-                  {stats.outOfStock}
-                </p>
-              </div>
-              <span className="text-4xl">⚠️</span>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Pesanan Baru</p>
-                <p className="text-3xl font-bold text-yellow-500 mt-1">
-                  {recentOrders.length}
-                </p>
-              </div>
-              <span className="text-4xl">📋</span>
             </div>
           </Card>
         </div>
@@ -206,15 +172,15 @@ const SellerDashboardPage = () => {
           {/* Recent Orders */}
           <Card>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-gray-900">Pesanan Masuk</h2>
-              <Link to="/seller/orders" className="text-primary-500 hover:underline text-sm">
+              <h2 className="font-semibold text-gray-900">Pesanan Aktif</h2>
+              <Link to="/buyer/orders" className="text-primary-500 hover:underline text-sm">
                 Lihat Semua
               </Link>
             </div>
 
             {recentOrders.length === 0 ? (
               <p className="text-center text-gray-500 py-8">
-                Belum ada pesanan masuk
+                Tidak ada pesanan aktif
               </p>
             ) : (
               <div className="space-y-4">
@@ -223,7 +189,7 @@ const SellerDashboardPage = () => {
                     <div>
                       <p className="font-medium text-gray-900">{order.order_number}</p>
                       <p className="text-sm text-gray-500">
-                        {order.items_count || order.items?.length || 0} items
+                        {order.items?.length || 0} items
                       </p>
                     </div>
                     <Badge variant={getStatusVariant(order.status)}>
@@ -241,35 +207,46 @@ const SellerDashboardPage = () => {
 
             <div className="space-y-3">
               <Link
-                to="/seller/products"
+                to="/products"
                 className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <span className="text-2xl">📦</span>
+                <span className="text-2xl">🛒</span>
                 <div>
-                  <p className="font-medium text-gray-900">Kelola Produk</p>
-                  <p className="text-sm text-gray-500">Tambah, edit, atau hapus produk</p>
+                  <p className="font-medium text-gray-900">Belanja Sekarang</p>
+                  <p className="text-sm text-gray-500">Jelajahi produk marketplace</p>
                 </div>
               </Link>
 
               <Link
-                to="/seller/orders"
+                to="/cart"
                 className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <span className="text-2xl">📋</span>
+                <span className="text-2xl">🛒</span>
                 <div>
-                  <p className="font-medium text-gray-900">Kelola Pesanan</p>
-                  <p className="text-sm text-gray-500">Proses pesanan masuk</p>
+                  <p className="font-medium text-gray-900">Lihat Keranjang</p>
+                  <p className="text-sm text-gray-500">Checkout dan lanjutkan belanja</p>
                 </div>
               </Link>
 
               <Link
-                to="/seller/store"
+                to="/buyer/wallet"
                 className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <span className="text-2xl">🏪</span>
+                <span className="text-2xl">💰</span>
                 <div>
-                  <p className="font-medium text-gray-900">Pengaturan Toko</p>
-                  <p className="text-sm text-gray-500">Edit info toko</p>
+                  <p className="font-medium text-gray-900">Top Up Wallet</p>
+                  <p className="text-sm text-gray-500">Tambah saldo untuk belanja</p>
+                </div>
+              </Link>
+
+              <Link
+                to="/buyer/addresses"
+                className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <span className="text-2xl">📍</span>
+                <div>
+                  <p className="font-medium text-gray-900">Kelola Alamat</p>
+                  <p className="text-sm text-gray-500">Tambah atau edit alamat pengiriman</p>
                 </div>
               </Link>
             </div>
@@ -280,4 +257,4 @@ const SellerDashboardPage = () => {
   )
 }
 
-export default SellerDashboardPage
+export default BuyerDashboardPage

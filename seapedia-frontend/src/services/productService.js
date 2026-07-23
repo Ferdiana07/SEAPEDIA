@@ -2,6 +2,7 @@
 // Penjelasan: Service untuk operasi Product di frontend
 
 import api from './api'
+import reviewService from './reviewService'
 
 const productService = {
   // =================================================================
@@ -85,6 +86,37 @@ const productService = {
   delete: async (id) => {
     const response = await api.delete(`/seller/products/${id}`)
     return response.data
+  },
+
+  // =================================================================
+  // BAB 9: Reviews untuk produk (publik)
+  // =================================================================
+  /**
+   * Ambil semua review publik untuk sebuah produk, lengkap dengan
+   * summary rating (average_rating, total_reviews).
+   *
+   * Endpoint: GET /api/products/{id}/reviews
+   * Bisa diakses guest maupun user login.
+   *
+   * @param {number} productId
+   * @param {Object} params - { page, per_page }
+   * @returns {Promise<Object>} { data, summary, meta }
+   */
+  getReviews: async (productId, params = {}) => {
+    return await reviewService.getForProduct(productId, params)
+  },
+
+  /**
+   * Submit review untuk produk (butuh login).
+   * Backend otomatis menolak kalau user sudah pernah mereview produk
+   * yang sama (1 user × 1 produk = 1 review, sesuai COMPFEST Level 1).
+   *
+   * @param {number} productId
+   * @param {Object} data - { rating, comment }
+   * @returns {Promise<Object>}
+   */
+  submitReview: async (productId, data) => {
+    return await reviewService.create(productId, data)
   },
 }
 

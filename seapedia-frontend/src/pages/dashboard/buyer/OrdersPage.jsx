@@ -178,9 +178,9 @@ const OrdersPage = () => {
                         Detail
                       </Button>
                     </Link>
-                    
-                    {order.status === 'completed' && (
-                      <Link to={`/products/${order.items?.[0]?.product_id}`}>
+
+                    {order.status === 'completed' && order.items?.[0]?.product_id && (
+                      <Link to={`/products/${order.items[0].product_id}`}>
                         <Button variant="ghost" size="sm">
                           Beli Lagi
                         </Button>

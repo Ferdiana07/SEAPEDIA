@@ -14,8 +14,8 @@ Dokumentasi pembelajaran membangun platform e-commerce SEAPEDIA dari nol.
 | 05 | Frontend - Pages & State | ✅ Selesai |
 | 06 | Backend - Store & Products | ✅ Selesai |
 | 07 | Backend - Wallet, Cart, Orders | ✅ Selesai |
-| 08 | Frontend - Dashboards | 🔜 Mendatang |
-| 09 | Reviews & Delivery | 🔜 Mendatang |
+| 08 | Frontend - Dashboards | ✅ Selesai |
+| 09 | Reviews & Delivery | ✅ Selesai |
 | 10 | Deployment & Documentation | 🔜 Mendatang |
 
 ## 📁 Struktur Folder
@@ -39,8 +39,26 @@ docs/
 ├── 03-backend-auth/
 │   └── 03-authentication.md   ← BAB 3: Backend - Auth
 │
-└── 04-frontend-ui/
-    └── 04-ui-foundations.md   ← BAB 4: Frontend - UI Foundations
+├── 04-frontend-ui/
+│   └── 04-ui-foundations.md   ← BAB 4: Frontend - UI Foundations
+│
+├── 05-frontend-state/
+│   └── 05-state-management.md ← BAB 5: Frontend - Pages & State
+│
+├── 06-backend-store-product/
+│   └── 06-store-product.md     ← BAB 6: Backend - Store & Products
+│
+├── 07-backend-wallet-cart-order/
+│   └── 07-wallet-cart-order.md ← BAB 7: Backend - Wallet, Cart, Orders
+│
+├── 08-frontend-dashboards/
+│   └── 08-dashboards.md      ← BAB 8: Frontend - Dashboards
+│
+├── 09-reviews-delivery/
+│   └── 09-reviews-delivery.md ← BAB 9: Reviews & Delivery
+│
+└── _reference/
+    └── 01-tools-dan-framework.md
 ```
 
 ## 📌 Folder _reference (Referensi Pelengkap)
@@ -95,4 +113,4 @@ Jika kamu lupa apa fungsi suatu tools/framework, buka folder `_reference/` dan c
 
 ---
 
-*Last Updated: 2026-07-05*
+*Last Updated: 2026-07-23*

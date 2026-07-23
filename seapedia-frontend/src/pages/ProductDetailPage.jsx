@@ -10,6 +10,7 @@ import useProductStore from '../stores/productStore'
 import useCartStore from '../stores/cartStore'
 import useAuthStore from '../stores/authStore'
 import useUIStore from '../stores/uiStore'
+import reviewService from '../services/reviewService'
 
 // ============================================================
 // PRODUCT DETAIL PAGE
@@ -27,14 +28,38 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1)
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' })
-  
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [reviews, setReviews] = useState([])
+  const [reviewSummary, setReviewSummary] = useState({ average_rating: 0, total_reviews: 0 })
+  const [reviewsLoading, setReviewsLoading] = useState(false)
+
   // Fetch product
   useEffect(() => {
     fetchById(parseInt(id))
-    
+
     return () => {
       // Cleanup
     }
+  }, [id])
+
+  // Fetch review publik untuk produk (BAB 9 - COMPFEST Level 1)
+  useEffect(() => {
+    const loadReviews = async () => {
+      setReviewsLoading(true)
+      try {
+        const res = await reviewService.getForProduct(parseInt(id))
+        if (res.success) {
+          setReviews(res.data || [])
+          setReviewSummary(res.summary || { average_rating: 0, total_reviews: 0 })
+        }
+      } catch (err) {
+        // Gagal load review tidak boleh menghalangi tampil produk
+        console.error('Gagal memuat review:', err)
+      } finally {
+        setReviewsLoading(false)
+      }
+    }
+    loadReviews()
   }, [id])
   
   // Format currency
@@ -67,15 +92,37 @@ const ProductDetailPage = () => {
     success(`${currentProduct.name} ditambahkan ke cart!`)
   }
   
-  // Submit review
+  // Submit review (BAB 9)
   const handleSubmitReview = async () => {
+    if (!isAuthenticated()) {
+      warning('Silakan login terlebih dahulu untuk memberi review')
+      return
+    }
+
+    setSubmittingReview(true)
     try {
-      // TODO: Call review API
-      success('Review berhasil dikirim!')
-      setShowReviewModal(false)
-      setReviewData({ rating: 5, comment: '' })
+      const res = await reviewService.create(parseInt(id), {
+        rating: reviewData.rating,
+        comment: reviewData.comment?.trim() || null,
+      })
+
+      if (res.success) {
+        success('Review berhasil dikirim!')
+        setShowReviewModal(false)
+        setReviewData({ rating: 5, comment: '' })
+
+        // Refresh daftar review agar review baru langsung muncul
+        const list = await reviewService.getForProduct(parseInt(id))
+        if (list.success) {
+          setReviews(list.data || [])
+          setReviewSummary(list.summary || { average_rating: 0, total_reviews: 0 })
+        }
+      }
     } catch (err) {
-      showError('Gagal mengirim review')
+      const msg = err.response?.data?.message || 'Gagal mengirim review'
+      showError(msg)
+    } finally {
+      setSubmittingReview(false)
     }
   }
   
@@ -233,7 +280,13 @@ const ProductDetailPage = () => {
                     
                     <Button
                       variant="outline"
-                      onClick={() => setShowReviewModal(true)}
+                      onClick={() => {
+                        if (!isAuthenticated()) {
+                          warning('Silakan login untuk memberi review')
+                          return
+                        }
+                        setShowReviewModal(true)
+                      }}
                     >
                       📝 Beri Review
                     </Button>
@@ -256,18 +309,34 @@ const ProductDetailPage = () => {
         
         {/* Reviews Section */}
         <div className="mt-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Ulasan Produk</h2>
-          
-          {currentProduct.reviews && currentProduct.reviews.length > 0 ? (
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Ulasan Produk</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-yellow-400 text-xl">
+                {'★'.repeat(Math.round(reviewSummary.average_rating || 0))}
+                {'☆'.repeat(5 - Math.round(reviewSummary.average_rating || 0))}
+              </span>
+              <span className="text-gray-700 font-semibold">
+                {(reviewSummary.average_rating || 0).toFixed(1)}
+              </span>
+              <span className="text-gray-500 text-sm">
+                ({reviewSummary.total_reviews || 0} ulasan)
+              </span>
+            </div>
+          </div>
+
+          {reviewsLoading ? (
+            <div className="text-center py-8 text-gray-500">Memuat ulasan...</div>
+          ) : reviews.length > 0 ? (
             <div className="grid gap-4">
-              {currentProduct.reviews.map((review) => (
+              {reviews.map((review) => (
                 <Card key={review.id}>
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
                     <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                       {review.user?.name?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
-                    
+
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium text-gray-900">
@@ -278,7 +347,9 @@ const ProductDetailPage = () => {
                           {'☆'.repeat(5 - review.rating)}
                         </span>
                       </div>
-                      <p className="text-gray-600">{review.comment}</p>
+                      {review.comment && (
+                        <p className="text-gray-600 whitespace-pre-line">{review.comment}</p>
+                      )}
                       <p className="text-sm text-gray-400 mt-2">
                         {new Date(review.created_at).toLocaleDateString('id-ID')}
                       </p>
@@ -293,7 +364,13 @@ const ProductDetailPage = () => {
               <Button
                 variant="outline"
                 className="mt-4"
-                onClick={() => setShowReviewModal(true)}
+                onClick={() => {
+                  if (!isAuthenticated()) {
+                    warning('Silakan login untuk memberi review')
+                    return
+                  }
+                  setShowReviewModal(true)
+                }}
               >
                 Jadilah yang pertama memberikan review
               </Button>
@@ -339,8 +416,8 @@ const ProductDetailPage = () => {
             <Button variant="ghost" onClick={() => setShowReviewModal(false)}>
               Batal
             </Button>
-            <Button onClick={handleSubmitReview}>
-              Kirim Review
+            <Button onClick={handleSubmitReview} disabled={submittingReview}>
+              {submittingReview ? 'Mengirim...' : 'Kirim Review'}
             </Button>
           </div>
         </div>

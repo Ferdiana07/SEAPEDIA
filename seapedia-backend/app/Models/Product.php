@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
@@ -62,7 +63,17 @@ class Product extends Model
     {
         return $this->belongsTo(Store::class);
     }
-    
+
+    /**
+     * Semua review untuk produk ini
+     *
+     * @return HasMany
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class)->latest();
+    }
+
     // =================================================================
     // SCOPES
     // =================================================================
@@ -125,6 +136,28 @@ class Product extends Model
     public function getHasStockAttribute(): bool
     {
         return $this->stock > 0;
+    }
+
+    /**
+     * Accessor: rata-rata rating (float, 1 desimal)
+     *
+     * Penggunaan:
+     * ```php
+     * $product = Product::find(1);
+     * echo $product->average_rating; // 4.5
+     * ```
+     */
+    public function getAverageRatingAttribute(): float
+    {
+        return round((float) $this->reviews()->avg('rating'), 1);
+    }
+
+    /**
+     * Accessor: jumlah total review
+     */
+    public function getTotalReviewsAttribute(): int
+    {
+        return (int) $this->reviews()->count();
     }
     
     /**

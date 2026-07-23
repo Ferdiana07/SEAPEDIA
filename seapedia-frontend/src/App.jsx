@@ -10,6 +10,7 @@ import ProductsPage from './pages/ProductsPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import BuyerDashboardPage from './pages/dashboard/buyer/DashboardPage'
 import CartPage from './pages/dashboard/buyer/CartPage'
 import OrdersPage from './pages/dashboard/buyer/OrdersPage'
 import WalletPage from './pages/dashboard/buyer/WalletPage'
@@ -133,6 +134,14 @@ function App() {
             {/* ==================== PROTECTED ROUTES ==================== */}
 
             {/* Buyer Routes */}
+            <Route
+              path="/buyer/dashboard"
+              element={
+                <RoleRoute role="buyer">
+                  <BuyerDashboardPage />
+                </RoleRoute>
+              }
+            />
             <Route
               path="/cart"
               element={
