@@ -36,11 +36,10 @@ const useCartStore = create(
       
       /**
        * Hitung total harga
-       * @returns {number}
        */
       getTotalPrice: () => {
         return get().items.reduce(
-          (sum, item) => sum + (item.price * item.quantity), 
+          (sum, item) => sum + ((item.product?.price || 0) * item.quantity), 
           0
         )
       },

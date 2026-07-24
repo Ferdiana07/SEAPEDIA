@@ -147,10 +147,10 @@ const CartPage = () => {
               <Card key={item.product_id} className="flex gap-4">
                 {/* Image */}
                 <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                  {item.image_url ? (
+                  {item.product?.image_url ? (
                     <img
-                      src={item.image_url}
-                      alt={item.name}
+                      src={item.product?.image_url}
+                      alt={item.product?.name}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -162,9 +162,9 @@ const CartPage = () => {
                 
                 {/* Info */}
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                  <h3 className="font-semibold text-gray-900">{item.product?.name}</h3>
                   <p className="text-lg font-bold text-primary-600 mt-1">
-                    {formatPrice(item.price)}
+                    {formatPrice(item.product?.price)}
                   </p>
                   
                   <div className="flex items-center gap-4 mt-3">
@@ -187,7 +187,7 @@ const CartPage = () => {
                     
                     {/* Subtotal */}
                     <span className="font-medium">
-                      Subtotal: {formatPrice(item.price * item.quantity)}
+                      Subtotal: {formatPrice((item.product?.price || 0) * item.quantity)}
                     </span>
                     
                     {/* Remove */}

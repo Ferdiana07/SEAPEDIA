@@ -224,9 +224,9 @@ const OrderDetailPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 text-sm truncate">{item.product_name || item.product?.name}</p>
-                  <p className="text-xs text-gray-500">{item.quantity} × {formatPrice(item.price)}</p>
+                  <p className="text-xs text-gray-500">{item.quantity} × {formatPrice(item.price_at_purchase || item.price || 0)}</p>
                 </div>
-                <p className="font-bold text-gray-900 text-sm flex-shrink-0">{formatPrice(item.quantity * item.price)}</p>
+                <p className="font-bold text-gray-900 text-sm flex-shrink-0">{formatPrice(item.quantity * (item.price_at_purchase || item.price || 0))}</p>
               </div>
             ))}
           </div>
