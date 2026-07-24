@@ -24,14 +24,8 @@ const SellerDashboardPage = () => {
     outOfStock: 0,
   })
   const [recentOrders, setRecentOrders] = useState([])
-  const [hasStore, setHasStore] = useState(true)
-
-  // Cek apakah seller punya toko
-  useEffect(() => {
-    if (!user?.store) {
-      setHasStore(false)
-    }
-  }, [user])
+  // Inisialisasi langsung dari user untuk menghindari race condition
+  const hasStore = Boolean(user?.store)
 
   // Fetch dashboard data
   useEffect(() => {
