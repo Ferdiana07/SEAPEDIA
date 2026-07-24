@@ -41,7 +41,12 @@ class ProductController extends Controller
                       ->active()                            // Hanya aktif
                       ->inStock();                         // Hanya ada stok
         
-        // Pencarian
+        // Filter by category (kolom category di DB)
+        if ($category = $request->input('category')) {
+            $query->byCategory($category);
+        }
+
+        // Pencarian teks (nama atau deskripsi)
         if ($search = $request->input('search')) {
             $query->search($search);
         }
@@ -85,6 +90,7 @@ class ProductController extends Controller
             ],
         ]);
     }
+
     
     /**
      * GET /api/products/{id}

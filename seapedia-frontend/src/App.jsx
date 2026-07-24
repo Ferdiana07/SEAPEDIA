@@ -14,6 +14,7 @@ import SettingsPage from './pages/SettingsPage'
 import BuyerDashboardPage from './pages/dashboard/buyer/DashboardPage'
 import CartPage from './pages/dashboard/buyer/CartPage'
 import OrdersPage from './pages/dashboard/buyer/OrdersPage'
+import OrderDetailPage from './pages/dashboard/buyer/OrderDetailPage'
 import WalletPage from './pages/dashboard/buyer/WalletPage'
 import AddressListPage from './pages/dashboard/buyer/AddressListPage'
 import AddressFormPage from './pages/dashboard/buyer/AddressFormPage'
@@ -169,6 +170,14 @@ function App() {
               element={
                 <RoleRoute role="buyer">
                   <OrdersPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="/buyer/orders/:id"
+              element={
+                <RoleRoute role="buyer">
+                  <OrderDetailPage />
                 </RoleRoute>
               }
             />

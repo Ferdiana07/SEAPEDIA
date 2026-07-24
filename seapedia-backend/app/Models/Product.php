@@ -20,10 +20,10 @@ class Product extends Model
         'store_id',
         'name',
         'description',
+        'category',
         'price',
         'stock',
         'image_url',
-        // 'is_active' ← sebaiknya tidakfillable
     ];
     
     /**
@@ -95,13 +95,24 @@ class Product extends Model
     }
     
     /**
-     * Scope: Pencarian berdasarkan nama
+     * Scope: Pencarian berdasarkan nama atau deskripsi
      */
     public function scopeSearch($query, $keyword)
     {
-        return $query->where('name', 'LIKE', "%{$keyword}%");
+        return $query->where(function ($q) use ($keyword) {
+            $q->where('name', 'LIKE', "%{$keyword}%")
+              ->orWhere('description', 'LIKE', "%{$keyword}%");
+        });
     }
     
+    /**
+     * Scope: Filter berdasarkan kategori
+     */
+    public function scopeByCategory($query, $category)
+    {
+        return $query->where('category', $category);
+    }
+
     /**
      * Scope: Filter berdasarkan range harga
      */

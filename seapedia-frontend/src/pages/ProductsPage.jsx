@@ -4,16 +4,16 @@ import Button from '../components/ui/Button'
 import productService from '../services/productService'
 
 // ============================================================
-// KATEGORI — filter by keyword karena DB tidak punya kolom kategori
+// KATEGORI — filter by kolom category di database
 // ============================================================
 const CATEGORIES = [
-  { id: 'all', label: 'Semua Kategori', icon: '🌐', keyword: '' },
-  { id: 'elektronik', label: 'Elektronik', icon: '📱', keyword: 'elektronik' },
-  { id: 'pakaian', label: 'Pakaian & Fashion', icon: '👗', keyword: 'pakaian' },
-  { id: 'makanan', label: 'Makanan & Minuman', icon: '🍔', keyword: 'makanan' },
-  { id: 'kesehatan', label: 'Kesehatan', icon: '💊', keyword: 'kesehatan' },
-  { id: 'olahraga', label: 'Olahraga', icon: '⚽', keyword: 'olahraga' },
-  { id: 'otomotif', label: 'Otomotif', icon: '🚗', keyword: 'otomotif' },
+  { id: 'all',        label: 'Semua Kategori',      icon: '🌐', value: '' },
+  { id: 'elektronik', label: 'Elektronik',           icon: '📱', value: 'elektronik' },
+  { id: 'pakaian',   label: 'Pakaian & Fashion',    icon: '👗', value: 'pakaian' },
+  { id: 'makanan',   label: 'Makanan & Minuman',    icon: '🍔', value: 'makanan' },
+  { id: 'kesehatan', label: 'Kesehatan',             icon: '💊', value: 'kesehatan' },
+  { id: 'olahraga',  label: 'Olahraga',              icon: '⚽', value: 'olahraga' },
+  { id: 'otomotif',  label: 'Otomotif',              icon: '🚗', value: 'otomotif' },
 ]
 
 const SORT_OPTIONS = [
@@ -61,11 +61,11 @@ const ProductsPage = () => {
       sort_order: sortOrder,
     }
 
-    // Search combines text search + category keyword
-    const searchTerms = []
-    if (search) searchTerms.push(search)
-    if (cat && cat.keyword) searchTerms.push(cat.keyword)
-    if (searchTerms.length > 0) params.search = searchTerms.join(' ')
+    // Category filter — kirim sebagai param `category` ke backend
+    if (cat && cat.value) params.category = cat.value
+
+    // Text search
+    if (search) params.search = search
 
     if (minPrice) params.min_price = parseInt(minPrice)
     if (maxPrice) params.max_price = parseInt(maxPrice)

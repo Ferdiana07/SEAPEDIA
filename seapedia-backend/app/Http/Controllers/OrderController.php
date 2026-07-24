@@ -31,10 +31,16 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        $orders = Order::where('user_id', $user->id)
-            ->with(['store', 'items.product'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $query = Order::where('user_id', $user->id)
+            ->with(['store', 'items.product', 'driver'])
+            ->orderBy('created_at', 'desc');
+
+        // Filter by status (untuk tab Dikemas, Dikirim, Selesai, dll)
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        $orders = $query->paginate(20);
 
         return response()->json([
             'success' => true,
