@@ -121,7 +121,7 @@ const res = await orderService.getDriverOrders({ status: 'waiting_shipper' })
 
 Method baru di `orderService.js`:
 - `getDriverOrders(params)` → GET `/api/driver/orders`
-- `pickupOrder(id)` → POST `/api/driver/orders/{id}/pickup`  
+- `pickupOrder(id)` → POST `/api/driver/orders/{id}/pickup`
 - `completeOrder(id)` → POST `/api/driver/orders/{id}/complete`
 
 ---
@@ -156,3 +156,67 @@ Dropdown profil pengguna diperluas dengan menu spesifik per role:
 | `app/Http/Controllers/AdminController.php` | NEW | Admin backend |
 | `routes/api.php` | MODIFIED | Admin routes |
 | `database/seeders/UserRoleSeeder.php` | MODIFIED | Idempotent (firstOrCreate) |
+
+---
+
+## 8. Checklist BAB 11
+
+- [x] Filter produk (kategori, harga, sorting) fungsional terhubung ke API
+- [x] Active filter badges di atas grid produk
+- [x] `AdminController.php` dengan endpoint stats & users
+- [x] Admin routes di `routes/api.php`
+- [x] `adminService.js` frontend
+- [x] `DashboardPage.jsx` admin (6 stat cards + tabel users)
+- [x] `UsersPage.jsx` admin (tabel semua user + badge role)
+- [x] Route admin di `App.jsx` dengan `RoleRoute role="admin"`
+- [x] `OrdersPage.jsx` seller (filter tab + tombol aksi)
+- [x] Method `getSellerOrders` & `updateSellerOrderStatus` di `orderService.js`
+- [x] `DriverOrdersPage.jsx` diperbaiki pakai endpoint `/driver/orders`
+- [x] Method `getDriverOrders`, `pickupOrder`, `completeOrder` di `orderService.js`
+- [x] Navbar dropdown diperluas dengan menu per role
+
+---
+
+## 9. Ringkasan BAB 11
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      YANG SUDAH DIPELAJARI                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ✅ Filter Produk fungsional (kategori, harga, sorting)          │
+│     • Terhubung ke API via productService.getAll()              │
+│     • Active badges menampilkan filter aktif                    │
+│                                                                  │
+│  ✅ Admin Dashboard lengkap                                      │
+│     • Backend: AdminController dengan stats & users             │
+│     • Frontend: DashboardPage + UsersPage admin                 │
+│     • Protected route dengan RoleRoute                          │
+│                                                                  │
+│  ✅ Seller Orders Page                                           │
+│     • Filter tab per status                                     │
+│     • Tombol "Tandai Dikemas" mengubah status pesanan           │
+│                                                                  │
+│  ✅ Driver Orders diperbaiki                                     │
+│     • Pakai endpoint /driver/orders yang benar                  │
+│     • Tidak lagi pakai endpoint /orders milik buyer             │
+│                                                                  │
+│  ✅ Navbar dropdown lengkap per role                             │
+│                                                                  │
+│  NEXT: BAB 12 — Pengaturan Akun Terpusat                        │
+│  ─────────────────────────────────────────────────────────────  │
+│  Kita akan membuat:                                              │
+│  1. Halaman /settings dengan 5 tab terintegrasi                 │
+│  2. Profil, Alamat, Keamanan, Role, Dompet dalam satu UI        │
+│  3. API baru: updateProfile & changePassword                    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+**Lanjut ke BAB 12?** [Pengaturan Akun Terpusat](../12-settings-page/12-settings-page.md)
+
+---
+
+*Update terakhir: 2026-07-24*

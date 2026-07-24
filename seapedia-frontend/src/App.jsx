@@ -10,6 +10,7 @@ import ProductsPage from './pages/ProductsPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import SettingsPage from './pages/SettingsPage'
 import BuyerDashboardPage from './pages/dashboard/buyer/DashboardPage'
 import CartPage from './pages/dashboard/buyer/CartPage'
 import OrdersPage from './pages/dashboard/buyer/OrdersPage'
@@ -135,6 +136,16 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
 
             {/* ==================== PROTECTED ROUTES ==================== */}
+
+            {/* General Protected Routes */}
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Buyer Routes */}
             <Route

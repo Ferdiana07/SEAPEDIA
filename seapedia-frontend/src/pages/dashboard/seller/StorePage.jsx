@@ -305,11 +305,11 @@ const SellerStorePage = () => {
 
               <Input
                 label="URL Logo (opsional)"
-                name="image_url"
+                name="logo_url"
                 type="url"
-                value={createForm.image_url}
+                value={createForm.logo_url}
                 onChange={handleCreateChange}
-                error={formErrors.image_url?.[0]}
+                error={formErrors.logo_url?.[0]}
                 placeholder="https://example.com/logo.jpg"
               />
 
@@ -335,9 +335,9 @@ const SellerStorePage = () => {
             <div className="flex items-start gap-6">
               {/* Store Logo */}
               <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                {store.image_url ? (
+                {store.logo_url ? (
                   <img
-                    src={store.image_url}
+                    src={store.logo_url}
                     alt={store.name}
                     className="w-full h-full object-cover"
                   />
@@ -441,11 +441,11 @@ const SellerStorePage = () => {
 
               <Input
                 label="URL Logo (opsional)"
-                name="image_url"
+                name="logo_url"
                 type="url"
-                value={updateForm.image_url}
+                value={updateForm.logo_url}
                 onChange={handleEditChange}
-                error={formErrors.image_url?.[0]}
+                error={formErrors.logo_url?.[0]}
               />
 
               <div className="flex justify-end gap-3 pt-4">

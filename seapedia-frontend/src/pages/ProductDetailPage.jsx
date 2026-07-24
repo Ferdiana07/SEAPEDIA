@@ -1,6 +1,6 @@
 // File: src/pages/ProductDetailPage.jsx
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
@@ -17,6 +17,7 @@ import reviewService from '../services/reviewService'
 // ============================================================
 const ProductDetailPage = () => {
   const { id } = useParams()
+  const navigate = useNavigate()
   
   // Stores
   const { currentProduct, fetchById, isLoading, error } = useProductStore()
@@ -72,15 +73,15 @@ const ProductDetailPage = () => {
   }
   
   // Handle add to cart
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!isAuthenticated()) {
       warning('Silakan login terlebih dahulu')
-      return
+      return false
     }
     
     if (activeRole !== 'buyer') {
       warning('Hanya buyer yang bisa menambahkan ke cart')
-      return
+      return false
     }
     
     // Cek single-store rule
@@ -88,8 +89,22 @@ const ProductDetailPage = () => {
       warning('Cart dari toko lain akan dihapus. Checkout cart dulu atau kosongkan cart.')
     }
     
-    addItem(currentProduct, quantity)
-    success(`${currentProduct.name} ditambahkan ke cart!`)
+    try {
+      await addItem(currentProduct, quantity)
+      success(`${currentProduct.name} ditambahkan ke cart!`)
+      return true
+    } catch (err) {
+      showError(err.response?.data?.message || 'Gagal menambahkan ke cart')
+      return false
+    }
+  }
+
+  // Handle beli langsung
+  const handleBuyNow = async () => {
+    const success = await handleAddToCart()
+    if (success) {
+      navigate('/cart')
+    }
   }
   
   // Submit review (BAB 9)
@@ -359,6 +374,7 @@ const ProductDetailPage = () => {
                   <Button
                     variant="outline"
                     className="w-full rounded-xl"
+                    onClick={handleBuyNow}
                   >
                     Beli Langsung
                   </Button>

@@ -1,17 +1,14 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import cartService from '../services/cartService'
 
 // ============================================================
-// CART STORE
+// CART STORE (Backend Synced)
 // ============================================================
 // Bertugas menyimpan data keranjang belanja
-// - Items di cart
-// - Store yang items-nya
-// - Total harga
+// Tersinkronisasi dengan backend API via cartService
 
 const useCartStore = create(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
       // ======================================================
       // STATE
       // ======================================================
@@ -59,9 +56,27 @@ const useCartStore = create(
       // ======================================================
       
       /**
-       * Set items dari API
-       * @param {Array} items - Items dari backend
-       * @param {Object} storeInfo - Info toko
+       * Fetch data cart dari backend
+       */
+      fetchCart: async () => {
+        set({ isLoading: true })
+        try {
+          const response = await cartService.getCart()
+          if (response.success && response.data) {
+            set({ 
+              items: response.data.items || [], 
+              store: response.data.store || null,
+              isLoading: false 
+            })
+          }
+        } catch (error) {
+          console.error("Gagal memuat keranjang:", error)
+          set({ isLoading: false })
+        }
+      },
+
+      /**
+       * Set items dari data raw (digunakan untuk login)
        */
       setCart: (items, storeInfo) => {
         set({ 
@@ -72,106 +87,94 @@ const useCartStore = create(
       },
       
       /**
-       * Tambah item ke cart
+       * Tambah item ke cart backend
        * @param {Object} product - Produk yang ditambahkan
        * @param {number} quantity - Jumlah
        */
-      addItem: (product, quantity = 1) => {
-        const { items, store } = get()
-        
-        // Cek apakah item sudah ada di cart
-        const existingIndex = items.findIndex(
-          item => item.product_id === product.id
-        )
-        
-        // Jika store berbeda, kosongkan cart dulu
-        // (Single-store rule)
-        if (store && store.id !== product.store_id) {
-          set({
-            items: [{
-              product_id: product.id,
-              name: product.name,
-              price: parseFloat(product.price),
-              image_url: product.image_url,
-              store_id: product.store_id,
-              store_name: product.store?.name,
-              quantity,
-            }],
-            store: {
-              id: product.store_id,
-              name: product.store?.name,
-            },
+      addItem: async (product, quantity = 1) => {
+        set({ isLoading: true })
+        try {
+          const response = await cartService.addItem({
+            product_id: product.id,
+            quantity
           })
-          return
-        }
-        
-        if (existingIndex >= 0) {
-          // Item sudah ada, update quantity
-          const newItems = [...items]
-          newItems[existingIndex].quantity += quantity
-          set({ items: newItems })
-        } else {
-          // Item baru, tambah ke array
-          set({
-            items: [...items, {
-              product_id: product.id,
-              name: product.name,
-              price: parseFloat(product.price),
-              image_url: product.image_url,
-              store_id: product.store_id,
-              store_name: product.store?.name,
-              quantity,
-            }],
-            store: {
-              id: product.store_id,
-              name: product.store?.name,
-            },
-          })
+          if (response.success) {
+            await get().fetchCart()
+          }
+          return response
+        } catch (error) {
+          set({ isLoading: false })
+          throw error
         }
       },
       
       /**
-       * Update quantity item
+       * Update quantity item di backend
        * @param {number} productId - ID produk
        * @param {number} quantity - Jumlah baru
        */
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: async (productId, quantity) => {
         if (quantity <= 0) {
-          // Jika quantity 0 atau kurang, hapus item
-          get().removeItem(productId)
-          return
+          return get().removeItem(productId)
         }
         
-        const newItems = get().items.map(item =>
-          item.product_id === productId
-            ? { ...item, quantity }
-            : item
-        )
-        set({ items: newItems })
+        set({ isLoading: true })
+        try {
+          const response = await cartService.updateItem(productId, quantity)
+          if (response.success) {
+            await get().fetchCart()
+          }
+          return response
+        } catch (error) {
+          set({ isLoading: false })
+          throw error
+        }
       },
       
       /**
-       * Hapus item dari cart
+       * Hapus item dari cart backend
        * @param {number} productId - ID produk
        */
-      removeItem: (productId) => {
-        const newItems = get().items.filter(
-          item => item.product_id !== productId
-        )
-        
-        // Jika cart kosong, reset store juga
-        if (newItems.length === 0) {
-          set({ items: [], store: null })
-        } else {
-          set({ items: newItems })
+      removeItem: async (productId) => {
+        set({ isLoading: true })
+        try {
+          const response = await cartService.removeItem(productId)
+          if (response.success) {
+            await get().fetchCart()
+          }
+          return response
+        } catch (error) {
+          set({ isLoading: false })
+          throw error
         }
       },
       
       /**
-       * Kosongkan cart
+       * Kosongkan cart di backend
        */
-      clearCart: () => {
-        set({ items: [], store: null })
+      clearCart: async () => {
+        set({ isLoading: true })
+        try {
+          // If we want to clear backend as well on logout, maybe skip it if we just want to clear frontend state.
+          // But clearCart is called when checking out (where backend already clears it) or manually.
+          // Since backend OrderController deletes items, we can just clear frontend state on checkout.
+          // Wait, if it's called manually, it clears backend.
+          const response = await cartService.clearCart()
+          if (response.success) {
+            set({ items: [], store: null, isLoading: false })
+          }
+          return response
+        } catch (error) {
+          // Fallback to clearing frontend state
+          set({ items: [], store: null, isLoading: false })
+        }
+      },
+
+      /**
+       * Reset state frontend saja (digunakan saat logout)
+       */
+      resetLocalCart: () => {
+        set({ items: [], store: null, isLoading: false })
       },
       
       /**
@@ -181,15 +184,7 @@ const useCartStore = create(
       setLoading: (loading) => {
         set({ isLoading: loading })
       },
-    }),
-    {
-      name: 'seapedia-cart',
-      partialize: (state) => ({
-        items: state.items,
-        store: state.store,
-      }),
-    }
-  )
+    })
 )
 
 export default useCartStore

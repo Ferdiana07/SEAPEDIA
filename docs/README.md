@@ -17,7 +17,8 @@ Dokumentasi pembelajaran membangun platform e-commerce SEAPEDIA dari nol.
 | 08 | Frontend - Dashboards | ✅ Selesai |
 | 09 | Reviews & Delivery | ✅ Selesai |
 | 10 | UI/UX Upgrade (Modern Design) | ✅ Selesai |
-| 11 | Deployment & Documentation | 🔜 Mendatang |
+| 11 | Fitur Lengkap Semua Role & Filter Produk | ✅ Selesai |
+| 12 | Pengaturan Akun Terpusat (Settings Page) | ✅ Selesai |
 
 ## 📁 Struktur Folder
 
@@ -26,7 +27,7 @@ docs/
 ├── README.md                    ← File ini
 │
 ├── _reference/                  ← 📌 Referensi Pelengkap (BUKAN BAB)
-│   └── 01-tools-dan-framework.md
+│   └── tools-dan-framework.md
 │
 ├── 00-foundation/
 │   └── 00-pendahuluan.md      ← BAB 0: Fondasi
@@ -61,8 +62,11 @@ docs/
 ├── 10-ui-ux-upgrade/
 │   └── 10-ui-ux-upgrade.md    ← BAB 10: UI/UX Upgrade
 │
-└── _reference/
-    └── 01-tools-dan-framework.md
+├── 11-complete-features/
+│   └── 11-complete-features.md ← BAB 11: Fitur Lengkap Semua Role
+│
+└── 12-settings-page/
+    └── 12-settings-page.md    ← BAB 12: Pengaturan Akun Terpusat
 ```
 
 ## 📌 Folder _reference (Referensi Pelengkap)
@@ -71,7 +75,7 @@ Berbeda dengan BAB yang harus dibaca berurutan, folder `_reference` adalah **dok
 
 | File | Deskripsi |
 |------|-----------|
-| [01-tools-dan-framework.md](../_reference/01-tools-dan-framework.md) | Penjelasan semua tools, bahasa, dan framework yang digunakan |
+| [tools-dan-framework.md](_reference/tools-dan-framework.md) | Penjelasan semua tools, bahasa, dan framework yang digunakan |
 
 ## 🎯 Tujuan Pembelajaran
 
@@ -88,7 +92,7 @@ Berbeda dengan BAB yang harus dibaca berurutan, folder `_reference` adalah **dok
 |-------|-----------|
 | Frontend | React + Tailwind CSS + Vite |
 | Backend | Laravel (PHP) |
-| Database | MySQL |
+| Database | SQLite (dev) / MySQL (prod) |
 | Auth | Laravel Sanctum |
 | State Management | Zustand |
 | Routing | React Router DOM |
@@ -97,7 +101,7 @@ Berbeda dengan BAB yang harus dibaca berurutan, folder `_reference` adalah **dok
 ## 📝 Cara Menggunakan Dokumentasi Ini
 
 ### Untuk Pemula:
-1. Baca BAB 0-10 **secara berurutan**
+1. Baca BAB 0-12 **secara berurutan**
 2. Baca `_reference/` jika ada istilah yang belum dipahami
 3. Kerjakan latihan di akhir setiap bab
 4. Praktik langsung dengan coding
@@ -112,9 +116,9 @@ Jika kamu lupa apa fungsi suatu tools/framework, buka folder `_reference/` dan c
 - [Dokumentasi React](https://react.dev)
 - [Dokumentasi Tailwind CSS](https://tailwindcss.com/docs)
 - [Dokumentasi Vite](https://vitejs.dev/guide)
-- [Dokumentasi Zustand](https://zustand.demo.pmnd.rs)
+- [Dokumentasi Zustand](https://zustand.pmnd.rs)
 - [RESTful API Design Guide](https://restfulapi.net/)
 
 ---
 
-*Last Updated: 2026-07-23*
+*Last Updated: 2026-07-24*

@@ -14,13 +14,14 @@ import Badge from '../ui/Badge'
 const Navbar = () => {
   const navigate = useNavigate()
   const { user, isAuthenticated, logout, activeRole } = useAuthStore()
-  const { getTotalItems } = useCartStore()
+  const { getTotalItems, resetLocalCart } = useCartStore()
   const { success, error: showError } = useUIStore()
   
   const cartItemCount = getTotalItems()
   
   // Handle logout
   const handleLogout = () => {
+    resetLocalCart()
     logout()
     navigate('/')
   }
@@ -231,6 +232,13 @@ const Navbar = () => {
                           </Link>
                         </>
                       )}
+
+                      <div className="h-px bg-gray-100 my-2"></div>
+                      
+                      {/* Settings Link */}
+                      <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 font-medium">
+                        ⚙️ Pengaturan Akun
+                      </Link>
 
                       <div className="h-px bg-gray-100 my-2"></div>
                       
