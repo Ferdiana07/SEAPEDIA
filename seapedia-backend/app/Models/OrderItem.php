@@ -73,7 +73,8 @@ class OrderItem extends Model
     public function getFormattedSubtotalAttribute(): string
     {
         $subtotal = (float) $this->subtotal;
-        return 'Rp ' . number_format($subtotal, 0, ',', '.');
+
+        return 'Rp '.number_format($subtotal, 0, ',', '.');
     }
 
     /**
@@ -82,6 +83,7 @@ class OrderItem extends Model
     public function getFormattedPriceAttribute(): string
     {
         $price = (float) $this->price_at_purchase;
-        return 'Rp ' . number_format($price, 0, ',', '.');
+
+        return 'Rp '.number_format($price, 0, ',', '.');
     }
 }

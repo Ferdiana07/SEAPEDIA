@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import useAuthStore from '../../../stores/authStore'
 import useUIStore from '../../../stores/uiStore'
 import adminService from '../../../services/adminService'
 
@@ -22,14 +21,25 @@ const AdminUsersPage = () => {
           total: res.meta.total,
         })
       }
-    } catch (err) {
+    } catch {
       showError('Gagal memuat data user')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { fetchUsers() }, [])
+  useEffect(() => {
+    let active = true
+    adminService.getUsers()
+      .then((res) => {
+        if (!active || !res.success) return
+        setUsers(res.data)
+        if (res.meta) setPagination({ current_page: res.meta.current_page, last_page: res.meta.last_page, total: res.meta.total })
+      })
+      .catch(() => { if (active) showError('Gagal memuat data user') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [showError])
 
   const getRoleBadge = (role, isActive) => {
     const colors = {

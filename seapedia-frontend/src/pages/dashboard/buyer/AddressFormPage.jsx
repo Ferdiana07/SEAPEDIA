@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import useAddressStore from '../../../stores/addressStore'
 import useUIStore from '../../../stores/uiStore'
 
@@ -29,11 +30,12 @@ const AddressFormPage = () => {
   })
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   // Fetch addresses and populate form when editing
   useEffect(() => {
     fetchAddresses()
-  }, [])
+  }, [fetchAddresses])
 
   // Populate form when addresses are loaded (edit mode)
   useEffect(() => {
@@ -64,8 +66,12 @@ const AddressFormPage = () => {
   }
   
   // Handle submit
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const requestSubmit = (event) => {
+    event.preventDefault()
+    setConfirmOpen(true)
+  }
+
+  const handleSubmit = async () => {
     setIsLoading(true)
     setErrors({})
     
@@ -97,7 +103,7 @@ const AddressFormPage = () => {
         </h1>
         
         <Card>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={requestSubmit} className="space-y-4">
             <Input
               label="Label Alamat"
               name="label"
@@ -176,6 +182,16 @@ const AddressFormPage = () => {
           </form>
         </Card>
       </div>
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleSubmit}
+        title={isEdit ? 'Simpan perubahan alamat?' : 'Tambahkan alamat ini?'}
+        description="Alamat akan tersedia sebagai tujuan checkout dan hanya dapat dilihat oleh akunmu."
+        details={[{ label: 'Label', value: formData.label || '-' }, { label: 'Penerima', value: formData.recipient_name || '-' }, { label: 'Utama', value: formData.is_default ? 'Ya' : 'Tidak' }]}
+        confirmLabel={isEdit ? 'Simpan perubahan' : 'Tambahkan alamat'}
+        isLoading={isLoading}
+      />
     </div>
   )
 }

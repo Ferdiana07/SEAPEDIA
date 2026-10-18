@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import walletService from '../services/walletService'
+import { createRequestKey } from '../utils/requestKey'
 
 // ============================================================
 // WALLET STORE
@@ -101,7 +102,7 @@ const useWalletStore = create((set, get) => ({
     set({ isLoading: true, error: null })
     
     try {
-      const response = await walletService.topUp({ amount })
+      const response = await walletService.topUp({ amount }, createRequestKey('topup'))
       
       if (response.success) {
         // Update balance

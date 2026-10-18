@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Address;
-use Illuminate\Http\Request;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AddressController extends Controller
 {
@@ -65,19 +67,19 @@ class AddressController extends Controller
         $user = $request->user();
         $validated['user_id'] = $user->id;
 
-        // Jika ini alamat default, reset yang lain
-        if ($validated['is_default'] ?? false) {
-            Address::where('user_id', $user->id)
-                ->update(['is_default' => false]);
-        }
+        $address = DB::transaction(function () use ($user, $validated): Address {
+            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-        // Jika belum punya alamat, set jadi default
-        $hasAddress = Address::where('user_id', $user->id)->exists();
-        if (!$hasAddress) {
-            $validated['is_default'] = true;
-        }
+            if ($validated['is_default'] ?? false) {
+                Address::where('user_id', $user->id)->update(['is_default' => false]);
+            }
 
-        $address = Address::create($validated);
+            if (! Address::where('user_id', $user->id)->exists()) {
+                $validated['is_default'] = true;
+            }
+
+            return Address::create($validated);
+        }, 3);
 
         return response()->json([
             'success' => true,
@@ -104,7 +106,7 @@ class AddressController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$address) {
+        if (! $address) {
             return response()->json([
                 'success' => false,
                 'message' => 'Alamat tidak ditemukan',
@@ -139,25 +141,24 @@ class AddressController extends Controller
 
         $user = $request->user();
 
-        $address = Address::where('id', $id)
-            ->where('user_id', $user->id)
-            ->first();
+        $address = DB::transaction(function () use ($user, $id, $validated): ?Address {
+            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $address = Address::whereKey($id)->where('user_id', $user->id)->lockForUpdate()->first();
+            if (! $address) {
+                return null;
+            }
 
-        if (!$address) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Alamat tidak ditemukan',
-            ], 404);
+            if ($validated['is_default'] ?? false) {
+                Address::where('user_id', $user->id)->where('id', '!=', $id)->update(['is_default' => false]);
+            }
+            $address->update($validated);
+
+            return $address;
+        }, 3);
+
+        if (! $address) {
+            return response()->json(['success' => false, 'message' => 'Alamat tidak ditemukan'], 404);
         }
-
-        // Jika ini alamat default, reset yang lain
-        if ($validated['is_default'] ?? false) {
-            Address::where('user_id', $user->id)
-                ->where('id', '!=', $id)
-                ->update(['is_default' => false]);
-        }
-
-        $address->update($validated);
 
         return response()->json([
             'success' => true,
@@ -180,28 +181,24 @@ class AddressController extends Controller
     {
         $user = $request->user();
 
-        $address = Address::where('id', $id)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if (!$address) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Alamat tidak ditemukan',
-            ], 404);
-        }
-
-        // Simpan info apakah ini alamat default
-        $wasDefault = $address->is_default;
-
-        $address->delete();
-
-        // Jika yang dihapus adalah default, set alamat pertama jadi default
-        if ($wasDefault) {
-            $firstAddress = Address::where('user_id', $user->id)->first();
-            if ($firstAddress) {
-                $firstAddress->update(['is_default' => true]);
+        $deleted = DB::transaction(function () use ($user, $id): bool {
+            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $address = Address::whereKey($id)->where('user_id', $user->id)->lockForUpdate()->first();
+            if (! $address) {
+                return false;
             }
+
+            $wasDefault = $address->is_default;
+            $address->delete();
+            if ($wasDefault) {
+                Address::where('user_id', $user->id)->oldest('id')->first()?->update(['is_default' => true]);
+            }
+
+            return true;
+        }, 3);
+
+        if (! $deleted) {
+            return response()->json(['success' => false, 'message' => 'Alamat tidak ditemukan'], 404);
         }
 
         return response()->json([
@@ -224,19 +221,21 @@ class AddressController extends Controller
     {
         $user = $request->user();
 
-        $address = Address::where('id', $id)
-            ->where('user_id', $user->id)
-            ->first();
+        $address = DB::transaction(function () use ($user, $id): ?Address {
+            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $address = Address::whereKey($id)->where('user_id', $user->id)->lockForUpdate()->first();
+            if (! $address) {
+                return null;
+            }
+            Address::where('user_id', $user->id)->where('id', '!=', $id)->update(['is_default' => false]);
+            $address->update(['is_default' => true]);
 
-        if (!$address) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Alamat tidak ditemukan',
-            ], 404);
+            return $address;
+        }, 3);
+
+        if (! $address) {
+            return response()->json(['success' => false, 'message' => 'Alamat tidak ditemukan'], 404);
         }
-
-        // Gunakan method setAsDefault dari Address model
-        $address->setAsDefault();
 
         return response()->json([
             'success' => true,

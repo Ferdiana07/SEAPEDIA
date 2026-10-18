@@ -4,14 +4,16 @@ import { Link } from 'react-router-dom'
 import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
 import Badge from '../../../components/ui/Badge'
+import ProductImage from '../../../components/ui/ProductImage'
 import useOrderStore from '../../../stores/orderStore'
+import { Package } from '@phosphor-icons/react'
 
 // ============================================================
 // ORDERS PAGE (BUYER)
 // ============================================================
 const OrdersPage = () => {
   // Stores
-  const { orders, pagination, isLoading, fetchOrders, updateStatus } = useOrderStore()
+  const { orders, pagination, isLoading, fetchOrders } = useOrderStore()
   
   // Local state
   const [filterStatus, setFilterStatus] = useState('all')
@@ -19,7 +21,7 @@ const OrdersPage = () => {
   // Fetch orders on mount
   useEffect(() => {
     fetchOrders({ status: filterStatus !== 'all' ? filterStatus : undefined })
-  }, [filterStatus])
+  }, [fetchOrders, filterStatus])
   
   // Status options
   const statusOptions = [
@@ -108,16 +110,14 @@ const OrdersPage = () => {
           </div>
         ) : orders.length === 0 ? (
           <Card className="text-center py-12">
-            <span className="text-6xl">📦</span>
+            <Package size={54} className="mx-auto text-primary-300" weight="duotone" />
             <h2 className="text-xl font-semibold text-gray-900 mt-4 mb-2">
               Tidak ada pesanan
             </h2>
             <p className="text-gray-600 mb-6">
               Kamu belum memiliki pesanan.
             </p>
-            <Link to="/products">
-              <Button>Mulai Belanja</Button>
-            </Link>
+            <Button as={Link} to="/products">Mulai Belanja</Button>
           </Card>
         ) : (
           <div className="space-y-4">
@@ -141,17 +141,7 @@ const OrdersPage = () => {
                       key={idx}
                       className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0"
                     >
-                      {item.product?.image_url ? (
-                        <img
-                          src={item.product.image_url}
-                          alt={item.product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300">
-                          📦
-                        </div>
-                      )}
+                      <ProductImage src={item.product?.image_url} alt={item.product?.name || 'Produk'} iconSize={22} className="h-full w-full object-cover" />
                     </div>
                   ))}
                   {order.items?.length > 3 && (
@@ -173,18 +163,10 @@ const OrdersPage = () => {
                   </div>
                   
                   <div className="flex gap-2">
-                    <Link to={`/buyer/orders/${order.id}`}>
-                      <Button variant="outline" size="sm">
-                        Detail
-                      </Button>
-                    </Link>
+                    <Button as={Link} to={`/buyer/orders/${order.id}`} variant="outline" size="sm">Detail</Button>
 
                     {order.status === 'completed' && order.items?.[0]?.product_id && (
-                      <Link to={`/products/${order.items[0].product_id}`}>
-                        <Button variant="ghost" size="sm">
-                          Beli Lagi
-                        </Button>
-                      </Link>
+                      <Button as={Link} to={`/products/${order.items[0].product_id}`} variant="ghost" size="sm">Beli Lagi</Button>
                     )}
                   </div>
                 </div>

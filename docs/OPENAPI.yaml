@@ -1,0 +1,630 @@
+openapi: 3.1.0
+info:
+  title: SEAPEDIA API
+  version: 1.0.0
+  description: API marketplace multi-role untuk Buyer, Seller, Driver, dan Admin.
+servers:
+  - url: http://127.0.0.1:8000/api
+    description: Local development
+tags:
+  - { name: Auth }
+  - { name: Public }
+  - { name: Buyer }
+  - { name: Seller }
+  - { name: Driver }
+  - { name: Admin }
+security: []
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Membuat akun Buyer baru
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RegisterInput' } } } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login dan membuat bearer token
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LoginInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Unauthorized' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout dan mencabut token aktif
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Unauthorized' } }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Mendapatkan profil dan role akun aktif
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Unauthorized' } }
+  /auth/profile:
+    put:
+      tags: [Auth]
+      summary: Memperbarui profil
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProfileInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /auth/password:
+    put:
+      tags: [Auth]
+      summary: Mengganti password
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PasswordInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /auth/select-role:
+    post:
+      tags: [Auth]
+      summary: Memilih role aktif yang sudah dimiliki
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SelectRoleInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Forbidden' } }
+  /auth/assign-role:
+    post:
+      tags: [Auth]
+      summary: Menambahkan role Buyer, Seller, atau Driver
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RoleInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' }, '403': { $ref: '#/components/responses/Forbidden' } }
+
+  /application-reviews:
+    get:
+      tags: [Public]
+      summary: Daftar ulasan aplikasi publik
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PerPage' }
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    post:
+      tags: [Public]
+      summary: Mengirim ulasan aplikasi publik
+      description: Dibatasi 10 request per menit per client.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ApplicationReviewInput' } } } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' }, '429': { description: Terlalu banyak request } }
+  /stores:
+    get:
+      tags: [Public]
+      summary: Daftar toko aktif
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    post:
+      tags: [Seller]
+      summary: Membuat toko milik Seller aktif
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StoreInput' } } } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' }, '403': { $ref: '#/components/responses/Forbidden' } }
+  /stores/{id}:
+    get:
+      tags: [Public]
+      summary: Detail toko beserta produk
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /stores/my:
+    get:
+      tags: [Seller]
+      summary: Toko milik Seller aktif
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+    put:
+      tags: [Seller]
+      summary: Memperbarui toko milik Seller aktif
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StoreInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+
+  /products:
+    get:
+      tags: [Public]
+      summary: Katalog produk
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: min_price, in: query, schema: { type: number, minimum: 0 } }
+        - { name: max_price, in: query, schema: { type: number, minimum: 0 } }
+        - { name: sort, in: query, schema: { type: string, enum: [latest, price_asc, price_desc] } }
+        - { $ref: '#/components/parameters/Page' }
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /products/{id}:
+    get:
+      tags: [Public]
+      summary: Detail produk
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /products/{id}/reviews:
+    get:
+      tags: [Public]
+      summary: Daftar ulasan produk
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    post:
+      tags: [Buyer]
+      summary: Membuat satu ulasan untuk produk
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductReviewInput' } } } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Forbidden' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /reviews/{id}:
+    put:
+      tags: [Buyer]
+      summary: Memperbarui ulasan produk milik Buyer
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductReviewInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+    delete:
+      tags: [Buyer]
+      summary: Menghapus ulasan produk milik Buyer
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  /wallet:
+    get:
+      tags: [Buyer]
+      summary: Saldo wallet Buyer aktif
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /wallet/topup:
+    post:
+      tags: [Buyer]
+      summary: Top up simulasi
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [amount], properties: { amount: { type: number, minimum: 1000, maximum: 10000000 } } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /transactions:
+    get:
+      tags: [Buyer]
+      summary: Riwayat transaksi wallet
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Page' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+
+  /addresses:
+    get:
+      tags: [Buyer]
+      summary: Daftar alamat Buyer
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    post:
+      tags: [Buyer]
+      summary: Menambah alamat
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AddressInput' } } } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /addresses/{id}:
+    get:
+      tags: [Buyer]
+      summary: Detail alamat milik Buyer
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+    put:
+      tags: [Buyer]
+      summary: Memperbarui alamat milik Buyer
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AddressInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+    delete:
+      tags: [Buyer]
+      summary: Menghapus alamat milik Buyer
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /addresses/{id}/set-default:
+    post:
+      tags: [Buyer]
+      summary: Menjadikan alamat sebagai default
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  /cart:
+    get:
+      tags: [Buyer]
+      summary: Membaca cart Buyer
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    delete:
+      tags: [Buyer]
+      summary: Mengosongkan cart
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /cart/items:
+    post:
+      tags: [Buyer]
+      summary: Menambah item ke cart satu toko
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CartItemInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /cart/items/{id}:
+    put:
+      tags: [Buyer]
+      summary: Mengubah kuantitas item cart
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/CartItemId' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [quantity], properties: { quantity: { type: integer, minimum: 0, description: Nilai 0 menghapus item dari cart. } } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' }, '422': { $ref: '#/components/responses/ValidationError' } }
+    delete:
+      tags: [Buyer]
+      summary: Menghapus item cart
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/CartItemId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  /orders/quote:
+    post:
+      tags: [Buyer]
+      summary: Menghitung quote checkout tanpa mutasi saldo atau stok
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CheckoutInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /orders/report/summary:
+    get:
+      tags: [Buyer]
+      summary: Ringkasan order dan total belanja Buyer
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /orders:
+    get:
+      tags: [Buyer]
+      summary: Daftar order milik Buyer
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/OrderStatus' } }
+        - { $ref: '#/components/parameters/Page' }
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    post:
+      tags: [Buyer]
+      summary: Checkout atomik dari cart
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CheckoutInput' } } } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /orders/{id}:
+    get:
+      tags: [Buyer]
+      summary: Detail order, breakdown, item, dan status history
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /orders/{id}/cancel:
+    post:
+      tags: [Buyer]
+      summary: Membatalkan order packaging dan menjalankan refund idempotent
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  /seller/products/stats:
+    get:
+      tags: [Seller]
+      summary: Statistik produk toko Seller
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /seller/products:
+    get:
+      tags: [Seller]
+      summary: Daftar produk toko Seller
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Page' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    post:
+      tags: [Seller]
+      summary: Membuat produk dengan foto opsional
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { multipart/form-data: { schema: { $ref: '#/components/schemas/ProductUploadInput' } } } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /seller/products/{id}:
+    put:
+      tags: [Seller]
+      summary: Memperbarui produk milik toko Seller
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+    post:
+      tags: [Seller]
+      summary: Memperbarui produk dan mengganti foto melalui multipart
+      description: Kirim `_method=PUT` agar Laravel memproses request multipart sebagai update.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { multipart/form-data: { schema: { $ref: '#/components/schemas/ProductUploadInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' }, '422': { $ref: '#/components/responses/ValidationError' } }
+    delete:
+      tags: [Seller]
+      summary: Menghapus produk milik toko Seller
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+  /seller/orders/report/summary:
+    get:
+      tags: [Seller]
+      summary: Ringkasan order dan income Seller dari order selesai
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /seller/orders:
+    get:
+      tags: [Seller]
+      summary: Daftar order untuk toko Seller
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: status, in: query, schema: { $ref: '#/components/schemas/OrderStatus' } }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /seller/orders/{id}/status:
+    put:
+      tags: [Seller]
+      summary: Mengubah packaging menjadi waiting_shipper
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status], properties: { status: { type: string, const: waiting_shipper } } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  /driver/orders/report/summary:
+    get:
+      tags: [Driver]
+      summary: Ringkasan job dan earning Driver
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /driver/orders:
+    get:
+      tags: [Driver]
+      summary: Daftar job tersedia, aktif, atau histori
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: status, in: query, schema: { type: string, enum: [waiting_shipper, shipping, history] } }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /driver/orders/{id}/pickup:
+    post:
+      tags: [Driver]
+      summary: Mengambil job secara atomik
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '409': { description: Job sudah diambil atau status berubah } }
+  /driver/orders/{id}/complete:
+    post:
+      tags: [Driver]
+      summary: Menyelesaikan pengantaran
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /driver/orders/{id}/return:
+    post:
+      tags: [Driver]
+      summary: Mengembalikan order dan menjalankan refund
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 10, maxLength: 500 } } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' }, '422': { $ref: '#/components/responses/ValidationError' } }
+
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: Statistik marketplace
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Daftar dan pencarian pengguna
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: search, in: query, schema: { type: string, maxLength: 100 } }
+        - { $ref: '#/components/parameters/Page' }
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /admin/monitoring:
+    get:
+      tags: [Admin]
+      summary: Order terbaru, stok rendah, dan pengantaran aktif
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /admin/simulate-time:
+    post:
+      tags: [Admin]
+      summary: Menjalankan evaluasi overdue dengan waktu simulasi
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [hours], properties: { hours: { type: integer, minimum: 1, maximum: 720 } } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /admin/discounts:
+    get:
+      tags: [Admin]
+      summary: Daftar Voucher dan Promo
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Page' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    post:
+      tags: [Admin]
+      summary: Membuat Voucher atau Promo
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DiscountInput' } } } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /admin/discounts/{id}:
+    get:
+      tags: [Admin]
+      summary: Detail Voucher atau Promo
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/NotFound' } }
+    put:
+      tags: [Admin]
+      summary: Memperbarui Voucher atau Promo
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DiscountUpdateInput' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '422': { $ref: '#/components/responses/ValidationError' } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: Sanctum }
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    CartItemId: { name: id, in: path, required: true, description: "ID baris item cart, bukan ID produk.", schema: { type: integer, minimum: 1 } }
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    PerPage: { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 10 } }
+  responses:
+    Success:
+      description: Operasi berhasil
+      content: { application/json: { schema: { $ref: '#/components/schemas/ApiResponse' } } }
+    BadRequest:
+      description: State atau aturan bisnis tidak valid
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Unauthorized:
+      description: Token tidak ada atau tidak valid
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: Role aktif atau ownership tidak sesuai
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    NotFound:
+      description: Resource tidak ditemukan
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    ValidationError:
+      description: Validasi input gagal
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+  schemas:
+    ApiResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, const: true }
+        message: { type: string }
+        data: {}
+        user: { $ref: '#/components/schemas/User' }
+        token: { type: string }
+        meta: { type: object, additionalProperties: true }
+    ErrorResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: { type: boolean, const: false }
+        message: { type: string }
+        errors: { type: object, additionalProperties: { type: array, items: { type: string } } }
+    RegisterInput:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name: { type: string, maxLength: 255 }
+        email: { type: string, format: email, maxLength: 255 }
+        password: { type: string, format: password, minLength: 8 }
+        password_confirmation: { type: string, format: password, minLength: 8 }
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    RoleInput:
+      type: object
+      required: [role]
+      properties: { role: { type: string, enum: [buyer, seller, driver] } }
+    SelectRoleInput:
+      type: object
+      required: [role]
+      properties: { role: { type: string, enum: [admin, buyer, seller, driver] } }
+    ProfileInput:
+      type: object
+      properties:
+        name: { type: string, maxLength: 255 }
+        phone: { type: [string, 'null'], maxLength: 20 }
+        bio: { type: [string, 'null'], maxLength: 255 }
+        birth_date: { type: [string, 'null'], format: date }
+        gender: { type: [string, 'null'], enum: [male, female, other, null] }
+        avatar_url: { type: [string, 'null'], format: uri, maxLength: 500 }
+    PasswordInput:
+      type: object
+      required: [current_password, password, password_confirmation]
+      properties:
+        current_password: { type: string, format: password }
+        password: { type: string, format: password, minLength: 8 }
+        password_confirmation: { type: string, format: password, minLength: 8 }
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        active_role: { type: [string, 'null'], enum: [buyer, seller, driver, admin, null] }
+        roles: { type: array, items: { type: object, properties: { role: { type: string }, is_active: { type: boolean } } } }
+    ApplicationReviewInput:
+      type: object
+      required: [reviewer_name, rating, comment]
+      properties:
+        reviewer_name: { type: string, minLength: 2, maxLength: 100 }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, minLength: 10, maxLength: 1000 }
+    StoreInput:
+      type: object
+      required: [name, address, phone]
+      properties:
+        name: { type: string, maxLength: 255 }
+        description: { type: [string, 'null'], maxLength: 1000 }
+        address: { type: string, maxLength: 500 }
+        phone: { type: string, maxLength: 20 }
+        logo_url: { type: [string, 'null'], format: uri, maxLength: 500 }
+    ProductInput:
+      type: object
+      required: [name, category, price, stock]
+      properties:
+        name: { type: string, maxLength: 255 }
+        description: { type: [string, 'null'], maxLength: 2000 }
+        category: { type: string, enum: [alat pancing, budidaya, pakan, akuarium, biota hidup, tanaman laut, hasil laut, kuliner laut, lainnya] }
+        price: { type: integer, minimum: 100, maximum: 999999999 }
+        stock: { type: integer, minimum: 0, maximum: 999999 }
+        image_url: { type: [string, 'null'], format: uri, maxLength: 500 }
+        is_active: { type: boolean }
+    ProductUploadInput:
+      allOf:
+        - { $ref: '#/components/schemas/ProductInput' }
+        - type: object
+          properties:
+            _method: { type: string, enum: [PUT], description: Wajib hanya untuk update multipart }
+            image: { type: string, format: binary, description: "JPG, PNG, atau WebP; maksimal 2 MB dan 6000 x 6000 piksel" }
+    ProductReviewInput:
+      type: object
+      required: [rating, comment]
+      properties:
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, maxLength: 1000 }
+    AddressInput:
+      type: object
+      required: [label, recipient_name, phone, full_address]
+      properties:
+        label: { type: string, maxLength: 50 }
+        recipient_name: { type: string, maxLength: 255 }
+        phone: { type: string, maxLength: 20 }
+        full_address: { type: string }
+        is_default: { type: boolean, default: false }
+    CartItemInput:
+      type: object
+      required: [product_id, quantity]
+      properties:
+        product_id: { type: integer, minimum: 1 }
+        quantity: { type: integer, minimum: 1 }
+    CheckoutInput:
+      type: object
+      required: [address_id, delivery_method]
+      properties:
+        address_id: { type: integer, minimum: 1 }
+        delivery_method: { type: string, enum: [instant, next_day, regular] }
+        discount_code: { type: [string, 'null'], maxLength: 50 }
+    OrderStatus:
+      type: string
+      enum: [packaging, waiting_shipper, shipping, completed, returned]
+    DiscountInput:
+      type: object
+      required: [code, name, type, calculation_type, value, expires_at]
+      properties:
+        code: { type: string, maxLength: 40, pattern: '^[A-Za-z0-9_-]+$' }
+        name: { type: string, maxLength: 120 }
+        type: { type: string, enum: [voucher, promo] }
+        calculation_type: { type: string, enum: [fixed, percentage] }
+        value: { type: number, exclusiveMinimum: 0, description: Persentase maksimal 100 jika calculation_type bernilai percentage. }
+        minimum_purchase: { type: [number, 'null'], minimum: 0, default: 0 }
+        maximum_discount: { type: [number, 'null'], exclusiveMinimum: 0 }
+        usage_limit: { type: [integer, 'null'], exclusiveMinimum: 0 }
+        starts_at: { type: [string, 'null'], format: date-time }
+        expires_at: { type: string, format: date-time }
+    DiscountUpdateInput:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, maxLength: 120 }
+        expires_at: { type: string, format: date-time }
+        usage_limit: { type: [integer, 'null'], exclusiveMinimum: 0 }
+        is_active: { type: boolean }

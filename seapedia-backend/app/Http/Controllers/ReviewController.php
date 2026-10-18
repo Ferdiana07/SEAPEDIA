@@ -1,4 +1,5 @@
 <?php
+
 // File: app/Http/Controllers/ReviewController.php
 // Penjelasan: Controller untuk review produk.
 // Aturan COMPFEST (Level 1):
@@ -28,24 +29,28 @@ class ReviewController extends Controller
     {
         $product = Product::find($productId);
 
-        if (!$product) {
+        if (! $product) {
             return response()->json([
                 'success' => false,
                 'message' => 'Produk tidak ditemukan',
             ], 404);
         }
 
-        $reviews = Review::with('user:id,name')
-            ->where('product_id', $productId)
+        $baseQuery = Review::where('product_id', $productId);
+        $averageRating = round((float) (clone $baseQuery)->avg('rating'), 1);
+        $totalReviews = (clone $baseQuery)->count();
+        $perPage = max(1, min((int) $request->input('per_page', 20), 100));
+
+        $reviews = (clone $baseQuery)->with('user:id,name')
             ->latest()
-            ->paginate(20);
+            ->paginate($perPage);
 
         return response()->json([
             'success' => true,
             'data' => $reviews->items(),
             'summary' => [
-                'average_rating' => round((float) $reviews->avg('rating'), 1),
-                'total_reviews' => $reviews->total(),
+                'average_rating' => $averageRating,
+                'total_reviews' => $totalReviews,
             ],
             'meta' => [
                 'current_page' => $reviews->currentPage(),
@@ -85,7 +90,7 @@ class ReviewController extends Controller
 
         $product = Product::find($productId);
 
-        if (!$product) {
+        if (! $product) {
             return response()->json([
                 'success' => false,
                 'message' => 'Produk tidak ditemukan',
@@ -93,23 +98,17 @@ class ReviewController extends Controller
         }
 
         // Cegah double review (1 user × 1 produk = 1 review)
-        $existing = Review::where('user_id', $user->id)
-            ->where('product_id', $productId)
-            ->first();
+        $review = Review::firstOrCreate(
+            ['user_id' => $user->id, 'product_id' => $productId],
+            ['rating' => $validated['rating'], 'comment' => $validated['comment'] ?? null]
+        );
 
-        if ($existing) {
+        if (! $review->wasRecentlyCreated) {
             return response()->json([
                 'success' => false,
                 'message' => 'Kamu sudah pernah mereview produk ini. Gunakan update untuk mengubah.',
             ], 409);
         }
-
-        $review = Review::create([
-            'user_id' => $user->id,
-            'product_id' => $productId,
-            'rating' => $validated['rating'],
-            'comment' => $validated['comment'] ?? null,
-        ]);
 
         $review->load('user:id,name');
 
@@ -135,7 +134,7 @@ class ReviewController extends Controller
 
         $review = Review::find($id);
 
-        if (!$review) {
+        if (! $review) {
             return response()->json([
                 'success' => false,
                 'message' => 'Review tidak ditemukan',
@@ -179,7 +178,7 @@ class ReviewController extends Controller
 
         $review = Review::find($id);
 
-        if (!$review) {
+        if (! $review) {
             return response()->json([
                 'success' => false,
                 'message' => 'Review tidak ditemukan',

@@ -23,36 +23,36 @@ class StoreSeeder extends Seeder
         // Toko untuk Seller 1 - Budi (User ID 2)
         Store::create([
             'user_id' => 2,
-            'name' => 'Dapur Budi',
-            'description' => 'Makanan rumahan enak dengan cita rasa khas Indonesia. Masakan segar setiap hari!',
-            'address' => 'Jl. Merdeka No. 10, Jakarta Pusat',
+            'name' => 'Laut Lestari Gear',
+            'description' => 'Perlengkapan memancing laut pilihan untuk pemula dan pemancing berpengalaman, dengan panduan perawatan air asin.',
+            'address' => 'Jl. Dermaga Bahari No. 10, Jakarta Utara',
             'phone' => '081234567890',
-            'logo_url' => 'https://via.placeholder.com/150?text=Dapur+Budi',
+            'logo_url' => null,
             'is_active' => true,
         ]);
 
         // Toko untuk Seller 2 - Siti (User ID 3)
         Store::create([
             'user_id' => 3,
-            'name' => 'Warung Siti',
-            'description' => 'Warung tradisional dengan menu lengkap. Harga terjangkau!',
-            'address' => 'Jl. Sudirman No. 25, Jakarta Selatan',
+            'name' => 'Mina Pesisir Aquaculture',
+            'description' => 'Peralatan budidaya, pakan, dan instrumen pemantauan air untuk usaha perikanan pesisir yang lebih terukur.',
+            'address' => 'Jl. Tambak Mina No. 25, Tangerang',
             'phone' => '081234567891',
-            'logo_url' => 'https://via.placeholder.com/150?text=Warung+Siti',
+            'logo_url' => null,
             'is_active' => true,
         ]);
 
         // Toko untuk Multi-role - Fika (User ID 8)
         Store::create([
             'user_id' => 8,
-            'name' => 'Kue Fika',
-            'description' => 'Toko kue dan bakery homemade. Fresh from oven!',
-            'address' => 'Jl. Gatot Subroto No. 15, Jakarta Barat',
+            'name' => 'Terumbu Pesisir Market',
+            'description' => 'Kebutuhan akuarium laut, biota hasil budidaya, hasil laut berantai dingin, dan menu siap santap dari pesisir.',
+            'address' => 'Jl. Pesisir Nusantara No. 15, Jakarta Utara',
             'phone' => '081234567892',
-            'logo_url' => 'https://via.placeholder.com/150?text=Kue+Fika',
+            'logo_url' => null,
             'is_active' => true,
         ]);
 
-        $this->command->info('StoreSeeder berhasil! 3 toko dibuat (Dapur Budi, Warung Siti, Kue Fika).');
+        $this->command->info('StoreSeeder berhasil! 3 toko kelautan dibuat.');
     }
 }

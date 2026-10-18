@@ -175,11 +175,7 @@ const useAddressStore = create((set, get) => ({
    * @param {number} id - Address ID
    */
   setDefault: async (id) => {
-    try {
-      await get().updateAddress(id, { is_default: true })
-    } catch (err) {
-      throw err
-    }
+    await get().updateAddress(id, { is_default: true })
   },
 }))
 

@@ -28,12 +28,22 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Ambil token dari localStorage
-    const authData = JSON.parse(localStorage.getItem('seapedia-auth') || '{}')
+    let authData = {}
+    try {
+      authData = JSON.parse(localStorage.getItem('seapedia-auth') || '{}')
+    } catch {
+      localStorage.removeItem('seapedia-auth')
+    }
     const token = authData.state?.token
     
     // Jika ada token, tambahkan ke header
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+
+    // Browser harus menentukan multipart boundary secara otomatis.
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
     }
     
     return config
@@ -58,50 +68,15 @@ api.interceptors.response.use(
     // Handle error response
     
     if (error.response) {
-      // Server merespon dengan error
-      const { status, data } = error.response
-      
-      switch (status) {
-        case 401:
-          // Unauthorized - token invalid/expired
-          // Hapus auth data dari localStorage
-          localStorage.removeItem('seapedia-auth')
-          
-          // Redirect ke login (jika di browser)
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login'
-          }
-          break
-          
-        case 403:
-          // Forbidden - tidak punya akses
-          console.error('Access forbidden:', data.message)
-          break
-          
-        case 404:
-          // Not Found
-          console.error('Resource not found:', data.message)
-          break
-          
-        case 422:
-          // Validation Error
-          console.error('Validation error:', data.errors)
-          break
-          
-        case 500:
-          // Server Error
-          console.error('Server error:', data.message)
-          break
-          
-        default:
-          console.error('API Error:', data)
+      const { status } = error.response
+      const isLoginRequest = error.config?.url?.includes('/auth/login')
+
+      if (status === 401 && !isLoginRequest) {
+        localStorage.removeItem('seapedia-auth')
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+          window.location.assign('/login')
+        }
       }
-    } else if (error.request) {
-      // Request dikirim tapi tidak ada response
-      console.error('No response received:', error.request)
-    } else {
-      // Error lainnya
-      console.error('Error:', error.message)
     }
     
     return Promise.reject(error)

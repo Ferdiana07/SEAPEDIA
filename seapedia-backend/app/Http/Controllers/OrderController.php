@@ -2,632 +2,453 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Address;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Cart;
-use App\Models\CartItem;
 use App\Models\Wallet;
-use App\Models\Address;
-use App\Models\Product;
-use App\Models\Transaction;
-use Illuminate\Http\Request;
+use App\Services\MarketplaceOrderService;
+use DomainException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Throwable;
 
 class OrderController extends Controller
 {
-    /**
-     * ============================================================
-     * INDEX - BUYER
-     * ============================================================
-     * Ambil semua pesanan buyer
-     *
-     * Fungsi:
-     * - Buyer melihat semua pesanan yang dibuat
-     * - Include relasi store, items, driver
-     * - Diurutkan dari yang terbaru
-     */
+    public function __construct(private readonly MarketplaceOrderService $orders) {}
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $query = Order::where('user_id', $request->user()->id)
+            ->with(['store', 'items.product', 'driver', 'discount', 'statusHistories.actor'])
+            ->latest();
 
-        $query = Order::where('user_id', $user->id)
-            ->with(['store', 'items.product', 'driver'])
-            ->orderBy('created_at', 'desc');
-
-        // Filter by status (untuk tab Dikemas, Dikirim, Selesai, dll)
-        if ($status = $request->input('status')) {
-            $query->where('status', $status);
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
         }
 
-        $orders = $query->paginate(20);
-
-        return response()->json([
-            'success' => true,
-            'data' => $orders->items(),
-            'meta' => [
-                'current_page' => $orders->currentPage(),
-                'per_page' => $orders->perPage(),
-                'total' => $orders->total(),
-                'last_page' => $orders->lastPage(),
-            ],
-        ]);
+        return $this->paginated($query->paginate(20));
     }
 
-    /**
-     * ============================================================
-     * SHOW
-     * ============================================================
-     * Ambil detail satu pesanan
-     *
-     * Fungsi:
-     * - Menampilkan detail pesanan lengkap
-     * - Include store, driver, items
-     */
     public function show(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        $order = Order::where('id', $id)
-            ->where('user_id', $user->id)
-            ->with(['store', 'driver', 'items.product'])
+        $order = Order::whereKey($id)
+            ->where('user_id', $request->user()->id)
+            ->with(['store', 'driver', 'items.product', 'discount', 'statusHistories.actor'])
             ->first();
 
-        if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pesanan tidak ditemukan',
-            ], 404);
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Pesanan tidak ditemukan.'], 404);
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => $order,
-        ]);
+        return response()->json(['success' => true, 'data' => $order]);
     }
 
-    /**
-     * ============================================================
-     * STORE - CHECKOUT
-     * ============================================================
-     * Buat pesanan baru (checkout)
-     *
-     * Fungsi:
-     * - Membuat pesanan dari cart
-     * - Mendebit wallet
-     * - Mengurangi stok produk
-     * - Membuat record transaksi
-     *
-     * Alur:
-     * 1. Validasi input
-     * 2. Cek alamat ada dan milik user
-     * 3. Hitung total dan validasi stok
-     * 4. Cek saldo wallet cukup
-     * 5. DB Transaction:
-     *    - Debit wallet
-     *    - Insert transaction
-     *    - Insert order
-     *    - Insert order items
-     *    - Kurangi stock
-     *    - Hapus cart items
-     */
-    public function store(Request $request): JsonResponse
+    public function quote(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'delivery_method' => ['required', Rule::in(array_keys(Order::DELIVERY_FEES))],
+            'discount_code' => ['nullable', 'string', 'max:40'],
+        ]);
+
+        try {
+            $quote = $this->orders->quote(
+                $request->user(),
+                $validated['delivery_method'],
+                $validated['discount_code'] ?? null
+            );
+
+            return response()->json(['success' => true, 'data' => $this->serializeQuote($quote)]);
+        } catch (DomainException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 422);
+        }
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $idempotencyKey = trim((string) $request->header('Idempotency-Key')) ?: null;
+        if ($idempotencyKey !== null && mb_strlen($idempotencyKey) > 100) {
+            return response()->json(['success' => false, 'message' => 'Idempotency key terlalu panjang.'], 422);
+        }
+
+        $validated = $request->validate([
             'address_id' => ['required', 'integer', 'exists:addresses,id'],
+            'delivery_method' => ['required', Rule::in(array_keys(Order::DELIVERY_FEES))],
+            'discount_code' => ['nullable', 'string', 'max:40'],
         ]);
 
         $user = $request->user();
 
-        // Cek apakah user punya role buyer
-        if (!$user->hasRole('buyer')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hanya buyer yang bisa checkout',
-            ], 403);
-        }
+        if ($idempotencyKey) {
+            $existingOrder = Order::where('user_id', $user->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
 
-        // Ambil alamat
-        $address = Address::where('id', $validated['address_id'])
-            ->where('user_id', $user->id)
-            ->first();
-
-        if (!$address) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Alamat tidak ditemukan',
-            ], 404);
-        }
-
-        // Ambil cart
-        $cart = Cart::where('user_id', $user->id)->first();
-
-        if (!$cart || $cart->items->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cart kosong',
-            ], 400);
-        }
-
-        // Load items dengan relasi
-        $cart->load('items.product.store');
-
-        // Validasi single-store
-        $storeId = $cart->items->first()->product->store_id;
-        foreach ($cart->items as $item) {
-            if ($item->product->store_id !== $storeId) {
+            if ($existingOrder) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Checkout hanya boleh untuk produk dari 1 toko',
-                ], 400);
+                    'success' => true,
+                    'message' => 'Pesanan yang sama sudah berhasil dibuat.',
+                    'replayed' => true,
+                    'data' => $existingOrder->load(['items.product', 'store', 'discount', 'statusHistories.actor']),
+                ]);
             }
         }
 
-        // Hitung total
-        $total = 0;
-        $products = [];
-        foreach ($cart->items as $item) {
-            $product = $item->product;
-
-            // Cek stok
-            if ($product->stock < $item->quantity) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Stok {$product->name} tidak mencukupi",
-                ], 400);
-            }
-
-            $total += $product->price * $item->quantity;
-            $products[] = [
-                'item' => $item,
-                'product' => $product,
-            ];
+        $address = Address::whereKey($validated['address_id'])->where('user_id', $user->id)->first();
+        if (! $address) {
+            return response()->json(['success' => false, 'message' => 'Alamat tidak ditemukan.'], 404);
         }
 
-        // Ambil wallet
-        $wallet = Wallet::where('user_id', $user->id)->first();
-
-        if (!$wallet) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Wallet tidak ditemukan',
-            ], 400);
-        }
-
-        // Cek saldo
-        if ($wallet->balance < $total) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Saldo wallet tidak mencukupi',
-                'errors' => [
-                    'balance' => ['Saldo Anda: Rp ' . number_format($wallet->balance, 0, ',', '.')],
-                ],
-            ], 400);
-        }
-
-        // Generate order number
-        $orderNumber = Order::generateOrderNumber();
-
-        // DATABASE TRANSACTION
         try {
-            DB::beginTransaction();
+            $result = DB::transaction(function () use ($user, $address, $validated, $idempotencyKey) {
+                // Shared resources always follow wallet -> cart -> products -> discount.
+                // Refunds use order -> wallet -> products, so no transaction can hold
+                // a product while waiting for the same wallet.
+                $wallet = Wallet::where('user_id', $user->id)->lockForUpdate()->first();
+                if (! $wallet) {
+                    throw new DomainException('Wallet tidak ditemukan.');
+                }
 
-            // 1. Debit wallet
-            $wallet->decrement('balance', $total);
+                if ($idempotencyKey) {
+                    $existingOrder = Order::where('user_id', $user->id)
+                        ->where('idempotency_key', $idempotencyKey)
+                        ->first();
 
-            // 2. Create transaction
-            Transaction::create([
-                'wallet_id' => $wallet->id,
-                'type' => Transaction::TYPE_PURCHASE,
-                'amount' => -$total,
-                'order_id' => null, // Akan diupdate
-                'description' => "Pembelian order #{$orderNumber}",
-            ]);
+                    if ($existingOrder) {
+                        return ['order' => $existingOrder, 'replayed' => true];
+                    }
+                }
 
-            // 3. Create order
-            $order = Order::create([
-                'order_number' => $orderNumber,
-                'user_id' => $user->id,
-                'store_id' => $storeId,
-                'status' => Order::STATUS_PACKAGING,
-                'total_amount' => $total,
-                'shipping_address' => "{$address->recipient_name}\n{$address->full_address}\n{$address->phone}",
-            ]);
+                $quote = $this->orders->quote(
+                    $user,
+                    $validated['delivery_method'],
+                    $validated['discount_code'] ?? null,
+                    true
+                );
 
-            // 4. Create order items & reduce stock
-            foreach ($products as $data) {
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $data['product']->id,
-                    'quantity' => $data['item']->quantity,
-                    'price_at_purchase' => $data['product']->price,
+                if (! $wallet->hasSufficientBalance($quote['total_amount'])) {
+                    throw new DomainException('Saldo wallet tidak mencukupi.');
+                }
+
+                $order = Order::create([
+                    'user_id' => $user->id,
+                    'idempotency_key' => $idempotencyKey,
+                    'store_id' => $quote['store_id'],
+                    'status' => Order::STATUS_PACKAGING,
+                    'delivery_method' => $quote['delivery_method'],
+                    'subtotal' => $quote['subtotal'],
+                    'discount_amount' => $quote['discount_amount'],
+                    'delivery_fee' => $quote['delivery_fee'],
+                    'tax_amount' => $quote['tax_amount'],
+                    'discount_id' => $quote['discount']?->id,
+                    'total_amount' => $quote['total_amount'],
+                    'shipping_address' => "{$address->recipient_name}\n{$address->full_address}\n{$address->phone}",
                 ]);
 
-                // Reduce stock
-                $data['product']->decrement('stock', $data['item']->quantity);
-            }
+                foreach ($quote['items'] as $line) {
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $line['product']->id,
+                        'quantity' => $line['quantity'],
+                        'price_at_purchase' => $line['unit_price'],
+                    ]);
+                    $line['product']->decrement('stock', $line['quantity']);
+                }
 
-            // 5. Hapus cart items
-            $cart->items()->delete();
+                if (! $wallet->debit(
+                    $quote['total_amount'],
+                    $order->id,
+                    "Pembelian order #{$order->order_number}"
+                )) {
+                    throw new DomainException('Saldo wallet tidak mencukupi.');
+                }
 
-            // Update transaction dengan order_id
-            Transaction::where('wallet_id', $wallet->id)
-                ->whereNull('order_id')
-                ->where('description', 'LIKE', "%{$orderNumber}%")
-                ->update(['order_id' => $order->id]);
+                if ($quote['discount']) {
+                    $quote['discount']->increment('used_count');
+                }
 
-            DB::commit();
+                $quote['cart']->items()->delete();
+                $order->recordStatus($user, 'Checkout berhasil dan pembayaran wallet diterima.');
+
+                return ['order' => $order, 'replayed' => false];
+            }, 3);
+
+            $order = $result['order'];
+            $status = $result['replayed'] ? 200 : 201;
 
             return response()->json([
                 'success' => true,
-                'message' => 'Pesanan berhasil dibuat!',
-                'data' => [
-                    'id' => $order->id,
-                    'order_number' => $order->order_number,
-                    'status' => $order->status,
-                    'total_amount' => $order->total_amount,
-                    'shipping_address' => $order->shipping_address,
-                    'new_balance' => $wallet->fresh()->balance,
-                ],
-            ], 201);
+                'message' => $result['replayed'] ? 'Pesanan yang sama sudah berhasil dibuat.' : 'Pesanan berhasil dibuat.',
+                'replayed' => $result['replayed'],
+                'data' => $order->load(['items.product', 'store', 'discount', 'statusHistories.actor']),
+            ], $status);
+        } catch (DomainException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 422);
+        } catch (Throwable $exception) {
+            report($exception);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat membuat pesanan',
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Checkout gagal diproses.'], 500);
         }
     }
 
-    /**
-     * ============================================================
-     * CANCEL - BUYER
-     * ============================================================
-     * Buyer membatalkan pesanan
-     *
-     * Fungsi:
-     * - Membatalkan pesanan yang belum dikirim
-     * - Refund ke wallet
-     * - Restore stock
-     *
-     * Aturan:
-     * - Hanya bisa batalkan jika status packaging atau waiting_shipper
-     */
     public function cancel(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
-
-        $order = Order::where('id', $id)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pesanan tidak ditemukan',
-            ], 404);
+        $order = Order::whereKey($id)->where('user_id', $request->user()->id)->first();
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Pesanan tidak ditemukan.'], 404);
+        }
+        if (! $order->canBeCancelled()) {
+            return response()->json(['success' => false, 'message' => 'Pesanan tidak dapat dibatalkan pada status ini.'], 422);
         }
 
-        if (!$order->canBeCancelled()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pesanan tidak dapat dibatalkan',
-            ], 400);
+        try {
+            $returned = DB::transaction(function () use ($id, $request) {
+                $lockedOrder = Order::whereKey($id)
+                    ->where('user_id', $request->user()->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $lockedOrder || ! $lockedOrder->canBeCancelled()) {
+                    throw new DomainException('Pesanan tidak dapat dibatalkan pada status ini.');
+                }
+
+                return $this->orders->refund($lockedOrder, $request->user(), 'Dibatalkan oleh Buyer.');
+            }, 3);
+        } catch (DomainException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 422);
         }
-
-        // Refund ke wallet
-        $wallet = Wallet::where('user_id', $user->id)->first();
-
-        if ($wallet) {
-            $wallet->refund(
-                $order->total_amount,
-                $order->order_number,
-                "Refund pembatalan order #{$order->order_number}"
-            );
-        }
-
-        // Restore stock
-        foreach ($order->items as $item) {
-            $item->product->increment('stock', $item->quantity);
-        }
-
-        // Update status
-        $order->update(['status' => Order::STATUS_RETURNED]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Pesanan berhasil dibatalkan. Saldo akan dikembalikan.',
-            'data' => [
-                'status' => $order->status,
-                'refunded_amount' => $order->total_amount,
-                'new_balance' => $wallet?->fresh()->balance,
-            ],
+            'message' => 'Pesanan dibatalkan dan saldo dikembalikan.',
+            'data' => $returned,
         ]);
     }
 
-    /**
-     * ============================================================
-     * SELLER: ORDER LIST
-     * ============================================================
-     * Ambil pesanan masuk untuk seller
-     */
+    public function buyerReport(Request $request): JsonResponse
+    {
+        $orders = Order::where('user_id', $request->user()->id);
+
+        return response()->json(['success' => true, 'data' => [
+            'total_orders' => (clone $orders)->count(),
+            'active_orders' => (clone $orders)->whereIn('status', [Order::STATUS_PACKAGING, Order::STATUS_WAITING_SHIPPER, Order::STATUS_SHIPPING])->count(),
+            'completed_orders' => (clone $orders)->where('status', Order::STATUS_COMPLETED)->count(),
+            'total_spending' => (float) (clone $orders)->where('status', '!=', Order::STATUS_RETURNED)->sum('total_amount'),
+            'total_savings' => (float) (clone $orders)->where('status', '!=', Order::STATUS_RETURNED)->sum('discount_amount'),
+        ]]);
+    }
+
     public function sellerOrders(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        // Cek apakah user punya store
-        $store = $user->store;
-
-        if (!$store) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda belum memiliki toko',
-            ], 400);
+        $store = $request->user()->store;
+        if (! $store) {
+            return response()->json(['success' => false, 'message' => 'Buat toko sebelum menerima pesanan.'], 422);
         }
 
-        $orders = Order::where('store_id', $store->id)
-            ->with(['user', 'items.product'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $query = Order::where('store_id', $store->id)
+            ->with(['user', 'driver', 'items.product', 'discount', 'statusHistories.actor'])
+            ->latest();
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
+        }
 
-        return response()->json([
-            'success' => true,
-            'data' => $orders->items(),
-            'meta' => [
-                'current_page' => $orders->currentPage(),
-                'per_page' => $orders->perPage(),
-                'total' => $orders->total(),
-            ],
-        ]);
+        return $this->paginated($query->paginate(20));
     }
 
-    /**
-     * ============================================================
-     * SELLER: UPDATE STATUS
-     * ============================================================
-     * Seller mengupdate status pesanan
-     *
-     * Fungsi:
-     * - Seller mengkonfirmasi pesanan sudah dikemas
-     * - Mengubah status dari packaging ke waiting_shipper
-     */
+    public function sellerReport(Request $request): JsonResponse
+    {
+        $store = $request->user()->store;
+        if (! $store) {
+            return response()->json(['success' => true, 'data' => ['total_orders' => 0, 'income' => 0, 'pending_orders' => 0]]);
+        }
+
+        $orders = Order::where('store_id', $store->id);
+        $income = (clone $orders)->where('status', Order::STATUS_COMPLETED)
+            ->selectRaw('COALESCE(SUM(subtotal - discount_amount), 0) as amount')->value('amount');
+
+        return response()->json(['success' => true, 'data' => [
+            'total_orders' => (clone $orders)->count(),
+            'completed_orders' => (clone $orders)->where('status', Order::STATUS_COMPLETED)->count(),
+            'pending_orders' => (clone $orders)->whereIn('status', [Order::STATUS_PACKAGING, Order::STATUS_WAITING_SHIPPER])->count(),
+            'income' => (float) $income,
+        ]]);
+    }
+
     public function updateStatus(Request $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'status' => ['required', 'in:packaging,waiting_shipper'],
-        ]);
+        $request->validate(['status' => ['required', Rule::in([Order::STATUS_WAITING_SHIPPER])]]);
+        $store = $request->user()->store;
+        $order = $store ? Order::whereKey($id)->where('store_id', $store->id)->first() : null;
 
-        $user = $request->user();
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Pesanan tidak ditemukan.'], 404);
+        }
+        try {
+            $order = DB::transaction(function () use ($id, $request, $store) {
+                $lockedOrder = Order::whereKey($id)->where('store_id', $store->id)->lockForUpdate()->first();
+                if (! $lockedOrder || ! $lockedOrder->updateStatus(Order::STATUS_WAITING_SHIPPER)) {
+                    throw new DomainException('Transition status tidak valid.');
+                }
+                $lockedOrder->recordStatus($request->user(), 'Pesanan selesai dikemas dan siap diambil Driver.');
 
-        $order = Order::where('id', $id)
-            ->whereHas('store', function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })
-            ->first();
-
-        if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pesanan tidak ditemukan',
-            ], 404);
+                return $lockedOrder;
+            }, 3);
+        } catch (DomainException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 422);
         }
 
-        // Validasi status transition
-        if ($order->status === Order::STATUS_PACKAGING && $validated['status'] === 'waiting_shipper') {
-            $order->update(['status' => Order::STATUS_WAITING_SHIPPER]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Status tidak valid untuk transition ini',
-            ], 400);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Status pesanan berhasil diupdate',
-            'data' => [
-                'id' => $order->id,
-                'status' => $order->status,
-            ],
-        ]);
+        return response()->json(['success' => true, 'message' => 'Pesanan siap diantar.', 'data' => $order]);
     }
 
-    /**
-     * ============================================================
-     * DRIVER: ORDER LIST
-     * ============================================================
-     * Ambil pesanan yang bisa diambil driver
-     */
     public function driverOrders(Request $request): JsonResponse
     {
         $user = $request->user();
+        $status = $request->input('status', Order::STATUS_WAITING_SHIPPER);
+        $query = Order::with(['user', 'store', 'items.product', 'statusHistories.actor']);
 
-        // Ambil pesanan waiting_shipper yang belum punya driver
-        $orders = Order::where('status', Order::STATUS_WAITING_SHIPPER)
-            ->whereNull('driver_id')
-            ->with(['user', 'store', 'items.product'])
-            ->orderBy('created_at', 'asc') // FIFO
-            ->paginate(20);
+        if ($status === Order::STATUS_WAITING_SHIPPER) {
+            $query->where('status', $status)->whereNull('driver_id')->oldest();
+        } elseif ($status === 'history') {
+            $query->whereIn('status', [Order::STATUS_COMPLETED, Order::STATUS_RETURNED])
+                ->where('driver_id', $user->id)->latest('updated_at');
+        } else {
+            $query->where('status', $status)->where('driver_id', $user->id)->latest('updated_at');
+        }
 
-        return response()->json([
-            'success' => true,
-            'data' => $orders->items(),
-            'meta' => [
-                'current_page' => $orders->currentPage(),
-                'per_page' => $orders->perPage(),
-                'total' => $orders->total(),
-            ],
-        ]);
+        return $this->paginated($query->paginate(20));
     }
 
-    /**
-     * ============================================================
-     * DRIVER: PICKUP ORDER
-     * ============================================================
-     * Driver mengambil pesanan
-     */
+    public function driverReport(Request $request): JsonResponse
+    {
+        $orders = Order::where('driver_id', $request->user()->id);
+        $fees = (float) (clone $orders)->where('status', Order::STATUS_COMPLETED)->sum('delivery_fee');
+
+        return response()->json(['success' => true, 'data' => [
+            'available_jobs' => Order::waitingForDriver()->whereNull('driver_id')->count(),
+            'active_jobs' => (clone $orders)->where('status', Order::STATUS_SHIPPING)->count(),
+            'completed_jobs' => (clone $orders)->where('status', Order::STATUS_COMPLETED)->count(),
+            'earnings' => round($fees * 0.8, 2),
+            'earning_rate' => 0.8,
+        ]]);
+    }
+
     public function pickupOrder(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
+        try {
+            $order = DB::transaction(function () use ($request, $id) {
+                $order = Order::whereKey($id)->lockForUpdate()->first();
+                if (! $order || $order->status !== Order::STATUS_WAITING_SHIPPER || $order->driver_id !== null) {
+                    throw new DomainException('Job sudah diambil atau tidak lagi tersedia.');
+                }
 
-        if (!$user->hasRole('driver')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hanya driver yang bisa mengambil pesanan',
-            ], 403);
+                $order->driver_id = $request->user()->id;
+                $order->status = Order::STATUS_SHIPPING;
+                $order->save();
+                $order->recordStatus($request->user(), 'Job diambil Driver dan pengiriman dimulai.');
+
+                return $order;
+            }, 3);
+
+            return response()->json(['success' => true, 'message' => 'Job berhasil diambil.', 'data' => $order]);
+        } catch (DomainException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 409);
         }
-
-        $order = Order::where('id', $id)
-            ->where('status', Order::STATUS_WAITING_SHIPPER)
-            ->whereNull('driver_id')
-            ->first();
-
-        if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pesanan tidak ditemukan atau sudah diambil',
-            ], 404);
-        }
-
-        $order->update([
-            'driver_id' => $user->id,
-            'status' => Order::STATUS_SHIPPING,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Pesanan berhasil diambil!',
-            'data' => [
-                'id' => $order->id,
-                'order_number' => $order->order_number,
-                'status' => $order->status,
-                'shipping_address' => $order->shipping_address,
-            ],
-        ]);
     }
 
-    /**
-     * ============================================================
-     * DRIVER: COMPLETE ORDER
-     * ============================================================
-     * Driver menyelesaikan pesanan (barang terkirim ke buyer).
-     * Status: shipping -> completed
-     */
     public function completeOrder(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
+        try {
+            $order = DB::transaction(function () use ($request, $id) {
+                $lockedOrder = Order::whereKey($id)
+                    ->where('driver_id', $request->user()->id)
+                    ->lockForUpdate()
+                    ->first();
 
-        if (!$user->hasRole('driver')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hanya driver yang bisa menyelesaikan pesanan',
-            ], 403);
+                if (! $lockedOrder || $lockedOrder->status !== Order::STATUS_SHIPPING) {
+                    throw new DomainException('Job aktif tidak ditemukan.');
+                }
+
+                $lockedOrder->status = Order::STATUS_COMPLETED;
+                $lockedOrder->save();
+                $lockedOrder->recordStatus($request->user(), 'Pesanan diterima Buyer.');
+
+                return $lockedOrder;
+            }, 3);
+        } catch (DomainException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 409);
         }
 
-        $order = Order::where('id', $id)
-            ->where('driver_id', $user->id)
-            ->where('status', Order::STATUS_SHIPPING)
-            ->first();
+        return response()->json(['success' => true, 'message' => 'Pengantaran selesai.', 'data' => $order]);
+    }
 
-        if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pesanan tidak ditemukan atau bukan tanggung jawab kamu',
-            ], 404);
+    public function returnOrder(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:10', 'max:500']]);
+        try {
+            $returned = DB::transaction(function () use ($request, $id, $validated) {
+                $lockedOrder = Order::whereKey($id)
+                    ->where('driver_id', $request->user()->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $lockedOrder || $lockedOrder->status !== Order::STATUS_SHIPPING) {
+                    throw new DomainException('Job aktif tidak ditemukan.');
+                }
+
+                return $this->orders->refund(
+                    $lockedOrder,
+                    $request->user(),
+                    'Dikembalikan Driver: '.$validated['reason']
+                );
+            }, 3);
+        } catch (DomainException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 409);
         }
-
-        $order->update(['status' => Order::STATUS_COMPLETED]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Pesanan berhasil diselesaikan!',
-            'data' => [
-                'id' => $order->id,
-                'order_number' => $order->order_number,
-                'status' => $order->status,
-            ],
+            'message' => 'Pesanan dikembalikan. Saldo dan stok sudah dipulihkan.',
+            'data' => $returned,
         ]);
     }
 
-    /**
-     * ============================================================
-     * DRIVER: RETURN ORDER (BAB 9)
-     * ============================================================
-     * Driver menandai pesanan gagal diantar (misal: alamat salah,
-     * buyer tidak ditemukan). Status: shipping -> returned.
-     * Stok produk akan di-restore agar bisa dijual lagi.
-     */
-    public function returnOrder(Request $request, int $id): JsonResponse
+    private function serializeQuote(array $quote): array
     {
-        $user = $request->user();
+        return [
+            'items' => collect($quote['items'])->map(fn ($line) => [
+                'product_id' => $line['product']->id,
+                'name' => $line['product']->name,
+                'quantity' => $line['quantity'],
+                'unit_price' => $line['unit_price'],
+                'line_total' => $line['line_total'],
+            ])->values(),
+            'delivery_method' => $quote['delivery_method'],
+            'subtotal' => $quote['subtotal'],
+            'discount' => $quote['discount'] ? [
+                'code' => $quote['discount']->code,
+                'type' => $quote['discount']->type,
+                'name' => $quote['discount']->name,
+            ] : null,
+            'discount_amount' => $quote['discount_amount'],
+            'delivery_fee' => $quote['delivery_fee'],
+            'tax_rate' => $quote['tax_rate'],
+            'tax_amount' => $quote['tax_amount'],
+            'total_amount' => $quote['total_amount'],
+        ];
+    }
 
-        if (!$user->hasRole('driver')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hanya driver yang bisa mengembalikan pesanan',
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'reason' => ['required', 'string', 'max:500'],
+    private function paginated($paginator): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
         ]);
-
-        $order = Order::where('id', $id)
-            ->where('driver_id', $user->id)
-            ->where('status', Order::STATUS_SHIPPING)
-            ->first();
-
-        if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pesanan tidak ditemukan atau bukan tanggung jawab kamu',
-            ], 404);
-        }
-
-        DB::beginTransaction();
-        try {
-            // Kembalikan stok produk
-            foreach ($order->items as $item) {
-                $item->product->increment('stock', $item->quantity);
-            }
-
-            // Kembalikan saldo buyer (refund)
-            $buyer = $order->user;
-            $wallet = Wallet::where('user_id', $buyer->id)->first();
-
-            if ($wallet) {
-                $wallet->refund(
-                    $order->total_amount,
-                    $order->order_number,
-                    "Refund order #{$order->order_number} dikembalikan driver: {$validated['reason']}"
-                );
-            }
-
-            $order->update([
-                'status' => Order::STATUS_RETURNED,
-                'cancellation_reason' => "Dikembalikan driver: {$validated['reason']}",
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Pesanan dikembalikan. Stok direstore & saldo buyer direfund.',
-                'data' => [
-                    'id' => $order->id,
-                    'order_number' => $order->order_number,
-                    'status' => $order->status,
-                    'reason' => $validated['reason'],
-                ],
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengembalikan pesanan',
-            ], 500);
-        }
     }
 }

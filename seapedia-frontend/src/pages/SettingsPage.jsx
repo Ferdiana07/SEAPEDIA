@@ -1,12 +1,29 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuthStore from '../stores/authStore'
 import useUIStore from '../stores/uiStore'
 import authService from '../services/authService'
 import addressService from '../services/addressService'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import {
+  CaretRight,
+  Eye,
+  EyeSlash,
+  IdentificationCard,
+  Lightbulb,
+  LockKey,
+  MapPin,
+  Package,
+  ShieldCheck,
+  ShoppingCart,
+  Storefront,
+  User,
+  Wallet,
+  Car,
+} from '@phosphor-icons/react'
 
 // ============================================================
-// SETTINGS PAGE — Mirip E-Commerce Profesional
+// SETTINGS PAGE - Mirip E-Commerce Profesional
 // ============================================================
 
 const GENDER_OPTIONS = [
@@ -17,18 +34,18 @@ const GENDER_OPTIONS = [
 ]
 
 const ROLE_META = {
-  buyer:  { icon: '🛒', label: 'Pembeli',  desc: 'Belanja produk dari ribuan seller',  color: 'green' },
-  seller: { icon: '🏪', label: 'Penjual',  desc: 'Buka toko dan jual produk',          color: 'blue' },
-  driver: { icon: '🚗', label: 'Driver',   desc: 'Antar pesanan dan dapatkan komisi',  color: 'purple' },
-  admin:  { icon: '🛡️', label: 'Admin',    desc: 'Kelola seluruh platform Seapedia',   color: 'red' },
+  buyer:  { icon: <ShoppingCart size={26} weight="duotone" />, label: 'Pembeli',  desc: 'Belanja produk dari seller lokal' },
+  seller: { icon: <Storefront size={26} weight="duotone" />, label: 'Penjual',  desc: 'Buka toko dan jual produk' },
+  driver: { icon: <Car size={26} weight="duotone" />, label: 'Driver',   desc: 'Antar pesanan dan dapatkan komisi' },
+  admin:  { icon: <ShieldCheck size={26} weight="duotone" />, label: 'Admin', desc: 'Kelola seluruh platform SEAPEDIA' },
 }
 
 const NAV_ITEMS = [
-  { id: 'profile',   icon: '👤', label: 'Informasi Pribadi' },
-  { id: 'address',   icon: '📍', label: 'Alamat Saya' },
-  { id: 'security',  icon: '🔒', label: 'Keamanan Akun' },
-  { id: 'roles',     icon: '🎭', label: 'Manajemen Role' },
-  { id: 'wallet',    icon: '💰', label: 'Dompet Saya' },
+  { id: 'profile', icon: <User size={19} />, label: 'Informasi Pribadi' },
+  { id: 'address', icon: <MapPin size={19} />, label: 'Alamat Saya' },
+  { id: 'security', icon: <LockKey size={19} />, label: 'Keamanan Akun' },
+  { id: 'roles', icon: <IdentificationCard size={19} />, label: 'Manajemen Role' },
+  { id: 'wallet', icon: <Wallet size={19} />, label: 'Dompet Saya' },
 ]
 
 // ============================================================
@@ -48,6 +65,7 @@ const ProfileTab = ({ user, onUpdate }) => {
   })
   const [saving, setSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || '')
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -55,8 +73,12 @@ const ProfileTab = ({ user, onUpdate }) => {
     if (name === 'avatar_url') setAvatarPreview(value)
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const requestSubmit = (event) => {
+    event.preventDefault()
+    setConfirmOpen(true)
+  }
+
+  const handleSubmit = async () => {
     setSaving(true)
     try {
       const res = await authService.updateProfile(form)
@@ -67,6 +89,7 @@ const ProfileTab = ({ user, onUpdate }) => {
         }))
         onUpdate(res.user)
         success('Profil berhasil disimpan!')
+        setConfirmOpen(false)
       }
     } catch (err) {
       showError(err.response?.data?.message || 'Gagal menyimpan profil')
@@ -82,7 +105,7 @@ const ProfileTab = ({ user, onUpdate }) => {
       <h2 className="text-lg font-bold text-gray-900 mb-1">Informasi Pribadi</h2>
       <p className="text-sm text-gray-500 mb-6">Kelola informasi profil kamu untuk keamanan akun</p>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={requestSubmit} className="space-y-6">
         {/* Avatar Section */}
         <div className="flex items-center gap-6 p-4 bg-gray-50 rounded-xl">
           <div className="relative flex-shrink-0">
@@ -216,6 +239,16 @@ const ProfileTab = ({ user, onUpdate }) => {
           </button>
         </div>
       </form>
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleSubmit}
+        title="Simpan informasi pribadi?"
+        description="Perubahan profil akan langsung digunakan di seluruh role pada akun yang sama."
+        details={[{ label: 'Nama', value: form.name || '-' }, { label: 'Nomor HP', value: form.phone || '-' }]}
+        confirmLabel="Simpan profil"
+        isLoading={saving}
+      />
     </div>
   )
 }
@@ -229,13 +262,16 @@ const AddressTab = () => {
   const [editTarget, setEditTarget] = useState(null)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({ label: '', recipient_name: '', phone: '', full_address: '', is_default: false })
+  const [confirmation, setConfirmation] = useState(null)
 
   const fetchAddresses = async () => {
     setLoading(true)
     try {
       const res = await addressService.getAll()
       if (res.success) setAddresses(res.data)
-    } catch { } finally { setLoading(false) }
+    } catch {
+      setAddresses([])
+    } finally { setLoading(false) }
   }
 
   useEffect(() => { fetchAddresses() }, [])
@@ -249,8 +285,12 @@ const AddressTab = () => {
     setShowForm(true)
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const requestSubmit = (event) => {
+    event.preventDefault()
+    setConfirmation({ type: 'save', address: editTarget })
+  }
+
+  const handleSubmit = async () => {
     setSaving(true)
     try {
       const res = editTarget
@@ -258,6 +298,7 @@ const AddressTab = () => {
         : await addressService.create(formData)
       if (res.success) {
         success(editTarget ? 'Alamat diupdate!' : 'Alamat ditambahkan!')
+        setConfirmation(null)
         setShowForm(false)
         fetchAddresses()
       }
@@ -267,20 +308,25 @@ const AddressTab = () => {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Yakin hapus alamat ini?')) return
+    setSaving(true)
     try {
       await addressService.delete(id)
       success('Alamat dihapus')
+      setConfirmation(null)
       fetchAddresses()
     } catch { showError('Gagal menghapus') }
+    finally { setSaving(false) }
   }
 
   const handleSetDefault = async (id) => {
+    setSaving(true)
     try {
       await addressService.setDefault(id)
       success('Alamat default diubah!')
+      setConfirmation(null)
       fetchAddresses()
     } catch { showError('Gagal mengubah default') }
+    finally { setSaving(false) }
   }
 
   return (
@@ -302,7 +348,7 @@ const AddressTab = () => {
       {showForm && (
         <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-5">
           <h3 className="font-bold text-gray-900 mb-4">{editTarget ? 'Edit Alamat' : 'Tambah Alamat Baru'}</h3>
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={requestSubmit} className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Label Alamat</label>
@@ -354,7 +400,7 @@ const AddressTab = () => {
         <div className="text-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto" /></div>
       ) : addresses.length === 0 ? (
         <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
-          <span className="text-4xl block mb-2">📍</span>
+          <MapPin size={42} className="mx-auto mb-2 text-primary-300" weight="duotone" />
           <p className="text-gray-500 text-sm">Belum ada alamat tersimpan</p>
         </div>
       ) : (
@@ -379,7 +425,7 @@ const AddressTab = () => {
                 </div>
                 <div className="flex gap-2 ml-4">
                   {!addr.is_default && (
-                    <button onClick={() => handleSetDefault(addr.id)}
+                    <button onClick={() => setConfirmation({ type: 'default', address: addr })}
                       className="text-xs text-primary-500 hover:underline font-medium">
                       Jadikan Utama
                     </button>
@@ -388,7 +434,7 @@ const AddressTab = () => {
                     className="text-xs text-gray-500 hover:text-gray-700 font-medium">
                     Ubah
                   </button>
-                  <button onClick={() => handleDelete(addr.id)}
+                  <button onClick={() => setConfirmation({ type: 'delete', address: addr })}
                     className="text-xs text-red-500 hover:text-red-700 font-medium">
                     Hapus
                   </button>
@@ -398,6 +444,19 @@ const AddressTab = () => {
           ))}
         </div>
       )}
+      <ConfirmDialog
+        isOpen={!!confirmation}
+        onClose={() => setConfirmation(null)}
+        onConfirm={() => confirmation?.type === 'save' ? handleSubmit() : confirmation?.type === 'delete' ? handleDelete(confirmation.address.id) : handleSetDefault(confirmation.address.id)}
+        title={confirmation?.type === 'save' ? (editTarget ? 'Simpan perubahan alamat?' : 'Tambahkan alamat?') : confirmation?.type === 'delete' ? 'Hapus alamat?' : 'Jadikan alamat utama?'}
+        description={confirmation?.type === 'delete' ? 'Alamat akan dihapus dari akunmu.' : 'Perubahan ini akan memengaruhi pilihan alamat pada checkout berikutnya.'}
+        details={confirmation?.type === 'save'
+          ? [{ label: 'Label', value: formData.label || '-' }, { label: 'Penerima', value: formData.recipient_name || '-' }]
+          : confirmation?.address ? [{ label: 'Label', value: confirmation.address.label }, { label: 'Penerima', value: confirmation.address.recipient_name }] : []}
+        confirmLabel={confirmation?.type === 'delete' ? 'Hapus alamat' : 'Simpan'}
+        tone={confirmation?.type === 'delete' ? 'danger' : 'primary'}
+        isLoading={saving}
+      />
     </div>
   )
 }
@@ -408,20 +467,26 @@ const SecurityTab = () => {
   const [form, setForm] = useState({ current_password: '', password: '', password_confirmation: '' })
   const [saving, setSaving] = useState(false)
   const [showPass, setShowPass] = useState({ current: false, new: false, confirm: false })
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const handleChange = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }))
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const requestSubmit = (event) => {
+    event.preventDefault()
     if (form.password !== form.password_confirmation) {
       showError('Konfirmasi password tidak sesuai')
       return
     }
+    setConfirmOpen(true)
+  }
+
+  const handleSubmit = async () => {
     setSaving(true)
     try {
       const res = await authService.changePassword(form)
       if (res.success) {
         success('Password berhasil diubah!')
+        setConfirmOpen(false)
         setForm({ current_password: '', password: '', password_confirmation: '' })
       }
     } catch (err) {
@@ -429,7 +494,7 @@ const SecurityTab = () => {
     } finally { setSaving(false) }
   }
 
-  const PassInput = ({ name, label, keyName }) => (
+  const renderPassInput = (name, label, keyName) => (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       <div className="relative">
@@ -445,7 +510,7 @@ const SecurityTab = () => {
         />
         <button type="button" onClick={() => setShowPass(p => ({ ...p, [keyName]: !p[keyName] }))}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
-          {showPass[keyName] ? '🙈' : '👁️'}
+          {showPass[keyName] ? <EyeSlash size={19} /> : <Eye size={19} />}
         </button>
       </div>
     </div>
@@ -457,10 +522,10 @@ const SecurityTab = () => {
       <p className="text-sm text-gray-500 mb-6">Pastikan akun kamu menggunakan password yang kuat</p>
 
       <div className="max-w-md">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <PassInput name="current_password" label="Password Saat Ini" keyName="current" />
-          <PassInput name="password" label="Password Baru" keyName="new" />
-          <PassInput name="password_confirmation" label="Konfirmasi Password Baru" keyName="confirm" />
+        <form onSubmit={requestSubmit} className="space-y-4">
+          {renderPassInput('current_password', 'Password Saat Ini', 'current')}
+          {renderPassInput('password', 'Password Baru', 'new')}
+          {renderPassInput('password_confirmation', 'Konfirmasi Password Baru', 'confirm')}
 
           {/* Strength Indicator */}
           {form.password && (
@@ -486,9 +551,20 @@ const SecurityTab = () => {
             {saving ? 'Menyimpan...' : 'Ubah Password'}
           </button>
         </form>
+        <ConfirmDialog
+          isOpen={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={handleSubmit}
+          title="Ubah password akun?"
+          description="Password baru berlaku untuk semua role pada akun ini. Pastikan kamu menyimpannya dengan aman."
+          details={[{ label: 'Panjang password baru', value: `${form.password.length} karakter` }]}
+          confirmLabel="Ubah password"
+          tone="danger"
+          isLoading={saving}
+        />
 
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-          <p className="text-sm font-semibold text-blue-700 mb-1">💡 Tips Keamanan</p>
+          <p className="mb-1 flex items-center gap-2 text-sm font-semibold text-blue-700"><Lightbulb size={18} /> Tips Keamanan</p>
           <ul className="text-xs text-blue-600 space-y-1">
             <li>• Gunakan kombinasi huruf, angka, dan simbol</li>
             <li>• Minimal 8 karakter, disarankan 12+</li>
@@ -505,6 +581,7 @@ const RolesTab = ({ user }) => {
   const { success, error: showError } = useUIStore()
   const [switching, setSwitching] = useState(null)
   const [registering, setRegistering] = useState(null)
+  const [confirmation, setConfirmation] = useState(null)
   const navigate = useNavigate()
 
   const allRoles = ['buyer', 'seller', 'driver']
@@ -516,6 +593,7 @@ const RolesTab = ({ user }) => {
     try {
       const res = await authService.selectRole(role)
       if (res.success) {
+        setConfirmation(null)
         useAuthStore.setState({ user: res.user, activeRole: res.user.active_role })
         success(`Berhasil beralih ke role ${ROLE_META[role]?.label}!`)
         if (role === 'seller') navigate('/seller/dashboard')
@@ -534,6 +612,7 @@ const RolesTab = ({ user }) => {
       if (assignRes.success) {
         const selectRes = await authService.selectRole(role)
         if (selectRes.success) {
+          setConfirmation(null)
           useAuthStore.setState({ user: selectRes.user, activeRole: selectRes.user.active_role })
           success(`Berhasil mendaftar sebagai ${ROLE_META[role]?.label}!`)
           if (role === 'seller') navigate('/seller/dashboard')
@@ -586,7 +665,7 @@ const RolesTab = ({ user }) => {
                 <p className="text-xs text-primary-600 font-medium">✓ Role ini sedang aktif</p>
               ) : owned ? (
                 <button
-                  onClick={() => handleSwitchRole(role)}
+                  onClick={() => setConfirmation({ type: 'switch', role })}
                   disabled={switching === role}
                   className="w-full py-2 text-sm font-bold text-primary-600 border border-primary-300 rounded-lg hover:bg-primary-50 disabled:opacity-50 transition-colors"
                 >
@@ -594,7 +673,7 @@ const RolesTab = ({ user }) => {
                 </button>
               ) : (
                 <button
-                  onClick={() => handleRegisterRole(role)}
+                  onClick={() => setConfirmation({ type: 'register', role })}
                   disabled={registering === role}
                   className="w-full py-2 text-sm font-bold text-white bg-gray-800 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
                 >
@@ -621,7 +700,7 @@ const RolesTab = ({ user }) => {
             {isActive('admin') ? (
               <p className="text-xs text-red-600 font-medium">✓ Kamu adalah Administrator platform</p>
             ) : (
-              <button onClick={() => handleSwitchRole('admin')}
+              <button onClick={() => setConfirmation({ type: 'switch', role: 'admin' })}
                 className="w-full py-2 text-sm font-bold text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors">
                 Beralih ke Admin
               </button>
@@ -629,6 +708,18 @@ const RolesTab = ({ user }) => {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={!!confirmation}
+        onClose={() => setConfirmation(null)}
+        onConfirm={() => confirmation?.type === 'register' ? handleRegisterRole(confirmation.role) : handleSwitchRole(confirmation.role)}
+        title={confirmation?.type === 'register' ? `Tambah role ${ROLE_META[confirmation?.role]?.label}?` : `Beralih ke ${ROLE_META[confirmation?.role]?.label}?`}
+        description={confirmation?.type === 'register'
+          ? 'Role baru terhubung ke akun yang sama. Profil dan login tetap satu, sementara dashboard menyesuaikan role aktif.'
+          : 'Menu dan izin aktif akan berganti. Data dari role lain tetap tersimpan dan dapat diakses saat beralih kembali.'}
+        details={confirmation ? [{ label: 'Role', value: ROLE_META[confirmation.role]?.label || confirmation.role }] : []}
+        confirmLabel={confirmation?.type === 'register' ? 'Tambah role' : 'Beralih role'}
+        isLoading={switching === confirmation?.role || registering === confirmation?.role}
+      />
     </div>
   )
 }
@@ -636,14 +727,13 @@ const RolesTab = ({ user }) => {
 // --- Tab: Wallet ---
 const WalletTab = () => {
   const navigate = useNavigate()
-  const { activeRole } = useAuthStore()
 
   return (
     <div>
       <h2 className="text-lg font-bold text-gray-900 mb-1">Dompet Saya</h2>
       <p className="text-sm text-gray-500 mb-6">Lihat saldo dan riwayat transaksi</p>
 
-      <div className="bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl p-6 text-white mb-6">
+      <div className="mb-6 rounded-2xl bg-primary-800 p-6 text-white">
         <p className="text-sm opacity-80 mb-1">Dompet SEAPEDIA</p>
         <p className="text-3xl font-bold mb-4">Lihat di Halaman Wallet</p>
         <p className="text-sm opacity-70">Kelola saldo, top-up, dan lihat riwayat transaksi</p>
@@ -652,7 +742,7 @@ const WalletTab = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button onClick={() => navigate('/buyer/wallet')}
           className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition-all text-left">
-          <span className="text-3xl">💰</span>
+          <Wallet size={28} className="text-primary-500" weight="duotone" />
           <div>
             <p className="font-semibold text-gray-900">Saldo & Top Up</p>
             <p className="text-xs text-gray-500">Lihat saldo dan isi ulang</p>
@@ -660,7 +750,7 @@ const WalletTab = () => {
         </button>
         <button onClick={() => navigate('/buyer/orders')}
           className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition-all text-left">
-          <span className="text-3xl">📋</span>
+          <Package size={28} className="text-primary-500" weight="duotone" />
           <div>
             <p className="font-semibold text-gray-900">Riwayat Pesanan</p>
             <p className="text-xs text-gray-500">Lihat semua transaksi</p>
@@ -679,12 +769,13 @@ const SettingsPage = () => {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('profile')
   const [currentUser, setCurrentUser] = useState(user)
+  const [avatarFailed, setAvatarFailed] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated()) navigate('/login')
-  }, [])
+  }, [isAuthenticated, navigate])
 
-  useEffect(() => { setCurrentUser(user) }, [user])
+  useEffect(() => setAvatarFailed(false), [currentUser?.avatar_url])
 
   const getInitial = (name) => name?.charAt(0)?.toUpperCase() || '?'
   const activeRoleName = currentUser?.roles?.find(r => r.is_active)?.role
@@ -697,7 +788,7 @@ const SettingsPage = () => {
         <div className="mb-6">
           <nav className="flex items-center gap-2 text-sm text-gray-500 mb-2">
             <Link to="/" className="hover:text-primary-500">Beranda</Link>
-            <span>›</span>
+            <CaretRight size={15} />
             <span className="text-gray-900 font-medium">Pengaturan Akun</span>
           </nav>
           <h1 className="text-2xl font-bold text-gray-900">Pengaturan Akun</h1>
@@ -710,9 +801,9 @@ const SettingsPage = () => {
             {/* User Card */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4 text-center">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-primary-100 border-4 border-primary-50 shadow mx-auto mb-3">
-                {currentUser?.avatar_url ? (
+                {currentUser?.avatar_url && !avatarFailed ? (
                   <img src={currentUser.avatar_url} alt={currentUser.name} className="w-full h-full object-cover"
-                    onError={e => { e.target.style.display = 'none' }} />
+                    onError={() => setAvatarFailed(true)} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-primary-600">
                     {getInitial(currentUser?.name)}

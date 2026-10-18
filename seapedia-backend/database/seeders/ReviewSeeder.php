@@ -21,65 +21,65 @@ class ReviewSeeder extends Seeder
      */
     public function run(): void
     {
-        // Review untuk Produk 1 (Nasi Goreng Spesial)
+        // Review untuk Produk 1 (Set Pancing Pantai)
         Review::create([
             'user_id' => 4,       // Ani (buyer)
             'product_id' => 1,
             'rating' => 5,
-            'comment' => 'Enak banget! Nasinya pulen, rasanya mantap. Pasti pesan lagi!',
+            'comment' => 'Setnya lengkap dan ringan. Sudah dipakai memancing di pantai dua kali tanpa kendala.',
         ]);
 
         Review::create([
             'user_id' => 5,       // Rudi (buyer)
             'product_id' => 1,
             'rating' => 4,
-            'comment' => 'Rasanya enak, tapi menurutku terlalu asin. Tetap recommended!',
+            'comment' => 'Joran terasa kokoh dan pengemasannya aman. Petunjuk perawatannya juga jelas.',
         ]);
 
         Review::create([
             'user_id' => 9,       // Guest
             'product_id' => 1,
             'rating' => 5,
-            'comment' => 'Best nasi goreng yang pernah coba!',
+            'comment' => 'Cocok untuk pemula karena semua perlengkapan utamanya sudah tersedia.',
         ]);
 
-        // Review untuk Produk 5 (Nasi Rendang)
+        // Review untuk Produk 5 (Aerator Kolam)
         Review::create([
             'user_id' => 4,       // Ani
             'product_id' => 5,
             'rating' => 5,
-            'comment' => 'Rendangnya empuk dan bumbunya meresap. Harga worth it!',
+            'comment' => 'Aliran udaranya stabil dan suaranya lebih halus dari aerator lama saya.',
         ]);
 
-        // Review untuk Produk 9 (Brownies Coklat)
+        // Review untuk Produk 9 (Akuarium Nano Reef)
         Review::create([
             'user_id' => 8,       // Fika (multi-role buyer)
             'product_id' => 9,
             'rating' => 5,
-            'comment' => 'Browniesnya enak banget! Coklatnya premium. Cocok buat hadiah.',
+            'comment' => 'Kacanya jernih dan paket filternya rapi. Ukurannya pas untuk meja kerja.',
         ]);
 
         Review::create([
             'user_id' => 5,       // Rudi
             'product_id' => 9,
             'rating' => 4,
-            'comment' => 'Enak, tapi ukurannya agak kecil untuk harga segitu.',
+            'comment' => 'Starter kit bagus, tetapi tetap perlu cycling sebelum memasukkan biota.',
         ]);
 
-        // Review untuk Produk 10 (Cheesecake Stroberi)
+        // Review untuk Produk 10 (Pasir Aragonit)
         Review::create([
             'user_id' => 4,       // Ani
             'product_id' => 10,
             'rating' => 5,
-            'comment' => 'Cheesecakenya lembut dan stroberinya segar. Perfect! 🎂',
+            'comment' => 'Butirannya bersih dan warna natural. Perlu dibilas beberapa kali sebelum dipakai.',
         ]);
 
-        // Review untuk Produk 2 (Ayam Geprek) - Rating rendah
+        // Review untuk Produk 2 (Reel Spinning Laut) - Rating sedang
         Review::create([
             'user_id' => 8,       // Fika
             'product_id' => 2,
             'rating' => 3,
-            'comment' => 'Ayamnya crispy, tapi sambelnya kurang pedas menurutku.',
+            'comment' => 'Drag cukup halus, tetapi buku panduan perawatannya bisa dibuat lebih rinci.',
         ]);
 
         $this->command->info('ReviewSeeder berhasil! 8 review dibuat.');

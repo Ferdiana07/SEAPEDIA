@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 import PropTypes from 'prop-types'
 
 // ============================================================
@@ -21,13 +21,19 @@ const Input = forwardRef(({
   helperText,
   leftIcon,
   rightIcon,
+  id,
+  name,
   ...props
 }, ref) => {
+  const generatedId = useId()
+  const inputId = id || name || generatedId
+  const descriptionId = error || helperText ? `${inputId}-description` : undefined
+
   return (
     <div className={`mb-4 ${containerClassName}`}>
       {/* Label */}
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -45,10 +51,14 @@ const Input = forwardRef(({
         {/* Input */}
         <input
           ref={ref}
+          id={inputId}
+          name={name}
           type={type}
           placeholder={placeholder}
           disabled={disabled}
           required={required}
+          aria-invalid={Boolean(error)}
+          aria-describedby={descriptionId}
           className={`
             w-full px-4 py-2
             ${leftIcon ? 'pl-10' : ''}
@@ -76,12 +86,12 @@ const Input = forwardRef(({
       
       {/* Error Message */}
       {error && (
-        <p className="mt-1 text-sm text-red-500">{error}</p>
+        <p id={descriptionId} className="mt-1 text-sm text-red-500">{error}</p>
       )}
       
       {/* Helper Text */}
       {helperText && !error && (
-        <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+        <p id={descriptionId} className="mt-1 text-sm text-gray-500">{helperText}</p>
       )}
     </div>
   )
@@ -101,6 +111,8 @@ Input.propTypes = {
   helperText: PropTypes.string,
   leftIcon: PropTypes.node,
   rightIcon: PropTypes.node,
+  id: PropTypes.string,
+  name: PropTypes.string,
 }
 
 export default Input

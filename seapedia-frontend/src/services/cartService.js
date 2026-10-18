@@ -30,23 +30,23 @@ const cartService = {
   /**
    * Update quantity item di keranjang
    * Backend: PUT /api/cart/items/{id}
-   * @param {number} productId - ID Produk yang diupdate
+   * @param {number} cartItemId - ID item keranjang yang diupdate
    * @param {number} quantity - Jumlah baru
    * @returns {Promise<Object>}
    */
-  updateItem: async (productId, quantity) => {
-    const response = await api.put(`/cart/items/${productId}`, { quantity })
+  updateItem: async (cartItemId, quantity) => {
+    const response = await api.put(`/cart/items/${cartItemId}`, { quantity })
     return response.data
   },
 
   /**
    * Hapus item dari keranjang
    * Backend: DELETE /api/cart/items/{id}
-   * @param {number} productId - ID Produk yang dihapus
+   * @param {number} cartItemId - ID item keranjang yang dihapus
    * @returns {Promise<Object>}
    */
-  removeItem: async (productId) => {
-    const response = await api.delete(`/cart/items/${productId}`)
+  removeItem: async (cartItemId) => {
+    const response = await api.delete(`/cart/items/${cartItemId}`)
     return response.data
   },
 

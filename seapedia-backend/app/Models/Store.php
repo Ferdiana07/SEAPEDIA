@@ -1,4 +1,5 @@
 <?php
+
 // File: app/Models/Store.php
 // Penjelasan: Model Store untuk interaksi dengan tabel stores
 
@@ -12,15 +13,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Store extends Model
 {
     use HasFactory;
-    
+
     /**
      * The attributes that are mass assignable.
-     * 
+     *
      * Penjelasan:
      * Field-field yang boleh di-set secara mass assignment
      * (misalnya: Store::create([...]) atau $store->fill([...]))
-     * 
-     * ⚠️ ATTENTION: 
+     *
+     * ⚠️ ATTENTION:
      * Jangan masukkan field yang tidak boleh diubah langsung oleh user
      * seperti user_id (seharusnya dari auth), is_active (admin only)
      */
@@ -33,10 +34,10 @@ class Store extends Model
         'logo_url',
         // 'is_active' ← sebaiknya tidakfillable untuk keamanan
     ];
-    
+
     /**
      * The attributes that should be cast.
-     * 
+     *
      * Penjelasan:
      * Type casting untuk konversi otomatis
      * - boolean → true/false
@@ -45,16 +46,16 @@ class Store extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
-    
+
     // =================================================================
     // RELATIONSHIPS
     // =================================================================
-    
+
     /**
      * Store dimiliki oleh satu User (Seller)
-     * 
+     *
      * @return BelongsTo
-     * 
+     *
      * Penggunaan:
      * ```php
      * $store = Store::find(1);
@@ -66,17 +67,17 @@ class Store extends Model
     {
         return $this->belongsTo(User::class);
     }
-    
+
     /**
      * Store memiliki banyak Products
-     * 
+     *
      * @return HasMany
-     * 
+     *
      * Penggunaan:
      * ```php
      * $store = Store::find(1);
      * $products = $store->products; // Returns Collection of Product
-     * 
+     *
      * // Dengan filter
      * $activeProducts = $store->products()->where('is_active', true)->get();
      * ```
@@ -85,14 +86,14 @@ class Store extends Model
     {
         return $this->hasMany(Product::class);
     }
-    
+
     // =================================================================
     // SCOPES (Query Builder Extensions)
     // =================================================================
-    
+
     /**
      * Scope: Hanya toko yang aktif
-     * 
+     *
      * Penggunaan:
      * ```php
      * $activeStores = Store::active()->get();
@@ -103,10 +104,10 @@ class Store extends Model
     {
         return $query->where('is_active', true);
     }
-    
+
     /**
      * Scope: Pencarian berdasarkan nama
-     * 
+     *
      * Penggunaan:
      * ```php
      * $results = Store::search('dapur')->get();
@@ -117,14 +118,14 @@ class Store extends Model
     {
         return $query->where('name', 'LIKE', "%{$keyword}%");
     }
-    
+
     // =================================================================
     // ACCESSORS & MUTATORS
     // =================================================================
-    
+
     /**
      * Accessor: Format harga dengan mata uang
-     * 
+     *
      * Penggunaan:
      * ```php
      * $store = Store::find(1);
@@ -137,13 +138,13 @@ class Store extends Model
         if ($this->products->isEmpty()) {
             return 'Tidak ada produk';
         }
-        
+
         $min = $this->products->min('price');
         $max = $this->products->max('price');
-        
-        return 'Rp ' . number_format($min, 0, ',', '.') . ' - Rp ' . number_format($max, 0, ',', '.');
+
+        return 'Rp '.number_format($min, 0, ',', '.').' - Rp '.number_format($max, 0, ',', '.');
     }
-    
+
     /**
      * Accessor: Total produk aktif
      */
@@ -151,27 +152,21 @@ class Store extends Model
     {
         return $this->products()->where('is_active', true)->count();
     }
-    
+
     // =================================================================
     // HELPER METHODS
     // =================================================================
-    
+
     /**
      * Cek apakah user tertentu adalah pemilik toko
-     * 
-     * @param int $userId
-     * @return bool
      */
     public function isOwnedBy(int $userId): bool
     {
         return $this->user_id === $userId;
     }
-    
+
     /**
      * Cek apakah toko bisa diedit oleh user tertentu
-     * 
-     * @param User $user
-     * @return bool
      */
     public function canBeEditedBy(User $user): bool
     {

@@ -4,9 +4,10 @@ import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
 import Modal from '../../../components/ui/Modal'
-import Badge from '../../../components/ui/Badge'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import useWalletStore from '../../../stores/walletStore'
 import useUIStore from '../../../stores/uiStore'
+import { ArrowCounterClockwise, CreditCard, EnvelopeSimple, Money, Receipt, ShoppingCart, Wallet } from '@phosphor-icons/react'
 
 // ============================================================
 // WALLET PAGE (BUYER)
@@ -18,6 +19,7 @@ const WalletPage = () => {
   
   // Local state
   const [showTopUpModal, setShowTopUpModal] = useState(false)
+  const [confirmTopUpOpen, setConfirmTopUpOpen] = useState(false)
   const [topUpAmount, setTopUpAmount] = useState('')
   const [isTopUpLoading, setIsTopUpLoading] = useState(false)
   
@@ -25,7 +27,7 @@ const WalletPage = () => {
   useEffect(() => {
     fetchWallet()
     fetchTransactions()
-  }, [])
+  }, [fetchTransactions, fetchWallet])
   
   // Format currency
   const formatPrice = (price) => {
@@ -46,12 +48,18 @@ const WalletPage = () => {
   }
   
   // Handle top up
-  const handleTopUp = async () => {
+  const requestTopUp = () => {
     const amount = parseFloat(topUpAmount)
-    if (isNaN(amount) || amount <= 0) {
+    if (Number.isNaN(amount) || amount < 1000) {
       showError('Masukkan jumlah yang valid')
       return
     }
+    setShowTopUpModal(false)
+    setConfirmTopUpOpen(true)
+  }
+
+  const handleTopUp = async () => {
+    const amount = parseFloat(topUpAmount)
     
     setIsTopUpLoading(true)
     
@@ -59,9 +67,10 @@ const WalletPage = () => {
       await topUp(amount)
       success(`Top up ${formatPrice(amount)} berhasil!`)
       setShowTopUpModal(false)
+      setConfirmTopUpOpen(false)
       setTopUpAmount('')
       fetchTransactions() // Refresh transactions
-    } catch (err) {
+    } catch {
       showError('Top up gagal')
     } finally {
       setIsTopUpLoading(false)
@@ -71,32 +80,32 @@ const WalletPage = () => {
   // Get transaction type badge
   const getTypeBadge = (type) => {
     const variants = {
-      topup: { variant: 'success', label: 'Top Up', icon: '💰' },
-      purchase: { variant: 'danger', label: 'Pembelian', icon: '🛒' },
-      refund: { variant: 'info', label: 'Refund', icon: '↩️' },
-      withdrawal: { variant: 'warning', label: 'Penarikan', icon: '💸' },
+      topup: { label: 'Top Up', icon: Money, tone: 'bg-emerald-50 text-emerald-700' },
+      purchase: { label: 'Pembelian', icon: ShoppingCart, tone: 'bg-rose-50 text-rose-700' },
+      refund: { label: 'Refund', icon: ArrowCounterClockwise, tone: 'bg-sky-50 text-sky-700' },
+      withdrawal: { label: 'Penarikan', icon: Wallet, tone: 'bg-amber-50 text-amber-700' },
     }
-    return variants[type] || { variant: 'default', label: type, icon: '💳' }
+    return variants[type] || { label: type, icon: CreditCard, tone: 'bg-slate-100 text-slate-600' }
   }
   
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Wallet</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Dompet Digital</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Balance Card */}
           <div className="lg:col-span-1">
-            <Card className="bg-gradient-to-br from-primary-500 to-primary-700 text-white">
-              <p className="text-primary-100 mb-2">Saldo Available</p>
+            <Card className="bg-primary-800 text-white">
+              <p className="text-primary-100 mb-2">Saldo Aktif</p>
               <p className="text-4xl font-bold mb-6">{formatPrice(balance)}</p>
               
               <Button
                 variant="secondary"
-                className="w-full bg-white/20 border-0 hover:bg-white/30"
+                className="w-full border-0 bg-white text-primary-800 hover:bg-primary-50"
                 onClick={() => setShowTopUpModal(true)}
               >
-                💰 Top Up
+                <Money size={18} weight="bold" /> Top Up
               </Button>
             </Card>
             
@@ -105,11 +114,11 @@ const WalletPage = () => {
               <h3 className="font-semibold text-gray-900 mb-4">Aksi Cepat</h3>
               <div className="space-y-2">
                 <button className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg flex items-center gap-3">
-                  <span>📋</span>
+                  <Receipt size={19} />
                   <span>Riwayat Transaksi</span>
                 </button>
                 <button className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg flex items-center gap-3">
-                  <span>📧</span>
+                  <EnvelopeSimple size={19} />
                   <span>Export Statement</span>
                 </button>
               </div>
@@ -133,13 +142,14 @@ const WalletPage = () => {
                 <div className="space-y-4">
                   {transactions.map((tx) => {
                     const typeInfo = getTypeBadge(tx.type)
+                    const TransactionIcon = typeInfo.icon
                     return (
                       <div
                         key={tx.id}
                         className="flex items-center justify-between py-3 border-b last:border-b-0"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl">{typeInfo.icon}</span>
+                          <span className={`grid h-10 w-10 place-items-center rounded-xl ${typeInfo.tone}`}><TransactionIcon size={20} weight="duotone" /></span>
                           <div>
                             <p className="font-medium text-gray-900">
                               {typeInfo.label}
@@ -239,7 +249,7 @@ const WalletPage = () => {
               Batal
             </Button>
             <Button
-              onClick={handleTopUp}
+              onClick={requestTopUp}
               isLoading={isTopUpLoading}
               disabled={!topUpAmount || parseFloat(topUpAmount) <= 0}
             >
@@ -248,6 +258,19 @@ const WalletPage = () => {
           </div>
         </div>
       </Modal>
+      <ConfirmDialog
+        isOpen={confirmTopUpOpen}
+        onClose={() => { setConfirmTopUpOpen(false); setShowTopUpModal(true) }}
+        onConfirm={handleTopUp}
+        title="Konfirmasi Isi Ulang Saldo"
+        description="Saldo akan ditambahkan seketika dan langsung tercatat pada riwayat mutasi dompet Anda."
+        details={[
+          { label: 'Nominal Isi Ulang', value: topUpAmount ? formatPrice(parseFloat(topUpAmount)) : '-' },
+          { label: 'Estimasi Saldo Akhir', value: topUpAmount ? formatPrice(balance + parseFloat(topUpAmount)) : formatPrice(balance) },
+        ]}
+        confirmLabel="Konfirmasi Isi Ulang"
+        isLoading={isTopUpLoading}
+      />
     </div>
   )
 }

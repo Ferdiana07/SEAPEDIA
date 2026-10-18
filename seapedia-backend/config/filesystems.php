@@ -15,6 +15,10 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    // Dedicated disk for seller uploads. Keep this on "public" locally and
+    // switch to "s3" (S3/R2-compatible object storage) in production.
+    'product_images_disk' => env('PRODUCT_IMAGE_DISK', 'public'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks

@@ -17,5 +17,15 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // API pages intentionally hydrate asynchronous data from effects.
+      'react-hooks/set-state-in-effect': 'off',
+    },
+  },
+  {
+    files: ['playwright.config.js', 'tests/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
   },
 ])

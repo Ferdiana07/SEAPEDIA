@@ -1,13 +1,17 @@
 // File: src/pages/dashboard/seller/StorePage.jsx
 // Penjelasan: Halaman untuk seller mengelola profil toko mereka
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
 import Input from '../../../components/ui/Input'
+import ProductImage from '../../../components/ui/ProductImage'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import useUIStore from '../../../stores/uiStore'
+import useAuthStore from '../../../stores/authStore'
 import storeService from '../../../services/storeService'
+import { MapPin, Package, Phone, Storefront } from '@phosphor-icons/react'
 
 // ============================================================
 // SELLER STORE PAGE
@@ -15,6 +19,7 @@ import storeService from '../../../services/storeService'
 const SellerStorePage = () => {
   // Stores
   const { success, error: showError } = useUIStore()
+  const { updateUser } = useAuthStore()
 
   // Local state
   const [store, setStore] = useState(null)
@@ -44,14 +49,10 @@ const SellerStorePage = () => {
   // Form errors
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // Fetch store on mount
-  useEffect(() => {
-    fetchStore()
-  }, [])
+  const [confirmation, setConfirmation] = useState(null)
 
   // Fetch store
-  const fetchStore = async () => {
+  const fetchStore = useCallback(async () => {
     setIsLoading(true)
     try {
       const response = await storeService.getMyStore()
@@ -77,7 +78,11 @@ const SellerStorePage = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [showError])
+
+  useEffect(() => {
+    fetchStore()
+  }, [fetchStore])
 
   // Handle create form change
   const handleCreateChange = (e) => {
@@ -145,8 +150,12 @@ const SellerStorePage = () => {
   }
 
   // Handle create submit
-  const handleCreate = async (e) => {
-    e.preventDefault()
+  const requestSave = (event, type) => {
+    event.preventDefault()
+    setConfirmation(type)
+  }
+
+  const handleCreate = async () => {
     setIsSubmitting(true)
     setFormErrors({})
 
@@ -155,9 +164,11 @@ const SellerStorePage = () => {
 
       if (response.success) {
         success('Toko berhasil dibuat!')
+        setConfirmation(null)
         setStore(response.data)
         setHasStore(true)
         setIsCreating(false)
+        updateUser({ store: response.data }) // Sync to authStore
         fetchStore()
       }
     } catch (err) {
@@ -172,8 +183,7 @@ const SellerStorePage = () => {
   }
 
   // Handle update submit
-  const handleUpdate = async (e) => {
-    e.preventDefault()
+  const handleUpdate = async () => {
     setIsSubmitting(true)
     setFormErrors({})
 
@@ -182,8 +192,10 @@ const SellerStorePage = () => {
 
       if (response.success) {
         success('Toko berhasil diupdate!')
+        setConfirmation(null)
         setStore(response.data)
         setIsEditing(false)
+        updateUser({ store: response.data }) // Sync to authStore
         fetchStore()
       }
     } catch (err) {
@@ -218,7 +230,7 @@ const SellerStorePage = () => {
         <div className="max-w-2xl mx-auto px-4">
           <Card>
             <div className="text-center py-8">
-              <span className="text-6xl">🏪</span>
+              <Storefront size={58} className="mx-auto text-primary-300" weight="duotone" />
               <h2 className="text-2xl font-bold text-gray-900 mt-4 mb-2">
                 Belum Punya Toko
               </h2>
@@ -255,7 +267,7 @@ const SellerStorePage = () => {
         {isCreating && (
           <Card>
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Buat Toko Baru</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={(event) => requestSave(event, 'create')} className="space-y-4">
               <Input
                 label="Nama Toko"
                 name="name"
@@ -335,17 +347,7 @@ const SellerStorePage = () => {
             <div className="flex items-start gap-6">
               {/* Store Logo */}
               <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                {store.logo_url ? (
-                  <img
-                    src={store.logo_url}
-                    alt={store.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-4xl">
-                    🏪
-                  </div>
-                )}
+                <ProductImage src={store.logo_url} alt={`Logo ${store.name}`} fallbackIcon={Storefront} iconSize={32} className="h-full w-full object-cover" />
               </div>
 
               {/* Store Info */}
@@ -356,10 +358,10 @@ const SellerStorePage = () => {
                     <p className="text-gray-600">{store.description}</p>
                   )}
                   <p className="text-sm text-gray-500">
-                    <span className="font-medium">📍</span> {store.address}
+                    <MapPin size={17} className="shrink-0 text-primary-500" /> {store.address}
                   </p>
                   <p className="text-sm text-gray-500">
-                    <span className="font-medium">📞</span> {store.phone}
+                    <Phone size={17} className="shrink-0 text-primary-500" /> {store.phone}
                   </p>
                 </div>
                 <div className="mt-4 flex items-center gap-2">
@@ -368,7 +370,7 @@ const SellerStorePage = () => {
                       ? 'bg-green-100 text-green-700'
                       : 'bg-gray-100 text-gray-700'
                   }`}>
-                    {store.is_active ? '✅ Aktif' : '❌ Tidak Aktif'}
+                    {store.is_active ? 'Aktif' : 'Tidak aktif'}
                   </span>
                   <span className="text-sm text-gray-500">
                     {store.products?.length || 0} produk
@@ -381,11 +383,7 @@ const SellerStorePage = () => {
             <div className="mt-6 pt-6 border-t">
               <h3 className="font-medium text-gray-900 mb-3">Aksi Cepat</h3>
               <div className="flex gap-3">
-                <Link to="/seller/products">
-                  <Button variant="outline" size="sm">
-                    📦 Kelola Produk
-                  </Button>
-                </Link>
+                <Button as={Link} to="/seller/products" variant="outline" size="sm" leftIcon={<Package size={18} />}>Kelola Produk</Button>
               </div>
             </div>
           </Card>
@@ -395,7 +393,7 @@ const SellerStorePage = () => {
         {isEditing && store && (
           <Card>
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Edit Toko</h2>
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <form onSubmit={(event) => requestSave(event, 'update')} className="space-y-4">
               <Input
                 label="Nama Toko"
                 name="name"
@@ -464,6 +462,21 @@ const SellerStorePage = () => {
           </Card>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={!!confirmation}
+        onClose={() => setConfirmation(null)}
+        onConfirm={confirmation === 'create' ? handleCreate : handleUpdate}
+        title={confirmation === 'create' ? 'Buka toko baru?' : 'Simpan profil toko?'}
+        description={confirmation === 'create'
+          ? 'Toko akan langsung aktif dan dapat mulai mempublikasikan produk.'
+          : 'Nama, kontak, alamat, dan logo baru akan tampil pada katalog publik.'}
+        details={[
+          { label: 'Nama toko', value: (confirmation === 'create' ? createForm.name : updateForm.name) || '-' },
+          { label: 'Nomor kontak', value: (confirmation === 'create' ? createForm.phone : updateForm.phone) || '-' },
+        ]}
+        confirmLabel={confirmation === 'create' ? 'Buka toko' : 'Simpan perubahan'}
+        isLoading={isSubmitting}
+      />
     </div>
   )
 }

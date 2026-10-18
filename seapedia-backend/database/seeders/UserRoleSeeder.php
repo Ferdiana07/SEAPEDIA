@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class UserRoleSeeder extends Seeder
@@ -15,17 +15,17 @@ class UserRoleSeeder extends Seeder
     {
         $users = [
             'admin@seapedia.com' => ['admin'],
-            'budi@seapedia.com'  => ['seller'],
-            'siti@seapedia.com'  => ['seller'],
-            'ani@seapedia.com'   => ['buyer'],
-            'rudi@seapedia.com'  => ['buyer'],
-            'caca@seapedia.com'  => ['driver'],
-            'dedi@seapedia.com'  => ['driver'],
-            'fika@seapedia.com'  => ['buyer', 'seller'], // Multi-role
+            'budi@seapedia.com' => ['seller'],
+            'siti@seapedia.com' => ['seller'],
+            'ani@seapedia.com' => ['buyer'],
+            'rudi@seapedia.com' => ['buyer'],
+            'caca@seapedia.com' => ['driver'],
+            'dedi@seapedia.com' => ['driver'],
+            'fika@seapedia.com' => ['buyer', 'seller'], // Multi-role
         ];
 
         foreach ($users as $email => $roles) {
-            $user = \App\Models\User::where('email', $email)->first();
+            $user = User::where('email', $email)->first();
             if ($user) {
                 foreach ($roles as $index => $role) {
                     // Use firstOrCreate to avoid duplicate entries

@@ -23,61 +23,61 @@ class OrderItemSeeder extends Seeder
         // Order 1: Completed - Item dari Toko 1
         OrderItem::create([
             'order_id' => 1,
-            'product_id' => 1,      // Nasi Goreng Spesial
-            'quantity' => 2,
-            'price_at_purchase' => 25000,
+            'product_id' => 1,      // Set Pancing Pantai
+            'quantity' => 1,
+            'price_at_purchase' => 175000,
         ]);
 
         OrderItem::create([
             'order_id' => 1,
-            'product_id' => 2,      // Ayam Geprek
+            'product_id' => 2,      // Reel Spinning Laut
             'quantity' => 1,
-            'price_at_purchase' => 22000,
+            'price_at_purchase' => 145000,
         ]);
 
         // Order 2: Shipping - Item dari Toko 2
         OrderItem::create([
             'order_id' => 2,
-            'product_id' => 5,      // Nasi Rendang
+            'product_id' => 5,      // Aerator Kolam
             'quantity' => 1,
-            'price_at_purchase' => 35000,
+            'price_at_purchase' => 225000,
         ]);
 
         OrderItem::create([
             'order_id' => 2,
-            'product_id' => 7,      // Gado-Gado
+            'product_id' => 7,      // Pelet Ikan Laut
             'quantity' => 2,
-            'price_at_purchase' => 15000,
+            'price_at_purchase' => 58000,
         ]);
 
         // Order 3: Waiting Shipper - Item dari Toko 1
         OrderItem::create([
             'order_id' => 3,
-            'product_id' => 3,      // Mie Ayam Bakso
+            'product_id' => 3,      // Kotak Tackle
             'quantity' => 2,
-            'price_at_purchase' => 20000,
+            'price_at_purchase' => 99000,
         ]);
 
         // Order 4: Packaging - Item dari Toko 3
         OrderItem::create([
             'order_id' => 4,
-            'product_id' => 10,     // Cheesecake Stroberi
+            'product_id' => 10,     // Pasir Aragonit
             'quantity' => 1,
-            'price_at_purchase' => 55000,
+            'price_at_purchase' => 75000,
         ]);
 
         OrderItem::create([
             'order_id' => 4,
-            'product_id' => 11,     // Croissant Mentega
-            'quantity' => 2,
-            'price_at_purchase' => 18000,
+            'product_id' => 11,     // Lampu LED Reef
+            'quantity' => 1,
+            'price_at_purchase' => 285000,
         ]);
 
         OrderItem::create([
             'order_id' => 4,
-            'product_id' => 12,     // Kue Cubit Blueberry
-            'quantity' => 2,
-            'price_at_purchase' => 12000,
+            'product_id' => 12,     // Protein Skimmer
+            'quantity' => 1,
+            'price_at_purchase' => 375000,
         ]);
 
         $this->command->info('OrderItemSeeder berhasil! 8 item pesanan dibuat.');

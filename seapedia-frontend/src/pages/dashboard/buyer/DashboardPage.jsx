@@ -1,260 +1,66 @@
-// File: src/pages/dashboard/buyer/DashboardPage.jsx
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import Card from '../../../components/ui/Card'
-import Button from '../../../components/ui/Button'
-import Badge from '../../../components/ui/Badge'
+import { ArrowRight, CheckCircle, MapPin, Package, ShoppingBagOpen, Wallet } from '@phosphor-icons/react'
+import orderService from '../../../services/orderService'
+import walletService from '../../../services/walletService'
 import useAuthStore from '../../../stores/authStore'
 import useUIStore from '../../../stores/uiStore'
-import walletService from '../../../services/walletService'
-import orderService from '../../../services/orderService'
+import { formatCurrency } from '../../../utils/formatCurrency'
 
-// ============================================================
-// BUYER DASHBOARD PAGE
-// ============================================================
-const BuyerDashboardPage = () => {
+const STATUS_LABELS = { packaging: 'Dikemas', waiting_shipper: 'Menunggu driver', shipping: 'Dikirim', completed: 'Selesai', returned: 'Dikembalikan' }
+
+export default function BuyerDashboardPage() {
   const { user } = useAuthStore()
   const { error: showError } = useUIStore()
-
-  // State untuk data
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({
-    balance: 0,
-    activeOrders: 0,
-    completedOrders: 0,
-  })
-  const [recentOrders, setRecentOrders] = useState([])
+  const [wallet, setWallet] = useState(0)
+  const [report, setReport] = useState({})
+  const [orders, setOrders] = useState([])
 
-  // Fetch dashboard data
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true)
-      try {
-        // Fetch wallet dan orders secara parallel
-        const [walletRes, activeOrdersRes, completedOrdersRes] = await Promise.all([
-          walletService.getWallet(),
-          orderService.getAll({ status: 'packaging,waiting_shipper,shipping' }),
-          orderService.getAll({ status: 'completed' })
-        ])
+    let active = true
+    Promise.all([walletService.getWallet(), orderService.getBuyerReport(), orderService.getAll({ per_page: 5 })])
+      .then(([walletResponse, reportResponse, ordersResponse]) => {
+        if (!active) return
+        if (walletResponse.success) setWallet(walletResponse.data.balance || 0)
+        if (reportResponse.success) setReport(reportResponse.data)
+        if (ordersResponse.success) setOrders(ordersResponse.data)
+      })
+      .catch(() => { if (active) showError('Ringkasan pembeli belum dapat dimuat.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [showError])
 
-        // Update wallet stats
-        if (walletRes.success) {
-          setStats(prev => ({
-            ...prev,
-            balance: walletRes.data.balance || 0,
-          }))
-        }
+  if (loading) return <div className="dashboard-page"><div className="h-44 animate-pulse rounded-3xl bg-primary-100" /><div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-28 animate-pulse rounded-2xl bg-slate-200" />)}</div></div>
 
-        // Update order stats
-        if (activeOrdersRes.success) {
-          setStats(prev => ({
-            ...prev,
-            activeOrders: activeOrdersRes.data.length || 0,
-          }))
-        }
-
-        if (completedOrdersRes.success) {
-          setStats(prev => ({
-            ...prev,
-            completedOrders: completedOrdersRes.data.length || 0,
-          }))
-        }
-
-        // Set recent orders (dari active orders)
-        if (activeOrdersRes.success) {
-          setRecentOrders(activeOrdersRes.data.slice(0, 5))
-        }
-      } catch (err) {
-        console.error('Gagal memuat dashboard:', err)
-        showError('Gagal memuat data dashboard')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchDashboardData()
-  }, [])
-
-  // Format currency
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(price || 0)
-  }
-
-  // Get status label
-  const getStatusLabel = (status) => {
-    const labels = {
-      packaging: 'Sedang Dikemas',
-      waiting_shipper: 'Menunggu Driver',
-      shipping: 'Sedang Dikirim',
-      completed: 'Selesai',
-      returned: 'Dikembalikan',
-    }
-    return labels[status] || status
-  }
-
-  // Get status badge variant
-  const getStatusVariant = (status) => {
-    const variants = {
-      packaging: 'warning',
-      waiting_shipper: 'info',
-      shipping: 'primary',
-      completed: 'success',
-      returned: 'danger',
-    }
-    return variants[status] || 'default'
-  }
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Memuat dashboard...</p>
-        </div>
-      </div>
-    )
-  }
+  const stats = [
+    ['Saldo wallet', formatCurrency(wallet), Wallet, 'bg-sky-100 text-sky-700'],
+    ['Pesanan aktif', report.active_orders || 0, Package, 'bg-amber-100 text-amber-800'],
+    ['Pesanan selesai', report.completed_orders || 0, CheckCircle, 'bg-emerald-100 text-emerald-700'],
+    ['Total belanja', formatCurrency(report.total_spending || 0), ShoppingBagOpen, 'bg-indigo-100 text-indigo-700'],
+  ]
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Buyer Dashboard</h1>
-          <p className="text-gray-600 mt-1">Selamat datang, {user?.name}!</p>
-        </div>
+    <div className="dashboard-page">
+      <section className="flex flex-col gap-6 rounded-3xl bg-primary-950 p-7 text-white sm:p-9 md:flex-row md:items-end md:justify-between">
+        <div><p className="text-sm font-bold text-primary-200">Mode Pembeli</p><h1 className="mt-2 text-3xl font-extrabold tracking-tight">Halo, {user?.name}.</h1><p className="mt-3 max-w-xl text-sm leading-6 text-primary-100">Pantau pesanan, saldo, dan alamat pengirimanmu dari satu tempat.</p></div>
+        <Link to="/products" className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent-500 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-accent-600">Jelajahi produk <ArrowRight size={17} /></Link>
+      </section>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Saldo Wallet</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">
-                  {formatPrice(stats.balance)}
-                </p>
-              </div>
-              <span className="text-4xl">💰</span>
-            </div>
-          </Card>
+      <section className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Ringkasan pembeli">
+        {stats.map(([label, value, Icon, tone]) => <article key={label} className="surface p-5"><span className={`grid h-10 w-10 place-items-center rounded-xl ${tone}`}><Icon size={21} weight="duotone" /></span><p className="mt-4 text-xs font-semibold text-slate-500">{label}</p><p className="mt-1 truncate text-xl font-extrabold text-ink">{value}</p></article>)}
+      </section>
 
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Pesanan Aktif</p>
-                <p className="text-3xl font-bold text-yellow-500 mt-1">
-                  {stats.activeOrders}
-                </p>
-              </div>
-              <span className="text-4xl">📦</span>
-            </div>
-          </Card>
+      <div className="mt-5 grid gap-5 lg:grid-cols-[1.3fr_.7fr]">
+        <section className="surface overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 p-5"><div><h2 className="font-extrabold text-ink">Pesanan terbaru</h2><p className="mt-1 text-xs text-slate-500">Status transaksi terakhirmu.</p></div><Link to="/buyer/orders" className="text-sm font-bold text-primary-700">Lihat semua</Link></div>
+          <div className="p-5">
+            {orders.length === 0 ? <div className="py-8 text-center"><Package size={36} className="mx-auto text-slate-300" /><p className="mt-3 font-bold text-ink">Belum ada pesanan</p></div> : <div className="space-y-3">{orders.map((order) => <Link key={order.id} to={`/buyer/orders/${order.id}`} className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4 transition hover:bg-primary-50"><div className="min-w-0"><p className="truncate text-sm font-extrabold text-ink">#{order.order_number}</p><p className="mt-1 truncate text-xs text-slate-500">{order.store?.name || 'Toko SEAPEDIA'}</p></div><div className="text-right"><p className="text-sm font-extrabold text-ink">{formatCurrency(order.total_amount)}</p><p className="mt-1 text-xs font-bold text-primary-700">{STATUS_LABELS[order.status] || order.status}</p></div></Link>)}</div>}
+          </div>
+        </section>
 
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Pesanan Selesai</p>
-                <p className="text-3xl font-bold text-green-500 mt-1">
-                  {stats.completedOrders}
-                </p>
-              </div>
-              <span className="text-4xl">✅</span>
-            </div>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Orders */}
-          <Card>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-gray-900">Pesanan Aktif</h2>
-              <Link to="/buyer/orders" className="text-primary-500 hover:underline text-sm">
-                Lihat Semua
-              </Link>
-            </div>
-
-            {recentOrders.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">
-                Tidak ada pesanan aktif
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                    <div>
-                      <p className="font-medium text-gray-900">{order.order_number}</p>
-                      <p className="text-sm text-gray-500">
-                        {order.items?.length || 0} items
-                      </p>
-                    </div>
-                    <Badge variant={getStatusVariant(order.status)}>
-                      {getStatusLabel(order.status)}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <h2 className="font-semibold text-gray-900 mb-4">Aksi Cepat</h2>
-
-            <div className="space-y-3">
-              <Link
-                to="/products"
-                className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <span className="text-2xl">🛒</span>
-                <div>
-                  <p className="font-medium text-gray-900">Belanja Sekarang</p>
-                  <p className="text-sm text-gray-500">Jelajahi produk marketplace</p>
-                </div>
-              </Link>
-
-              <Link
-                to="/cart"
-                className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <span className="text-2xl">🛒</span>
-                <div>
-                  <p className="font-medium text-gray-900">Lihat Keranjang</p>
-                  <p className="text-sm text-gray-500">Checkout dan lanjutkan belanja</p>
-                </div>
-              </Link>
-
-              <Link
-                to="/buyer/wallet"
-                className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <span className="text-2xl">💰</span>
-                <div>
-                  <p className="font-medium text-gray-900">Top Up Wallet</p>
-                  <p className="text-sm text-gray-500">Tambah saldo untuk belanja</p>
-                </div>
-              </Link>
-
-              <Link
-                to="/buyer/addresses"
-                className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <span className="text-2xl">📍</span>
-                <div>
-                  <p className="font-medium text-gray-900">Kelola Alamat</p>
-                  <p className="text-sm text-gray-500">Tambah atau edit alamat pengiriman</p>
-                </div>
-              </Link>
-            </div>
-          </Card>
-        </div>
+        <section className="surface p-5"><h2 className="font-extrabold text-ink">Akses cepat</h2><div className="mt-4 grid gap-2"><Link to="/cart" className="flex items-center justify-between rounded-xl p-3 text-sm font-bold text-slate-700 hover:bg-primary-50 hover:text-primary-700"><span className="flex items-center gap-3"><ShoppingBagOpen size={21} /> Keranjang</span><ArrowRight size={16} /></Link><Link to="/buyer/wallet" className="flex items-center justify-between rounded-xl p-3 text-sm font-bold text-slate-700 hover:bg-primary-50 hover:text-primary-700"><span className="flex items-center gap-3"><Wallet size={21} /> Dompet</span><ArrowRight size={16} /></Link><Link to="/buyer/addresses" className="flex items-center justify-between rounded-xl p-3 text-sm font-bold text-slate-700 hover:bg-primary-50 hover:text-primary-700"><span className="flex items-center gap-3"><MapPin size={21} /> Alamat</span><ArrowRight size={16} /></Link></div></section>
       </div>
     </div>
   )
 }
-
-export default BuyerDashboardPage

@@ -1,301 +1,188 @@
-// File: src/pages/dashboard/buyer/OrderDetailPage.jsx
-import { useState, useEffect } from 'react'
-import { Link, useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Bicycle,
+  CheckCircle,
+  Clock,
+  MapPin,
+  Package,
+  Receipt,
+  Storefront,
+  WarningCircle,
+} from '@phosphor-icons/react'
+import Button from '../../../components/ui/Button'
+import ProductImage from '../../../components/ui/ProductImage'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import orderService from '../../../services/orderService'
 import useUIStore from '../../../stores/uiStore'
+import { formatCurrency } from '../../../utils/formatCurrency'
 
-// Status tracking steps
-const TRACKING_STEPS = [
-  { key: 'packaging',        icon: '📦', label: 'Pesanan Dikemas',        desc: 'Penjual sedang mengemas pesananmu' },
-  { key: 'waiting_shipper',  icon: '⏳', label: 'Menunggu Driver',         desc: 'Pesanan siap dijemput driver' },
-  { key: 'shipping',         icon: '🚗', label: 'Dalam Perjalanan',        desc: 'Driver sedang mengantarkan pesananmu' },
-  { key: 'completed',        icon: '✅', label: 'Pesanan Selesai',         desc: 'Pesanan telah diterima' },
-]
-
-const STATUS_ORDER = ['packaging', 'waiting_shipper', 'shipping', 'completed']
-
-const STATUS_COLORS = {
-  packaging:       { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
-  waiting_shipper: { bg: 'bg-blue-100',   text: 'text-blue-700',   border: 'border-blue-300'   },
-  shipping:        { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
-  completed:       { bg: 'bg-green-100',  text: 'text-green-700',  border: 'border-green-300'  },
-  returned:        { bg: 'bg-red-100',    text: 'text-red-700',    border: 'border-red-300'    },
-  cancelled:       { bg: 'bg-gray-100',   text: 'text-gray-600',   border: 'border-gray-300'   },
+const STATUS_META = {
+  packaging: { label: 'Sedang dikemas', icon: Package, tone: 'bg-amber-100 text-amber-800' },
+  waiting_shipper: { label: 'Menunggu driver', icon: Clock, tone: 'bg-sky-100 text-sky-800' },
+  shipping: { label: 'Dalam perjalanan', icon: Bicycle, tone: 'bg-indigo-100 text-indigo-800' },
+  completed: { label: 'Selesai', icon: CheckCircle, tone: 'bg-emerald-100 text-emerald-800' },
+  returned: { label: 'Dikembalikan', icon: WarningCircle, tone: 'bg-rose-100 text-rose-800' },
+  cancelled: { label: 'Dibatalkan', icon: WarningCircle, tone: 'bg-slate-100 text-slate-700' },
 }
 
-const STATUS_LABELS = {
-  packaging:       'Sedang Dikemas',
-  waiting_shipper: 'Menunggu Driver',
-  shipping:        'Sedang Dikirim',
-  completed:       'Selesai',
-  returned:        'Dikembalikan',
-  cancelled:       'Dibatalkan',
-}
+const formatDateTime = (value) => new Intl.DateTimeFormat('id-ID', {
+  dateStyle: 'long',
+  timeStyle: 'short',
+}).format(new Date(value))
 
-const OrderDetailPage = () => {
+export default function OrderDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { success, error: showError } = useUIStore()
-
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
 
-  useEffect(() => {
-    fetchOrder()
-  }, [id])
-
-  const fetchOrder = async () => {
-    setLoading(true)
-    try {
-      const res = await orderService.getById(id)
-      if (res.success) setOrder(res.data)
-    } catch (err) {
-      showError('Pesanan tidak ditemukan')
-      navigate('/buyer/orders')
-    } finally {
-      setLoading(false)
-    }
+  const loadOrder = async () => {
+    const response = await orderService.getById(id)
+    if (response.success) setOrder(response.data)
   }
 
+  useEffect(() => {
+    let active = true
+    orderService.getById(id)
+      .then((response) => { if (active && response.success) setOrder(response.data) })
+      .catch(() => {
+        if (active) {
+          showError('Pesanan tidak ditemukan.')
+          navigate('/buyer/orders')
+        }
+      })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [id, navigate, showError])
+
   const handleCancel = async () => {
-    if (!confirm('Yakin ingin membatalkan pesanan ini?')) return
     setCancelling(true)
     try {
-      const res = await orderService.cancel(id)
-      if (res.success) {
-        success('Pesanan berhasil dibatalkan')
-        fetchOrder()
+      const response = await orderService.cancel(id)
+      if (response.success) {
+        success('Pesanan dibatalkan dan saldo dikembalikan.')
+        setCancelOpen(false)
+        await loadOrder()
       }
-    } catch (err) {
-      showError(err.response?.data?.message || 'Gagal membatalkan pesanan')
+    } catch (error) {
+      showError(error.response?.data?.message || 'Pesanan belum dapat dibatalkan.')
     } finally {
       setCancelling(false)
     }
   }
 
-  const formatPrice = (price) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price)
-
-  const formatDate = (date) =>
-    new Date(date).toLocaleDateString('id-ID', {
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    })
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500" />
-      </div>
-    )
+    return <div className="dashboard-page"><div className="h-36 animate-pulse rounded-3xl bg-slate-200" /><div className="mt-4 h-80 animate-pulse rounded-3xl bg-slate-100" /></div>
   }
 
   if (!order) return null
 
-  const currentStatusIdx = STATUS_ORDER.indexOf(order.status)
-  const isReturned = order.status === 'returned'
-  const isCancellable = order.status === 'packaging'
-  const color = STATUS_COLORS[order.status] || STATUS_COLORS.cancelled
+  const status = STATUS_META[order.status] || STATUS_META.cancelled
+  const StatusIcon = status.icon
+  const histories = order.status_histories || []
+  const subtotal = Number(order.subtotal ?? order.total_amount ?? 0)
+  const discount = Number(order.discount_amount || 0)
+  const deliveryFee = Number(order.delivery_fee || 0)
+  const tax = Number(order.tax_amount || 0)
+  const total = Number(order.total_amount || subtotal - discount + deliveryFee + tax)
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4">
+    <div className="dashboard-page max-w-5xl">
+      <Link to="/buyer/orders" className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-primary-700"><ArrowLeft size={18} /> Kembali ke pesanan</Link>
 
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link to="/" className="hover:text-primary-500">Beranda</Link>
-          <span>›</span>
-          <Link to="/buyer/orders" className="hover:text-primary-500">Pesanan Saya</Link>
-          <span>›</span>
-          <span className="text-gray-900 font-medium">#{order.order_number}</span>
-        </nav>
-
-        {/* Order Header */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
-            <div>
-              <p className="text-xs text-gray-400 mb-1">Nomor Pesanan</p>
-              <p className="font-bold text-gray-900 text-lg">#{order.order_number}</p>
-              <p className="text-sm text-gray-500 mt-1">{formatDate(order.created_at)}</p>
-            </div>
-            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold border ${color.bg} ${color.text} ${color.border} self-start`}>
-              {STATUS_LABELS[order.status] || order.status}
-            </span>
+      <section className="overflow-hidden rounded-3xl bg-primary-950 text-white">
+        <div className="grid gap-8 p-6 sm:p-8 md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <p className="text-sm font-semibold text-primary-200">Pesanan #{order.order_number}</p>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight">{status.label}</h1>
+            <p className="mt-3 text-sm text-primary-100">Dibuat {formatDateTime(order.created_at)}</p>
           </div>
-
-          {/* Toko */}
-          {order.store && (
-            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
-              <span className="text-xl">🏪</span>
-              <div>
-                <p className="text-xs text-gray-400">Toko</p>
-                <p className="font-semibold text-gray-900 text-sm">{order.store.name}</p>
-              </div>
-            </div>
-          )}
+          <span className={`inline-flex w-fit items-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold ${status.tone}`}><StatusIcon size={19} weight="fill" /> {status.label}</span>
         </div>
+      </section>
 
-        {/* TRACKING PESANAN */}
-        {!isReturned && order.status !== 'cancelled' && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
-            <h2 className="font-bold text-gray-900 mb-5">🗺️ Lacak Pesanan</h2>
-            <div className="relative">
-              {/* Connector line */}
-              <div className="absolute left-4 top-5 bottom-5 w-0.5 bg-gray-200" />
-
-              <div className="space-y-6">
-                {TRACKING_STEPS.map((step, idx) => {
-                  const isDone = currentStatusIdx >= idx
-                  const isCurrent = currentStatusIdx === idx
-                  return (
-                    <div key={step.key} className="flex items-start gap-4 relative">
-                      {/* Circle */}
-                      <div className={`relative z-10 flex-shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center text-sm transition-all ${
-                        isDone
-                          ? 'bg-primary-500 border-primary-500 text-white shadow-md'
-                          : 'bg-white border-gray-300 text-gray-400'
-                      } ${isCurrent ? 'ring-4 ring-primary-100' : ''}`}>
-                        {isDone ? (isCurrent ? step.icon : '✓') : step.icon}
-                      </div>
-                      {/* Info */}
-                      <div className={`flex-1 pt-1.5 ${isCurrent ? '' : isDone ? 'opacity-70' : 'opacity-40'}`}>
-                        <p className={`font-semibold text-sm ${isCurrent ? 'text-primary-600' : isDone ? 'text-gray-800' : 'text-gray-400'}`}>
-                          {step.label}
-                          {isCurrent && <span className="ml-2 text-xs font-normal text-primary-400 animate-pulse">● Sekarang</span>}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">{step.desc}</p>
-                        {isCurrent && order.updated_at && (
-                          <p className="text-xs text-primary-500 mt-1 font-medium">{formatDate(order.updated_at)}</p>
-                        )}
-                      </div>
+      <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
+        <div className="space-y-5">
+          <section className="surface p-6" aria-labelledby="timeline-heading">
+            <h2 id="timeline-heading" className="text-lg font-extrabold text-ink">Perjalanan pesanan</h2>
+            <div className="mt-6 space-y-0">
+              {histories.length === 0 && <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Riwayat status akan tampil setelah pesanan diproses.</p>}
+              {histories.map((history, index) => {
+                const itemMeta = STATUS_META[history.status] || STATUS_META.cancelled
+                const ItemIcon = itemMeta.icon
+                const latest = index === histories.length - 1
+                return (
+                  <div key={history.id} className="relative flex gap-4 pb-7 last:pb-0">
+                    {index < histories.length - 1 && <div className="absolute bottom-0 left-[19px] top-10 w-px bg-slate-200" />}
+                    <span className={`relative z-10 grid h-10 w-10 shrink-0 place-items-center rounded-xl ${latest ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-500'}`}><ItemIcon size={20} weight={latest ? 'fill' : 'duotone'} /></span>
+                    <div className="pt-0.5">
+                      <p className="text-sm font-extrabold text-ink">{itemMeta.label}</p>
+                      <p className="mt-1 text-xs text-slate-500">{formatDateTime(history.created_at)}{history.actor?.name ? ` oleh ${history.actor.name}` : ''}</p>
+                      {history.note && <p className="mt-2 text-sm leading-6 text-slate-600">{history.note}</p>}
                     </div>
-                  )
-                })}
-              </div>
+                  </div>
+                )
+              })}
             </div>
+          </section>
 
-            {/* Info Driver (saat shipping) */}
-            {order.driver && order.status === 'shipping' && (
-              <div className="mt-5 p-3 bg-purple-50 border border-purple-200 rounded-xl flex items-center gap-3">
-                <span className="text-2xl">🚗</span>
-                <div>
-                  <p className="text-xs text-purple-500">Driver</p>
-                  <p className="font-bold text-purple-900 text-sm">{order.driver.name}</p>
-                  {order.driver.phone && (
-                    <p className="text-xs text-purple-600">📞 {order.driver.phone}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* RETURNED STATUS */}
-        {isReturned && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-4">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-3xl">↩️</span>
-              <h2 className="font-bold text-red-800">Pesanan Dikembalikan</h2>
+          <section className="surface p-6" aria-labelledby="items-heading">
+            <div className="flex items-center gap-2"><Package size={22} className="text-primary-600" /><h2 id="items-heading" className="text-lg font-extrabold text-ink">Produk</h2></div>
+            <div className="mt-4 space-y-4">
+              {order.items?.map((item) => (
+                <article key={item.id} className="flex gap-4">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                    <ProductImage src={item.product?.image_url} alt={item.product_name || item.product?.name || 'Produk'} iconSize={28} className="h-full w-full object-cover" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-ink">{item.product_name || item.product?.name}</p>
+                    <p className="mt-1 text-xs text-slate-500">{item.quantity} x {formatCurrency(item.price_at_purchase || item.price || 0)}</p>
+                  </div>
+                  <p className="text-sm font-extrabold text-ink">{formatCurrency(item.quantity * Number(item.price_at_purchase || item.price || 0))}</p>
+                </article>
+              ))}
             </div>
-            <p className="text-sm text-red-600">Pesanan ini dikembalikan oleh driver.</p>
-            {order.cancellation_reason && (
-              <div className="mt-3 p-3 bg-red-100 rounded-lg">
-                <p className="text-xs text-red-500 font-medium">Alasan:</p>
-                <p className="text-sm text-red-700">{order.cancellation_reason}</p>
-              </div>
-            )}
-            <p className="text-xs text-red-500 mt-2">Saldo wallet kamu sudah dikembalikan otomatis.</p>
-          </div>
-        )}
-
-        {/* ORDER ITEMS */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
-          <h2 className="font-bold text-gray-900 mb-4">🛍️ Detail Produk</h2>
-          <div className="space-y-3">
-            {order.items?.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-3 py-3 border-b border-gray-100 last:border-0">
-                <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                  {item.product?.image_url ? (
-                    <img src={item.product.image_url} alt={item.product_name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl">📦</div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 text-sm truncate">{item.product_name || item.product?.name}</p>
-                  <p className="text-xs text-gray-500">{item.quantity} × {formatPrice(item.price_at_purchase || item.price || 0)}</p>
-                </div>
-                <p className="font-bold text-gray-900 text-sm flex-shrink-0">{formatPrice(item.quantity * (item.price_at_purchase || item.price || 0))}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Total */}
-          <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Subtotal</span>
-              <span>{formatPrice(order.total_amount)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Ongkos Kirim</span>
-              <span className="text-green-600 font-medium">Gratis</span>
-            </div>
-            <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t border-gray-100">
-              <span>Total Pembayaran</span>
-              <span className="text-primary-600">{formatPrice(order.total_amount)}</span>
-            </div>
-          </div>
+          </section>
         </div>
 
-        {/* ALAMAT PENGIRIMAN */}
-        {order.shipping_address && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
-            <h2 className="font-bold text-gray-900 mb-3">📍 Alamat Pengiriman</h2>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{order.shipping_address}</p>
-          </div>
-        )}
+        <aside className="space-y-5">
+          <section className="surface p-6" aria-labelledby="payment-heading">
+            <div className="flex items-center gap-2"><Receipt size={22} className="text-primary-600" /><h2 id="payment-heading" className="text-lg font-extrabold text-ink">Rincian pembayaran</h2></div>
+            <dl className="mt-5 space-y-3 text-sm">
+              <div className="flex justify-between gap-4 text-slate-600"><dt>Subtotal</dt><dd>{formatCurrency(subtotal)}</dd></div>
+              {discount > 0 && <div className="flex justify-between gap-4 text-success-600"><dt>Diskon{order.discount?.code ? ` (${order.discount.code})` : ''}</dt><dd>-{formatCurrency(discount)}</dd></div>}
+              <div className="flex justify-between gap-4 text-slate-600"><dt>Ongkir {order.delivery_method ? `(${order.delivery_method})` : ''}</dt><dd>{deliveryFee === 0 ? 'Gratis' : formatCurrency(deliveryFee)}</dd></div>
+              <div className="flex justify-between gap-4 text-slate-600"><dt>PPN 12%</dt><dd>{formatCurrency(tax)}</dd></div>
+              <div className="flex justify-between gap-4 border-t border-slate-200 pt-4 text-base font-extrabold text-ink"><dt>Total</dt><dd className="text-primary-700">{formatCurrency(total)}</dd></div>
+            </dl>
+          </section>
 
-        {/* CATATAN */}
-        {order.notes && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
-            <h2 className="font-bold text-gray-900 mb-2">📝 Catatan</h2>
-            <p className="text-sm text-gray-600">{order.notes}</p>
-          </div>
-        )}
-
-        {/* ACTIONS */}
-        <div className="flex flex-col sm:flex-row gap-3 mt-2">
-          <Link
-            to="/buyer/orders"
-            className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 text-center transition-colors"
-          >
-            ← Kembali ke Pesanan
-          </Link>
-
-          {isCancellable && (
-            <button
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="flex-1 py-3 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-colors"
-            >
-              {cancelling ? 'Membatalkan...' : '✕ Batalkan Pesanan'}
-            </button>
-          )}
-
-          {order.status === 'completed' && order.items?.[0]?.product_id && (
-            <Link
-              to={`/products/${order.items[0].product_id}`}
-              className="flex-1 py-3 bg-primary-500 text-white rounded-xl text-sm font-bold text-center hover:bg-primary-600 transition-colors"
-            >
-              🔄 Beli Lagi
-            </Link>
-          )}
-        </div>
-
+          {order.store && <section className="surface flex items-center gap-3 p-5"><span className="grid h-11 w-11 place-items-center rounded-xl bg-orange-100 text-orange-700"><Storefront size={23} weight="duotone" /></span><div><p className="text-xs font-semibold text-slate-500">Penjual</p><p className="mt-0.5 text-sm font-extrabold text-ink">{order.store.name}</p></div></section>}
+          {order.driver && <section className="surface flex items-center gap-3 p-5"><span className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-100 text-indigo-700"><Bicycle size={23} weight="duotone" /></span><div><p className="text-xs font-semibold text-slate-500">Driver</p><p className="mt-0.5 text-sm font-extrabold text-ink">{order.driver.name}</p></div></section>}
+          {order.shipping_address && <section className="surface p-5"><div className="flex items-center gap-2"><MapPin size={20} className="text-primary-600" /><h2 className="text-sm font-extrabold text-ink">Alamat pengiriman</h2></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{order.shipping_address}</p></section>}
+        </aside>
       </div>
+
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        {order.status === 'packaging' && <Button variant="danger" isLoading={cancelling} onClick={() => setCancelOpen(true)}>Batalkan pesanan</Button>}
+        {order.status === 'completed' && order.items?.[0]?.product_id && <Button as={Link} to={`/products/${order.items[0].product_id}`} className="w-full sm:w-auto">Beli lagi</Button>}
+      </div>
+      <ConfirmDialog
+        isOpen={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={handleCancel}
+        title="Batalkan pesanan?"
+        description="Pesanan akan ditutup, stok dikembalikan, dan refund masuk ke wallet secara otomatis."
+        details={[{ label: 'Pesanan', value: order.order_number }, { label: 'Refund', value: formatCurrency(total) }]}
+        confirmLabel="Ya, batalkan"
+        tone="danger"
+        isLoading={cancelling}
+      />
     </div>
   )
 }
-
-export default OrderDetailPage

@@ -1,4 +1,5 @@
 <?php
+
 // File: database/migrations/xxxx_create_cart_items_table.php
 // Penjelasan: Membuat tabel cart_items untuk menyimpan item di keranjang
 use Illuminate\Database\Migrations\Migration;
@@ -11,22 +12,22 @@ return new class extends Migration
     {
         Schema::create('cart_items', function (Blueprint $table) {
             $table->id();
-            
+
             // Foreign Key ke carts
             $table->foreignId('cart_id')
-                  ->constrained('carts')
-                  ->onDelete('cascade');
-            
+                ->constrained('carts')
+                ->onDelete('cascade');
+
             // Foreign Key ke products
             $table->foreignId('product_id')
-                  ->constrained('products')
-                  ->onDelete('cascade');
-            
+                ->constrained('products')
+                ->onDelete('cascade');
+
             // Jumlah item
             $table->unsignedInteger('quantity')->default(1);
-            
+
             $table->timestamps();
-            
+
             // Constraint: 1 produk hanya boleh ada 1x di cart
             // unique(['cart_id', 'product_id'])
             $table->unique(['cart_id', 'product_id']);

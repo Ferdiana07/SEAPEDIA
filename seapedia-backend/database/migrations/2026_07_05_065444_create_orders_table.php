@@ -1,4 +1,5 @@
 <?php
+
 // File: database/migrations/xxxx_create_orders_table.php
 // Penjelasan: Membuat tabel orders untuk menyimpan pesanan
 use Illuminate\Database\Migrations\Migration;
@@ -11,27 +12,27 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            
+
             // Order number unik (untuk display)
             $table->string('order_number', 50)->unique();
-            
+
             // Foreign Key ke users (buyer)
             $table->foreignId('user_id')
-                  ->constrained('users')
-                  ->onDelete('cascade');
-            
+                ->constrained('users')
+                ->onDelete('cascade');
+
             // Foreign Key ke stores
             $table->foreignId('store_id')
-                  ->constrained('stores')
-                  ->onDelete('cascade');
-            
+                ->constrained('stores')
+                ->onDelete('cascade');
+
             // Foreign Key ke users (driver) - nullable
             // Nullable karena driver belum tentu ada saat order dibuat
             $table->foreignId('driver_id')
-                  ->nullable()
-                  ->constrained('users')
-                  ->onDelete('set null');
-            
+                ->nullable()
+                ->constrained('users')
+                ->onDelete('set null');
+
             // Status pesanan
             // packaging → seller sedang kemas
             // waiting_shipper → menunggu driver ambil
@@ -43,17 +44,17 @@ return new class extends Migration
                 'waiting_shipper',
                 'shipping',
                 'completed',
-                'returned'
+                'returned',
             ])->default('packaging');
-            
+
             // Total jumlah pesanan
             $table->decimal('total_amount', 15, 2);
-            
+
             // Alamat pengiriman (di-copy dari addresses karena alamat bisa dihapus)
             $table->text('shipping_address');
-            
+
             $table->timestamps();
-            
+
             // Indexes
             $table->index('user_id');
             $table->index('store_id');

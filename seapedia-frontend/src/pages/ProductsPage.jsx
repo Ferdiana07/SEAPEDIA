@@ -1,384 +1,278 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  ArrowRight,
+  FadersHorizontal,
+  MagnifyingGlass,
+  Storefront,
+  X,
+} from '@phosphor-icons/react'
 import Button from '../components/ui/Button'
+import Modal from '../components/ui/Modal'
+import CategoryIcon from '../components/ui/CategoryIcon'
 import productService from '../services/productService'
+import ProductImage from '../components/ui/ProductImage'
+import { formatCurrency } from '../utils/formatCurrency'
 
-// ============================================================
-// KATEGORI — filter by kolom category di database
-// ============================================================
 const CATEGORIES = [
-  { id: 'all',        label: 'Semua Kategori',      icon: '🌐', value: '' },
-  { id: 'elektronik', label: 'Elektronik',           icon: '📱', value: 'elektronik' },
-  { id: 'pakaian',   label: 'Pakaian & Fashion',    icon: '👗', value: 'pakaian' },
-  { id: 'makanan',   label: 'Makanan & Minuman',    icon: '🍔', value: 'makanan' },
-  { id: 'kesehatan', label: 'Kesehatan',             icon: '💊', value: 'kesehatan' },
-  { id: 'olahraga',  label: 'Olahraga',              icon: '⚽', value: 'olahraga' },
-  { id: 'otomotif',  label: 'Otomotif',              icon: '🚗', value: 'otomotif' },
+  { id: 'all', label: 'Semua', value: '' },
+  { id: 'alat-pancing', label: 'Alat Pancing', value: 'Alat Pancing' },
+  { id: 'budidaya', label: 'Budidaya', value: 'Budidaya' },
+  { id: 'pakan', label: 'Pakan', value: 'Pakan' },
+  { id: 'akuarium', label: 'Akuarium', value: 'Akuarium' },
+  { id: 'biota-hidup', label: 'Biota Hidup', value: 'Biota Hidup' },
+  { id: 'tanaman-laut', label: 'Tanaman Laut', value: 'Tanaman Laut' },
+  { id: 'hasil-laut', label: 'Hasil Laut', value: 'Hasil Laut' },
+  { id: 'kuliner-laut', label: 'Kuliner Laut', value: 'Kuliner Laut' },
 ]
 
 const SORT_OPTIONS = [
   { value: 'created_at:desc', label: 'Terbaru' },
-  { value: 'price:asc', label: 'Harga Terendah' },
-  { value: 'price:desc', label: 'Harga Tertinggi' },
+  { value: 'price:asc', label: 'Harga terendah' },
+  { value: 'price:desc', label: 'Harga tertinggi' },
   { value: 'name:asc', label: 'Nama A-Z' },
 ]
 
-// ============================================================
-// PRODUCTS PAGE
-// ============================================================
-const ProductsPage = () => {
+export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-
+  const initialCategory = searchParams.get('category') || 'all'
+  const normalizedCategory = CATEGORIES.some((item) => item.id === initialCategory)
+    ? initialCategory
+    : (CATEGORIES.find((item) => item.value === initialCategory)?.id || 'all')
   const [products, setProducts] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [pagination, setPagination] = useState({
-    current_page: 1,
-    per_page: 12,
-    total: 0,
-    last_page: 1,
-  })
-
-  // Filter state — sync with URL params
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [pagination, setPagination] = useState({ current_page: 1, total: 0, last_page: 1 })
   const [search, setSearch] = useState(searchParams.get('search') || '')
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all')
+  const [appliedSearch, setAppliedSearch] = useState(searchParams.get('search') || '')
+  const [category, setCategory] = useState(normalizedCategory)
   const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '')
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '')
-  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'created_at:desc')
+  const [sort, setSort] = useState(searchParams.get('sort') || 'created_at:desc')
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
 
-  // Format currency
-  const formatPrice = (price) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price)
-
-  // Build API params from current filter state
-  const buildParams = useCallback((page = 1) => {
-    const cat = CATEGORIES.find(c => c.id === selectedCategory)
-    const [sortField, sortOrder] = sortBy.split(':')
-
-    const params = {
-      page,
-      per_page: 12,
-      sort_by: sortField,
-      sort_order: sortOrder,
-    }
-
-    // Category filter — kirim sebagai param `category` ke backend
-    if (cat && cat.value) params.category = cat.value
-
-    // Text search
-    if (search) params.search = search
-
-    if (minPrice) params.min_price = parseInt(minPrice)
-    if (maxPrice) params.max_price = parseInt(maxPrice)
-
-    return params
-  }, [search, selectedCategory, minPrice, maxPrice, sortBy])
-
-  // Fetch products
   const fetchProducts = useCallback(async (page = 1) => {
-    setIsLoading(true)
+    setLoading(true)
+    setLoadError('')
+    const selected = CATEGORIES.find((item) => item.id === category)
+    const [sort_by, sort_order] = sort.split(':')
     try {
-      const response = await productService.getAll(buildParams(page))
+      const response = await productService.getAll({
+        page,
+        per_page: 12,
+        sort_by,
+        sort_order,
+        ...(selected?.value ? { category: selected.value } : {}),
+        ...(appliedSearch ? { search: appliedSearch } : {}),
+        ...(minPrice ? { min_price: Number(minPrice) } : {}),
+        ...(maxPrice ? { max_price: Number(maxPrice) } : {}),
+      })
       if (response.success) {
         setProducts(response.data)
-        setPagination({
-          current_page: response.meta?.current_page || 1,
-          per_page: response.meta?.per_page || 12,
-          total: response.meta?.total || 0,
-          last_page: response.meta?.last_page || 1,
-        })
+        setPagination(response.meta || { current_page: 1, total: response.data.length, last_page: 1 })
       }
-    } catch (err) {
-      console.error('Failed to fetch products:', err)
+    } catch {
+      setLoadError('Katalog belum dapat dimuat. Coba beberapa saat lagi.')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
-  }, [buildParams])
+  }, [appliedSearch, category, maxPrice, minPrice, sort])
 
-  // Initial + on filter change
-  useEffect(() => {
-    fetchProducts(1)
-  }, [selectedCategory, sortBy]) // auto-fetch when category or sort changes
+  useEffect(() => { fetchProducts(1) }, [fetchProducts])
 
-  // Handle search form submit
-  const handleSearch = (e) => {
-    e.preventDefault()
-    fetchProducts(1)
+  const syncUrl = (overrides = {}) => {
+    const values = { search: appliedSearch, category, min_price: minPrice, max_price: maxPrice, sort, ...overrides }
+    const next = {}
+    Object.entries(values).forEach(([key, value]) => {
+      if (value && value !== 'all' && value !== 'created_at:desc') next[key] = value
+    })
+    setSearchParams(next, { replace: true })
   }
 
-  // Handle apply price filter
-  const handleApplyFilter = () => {
-    fetchProducts(1)
+  const submitSearch = (event) => {
+    event.preventDefault()
+    const nextSearch = search.trim()
+    setAppliedSearch(nextSearch)
+    syncUrl({ search: nextSearch })
   }
 
-  // Handle reset all
-  const handleReset = () => {
+  const applyPrice = () => syncUrl()
+
+  const reset = () => {
     setSearch('')
-    setSelectedCategory('all')
+    setAppliedSearch('')
+    setCategory('all')
     setMinPrice('')
     setMaxPrice('')
-    setSortBy('created_at:desc')
-    // Will trigger useEffect via sortBy change
+    setSort('created_at:desc')
+    setSearchParams({}, { replace: true })
+  }
+
+  const selectCategory = (value) => {
+    setCategory(value)
+    syncUrl({ category: value })
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 border-t border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
-
-        {/* ==================== SIDEBAR FILTER ==================== */}
-        <div className="w-full md:w-56 flex-shrink-0">
-          <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-20">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-bold text-gray-900">Filter</h2>
-              <button
-                onClick={handleReset}
-                className="text-xs text-primary-500 hover:underline"
-              >
-                Reset
-              </button>
-            </div>
-
-            {/* Category */}
-            <div className="mb-5">
-              <h3 className="font-semibold text-xs text-gray-500 uppercase tracking-wider mb-2">Kategori</h3>
-              <div className="space-y-0.5">
-                {CATEGORIES.map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors ${
-                      selectedCategory === cat.id
-                        ? 'bg-primary-50 text-primary-600 font-semibold'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
-                  >
-                    <span>{cat.icon}</span>
-                    <span>{cat.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Price Range */}
-            <div className="mb-5">
-              <h3 className="font-semibold text-xs text-gray-500 uppercase tracking-wider mb-2">Harga</h3>
-              <div className="space-y-2">
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Minimum</label>
-                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:border-primary-500">
-                    <span className="px-2 text-xs text-gray-400 bg-gray-50 border-r border-gray-300 py-1.5">Rp</span>
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={minPrice}
-                      onChange={e => setMinPrice(e.target.value)}
-                      className="flex-1 text-sm px-2 py-1.5 outline-none"
-                      min="0"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Maksimum</label>
-                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:border-primary-500">
-                    <span className="px-2 text-xs text-gray-400 bg-gray-50 border-r border-gray-300 py-1.5">Rp</span>
-                    <input
-                      type="number"
-                      placeholder="∞"
-                      value={maxPrice}
-                      onChange={e => setMaxPrice(e.target.value)}
-                      className="flex-1 text-sm px-2 py-1.5 outline-none"
-                      min="0"
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={handleApplyFilter}
-                  className="w-full py-1.5 text-sm font-semibold bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-                >
-                  Terapkan
-                </button>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-white py-8 sm:py-10">
+      <div className="page-shell">
+        <div className="max-w-2xl">
+          <p className="text-sm font-bold text-primary-700">Katalog Bahari Pilihan</p>
+          <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.04em] text-ink sm:text-4xl">Semua Kebutuhan Laut dalam Satu Tempat.</h1>
+          <p className="mt-3 leading-7 text-slate-600">Jelajahi alat pancing, kebutuhan budidaya, akuarium, biota hasil budidaya, hingga kuliner laut dengan transaksi yang transparan.</p>
         </div>
 
-        {/* ==================== MAIN CONTENT ==================== */}
-        <div className="flex-1 min-w-0">
-
-          {/* Header & Search */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {selectedCategory === 'all'
-                  ? 'Semua Produk'
-                  : CATEGORIES.find(c => c.id === selectedCategory)?.label}
-              </h1>
-              {!isLoading && (
-                <p className="text-sm text-gray-500">{pagination.total} produk ditemukan</p>
-              )}
-            </div>
-
-            <div className="flex gap-2 w-full sm:w-auto">
-              {/* Search */}
-              <form onSubmit={handleSearch} className="flex gap-2 flex-1 sm:w-64">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="Cari produk..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 text-sm"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-semibold hover:bg-primary-600 transition-colors"
-                >
-                  Cari
-                </button>
-              </form>
-
-              {/* Sort */}
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
-                className="border border-gray-300 rounded-lg text-sm px-2 py-2 outline-none bg-white"
-              >
-                {SORT_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
+        <form onSubmit={submitSearch} className="surface mt-6 sm:mt-8 flex gap-2 p-1.5 sm:p-2">
+          <div className="relative flex-1">
+            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={19} />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} className="input border-0 pl-9 sm:pl-10 text-xs sm:text-sm shadow-none focus:ring-0" placeholder="Cari nama produk, kategori, atau toko..." aria-label="Cari produk" />
           </div>
+          <Button type="submit" size="sm" className="sm:!h-11 sm:!px-5">Cari</Button>
+        </form>
 
-          {/* Active Filters Badge */}
-          {(selectedCategory !== 'all' || minPrice || maxPrice || search) && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {selectedCategory !== 'all' && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full font-medium">
-                  {CATEGORIES.find(c => c.id === selectedCategory)?.label}
-                  <button onClick={() => setSelectedCategory('all')} className="ml-1 text-primary-500 hover:text-primary-700">×</button>
-                </span>
-              )}
-              {minPrice && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full font-medium">
-                  Min: {formatPrice(minPrice)}
-                  <button onClick={() => setMinPrice('')} className="ml-1 text-primary-500 hover:text-primary-700">×</button>
-                </span>
-              )}
-              {maxPrice && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full font-medium">
-                  Maks: {formatPrice(maxPrice)}
-                  <button onClick={() => setMaxPrice('')} className="ml-1 text-primary-500 hover:text-primary-700">×</button>
-                </span>
-              )}
-              {search && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full font-medium">
-                  "{search}"
-                  <button onClick={() => setSearch('')} className="ml-1 text-primary-500 hover:text-primary-700">×</button>
-                </span>
-              )}
-            </div>
-          )}
+        <div className="mt-4 sm:mt-6 flex gap-2 sm:gap-2.5 overflow-x-auto pb-2 hide-scrollbar touch-pan-x" aria-label="Kategori produk">
+          {CATEGORIES.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => selectCategory(id)}
+              className={`flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm font-bold transition active:scale-95 ${
+                category === id
+                  ? 'border-primary-900 bg-primary-900 text-white shadow-sm'
+                  : 'border-slate-200/90 bg-white text-slate-700 hover:border-primary-300 hover:text-primary-900 hover:shadow-card-sm'
+              }`}
+            >
+              <CategoryIcon
+                category={id}
+                variant="icon"
+                className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${category === id ? 'scale-110 brightness-125' : ''}`}
+              />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
 
-          {/* Products Grid */}
-          {isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className="product-card animate-pulse">
-                  <div className="aspect-square bg-gray-200" />
-                  <div className="p-3">
-                    <div className="h-4 bg-gray-200 rounded w-full mb-2" />
-                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
-                    <div className="h-5 bg-gray-200 rounded w-2/3" />
-                  </div>
-                </div>
-              ))}
+        <div className="mt-6 grid gap-6 lg:grid-cols-[240px_1fr]">
+          {/* Desktop Filter Sidebar */}
+          <aside className="surface hidden h-fit p-5 lg:block lg:sticky lg:top-24">
+            <div className="flex items-center justify-between"><h2 className="font-extrabold text-ink">Filter</h2><button type="button" onClick={reset} className="text-xs font-bold text-primary-700 hover:text-primary-900">Reset</button></div>
+            <div className="mt-5 space-y-4">
+              <div><label htmlFor="min-price" className="text-xs font-bold text-slate-500">Harga minimum</label><input id="min-price" type="number" min="0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} className="input mt-2" placeholder="Rp0" /></div>
+              <div><label htmlFor="max-price" className="text-xs font-bold text-slate-500">Harga maksimum</label><input id="max-price" type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} className="input mt-2" placeholder="Tanpa batas" /></div>
+              <Button type="button" variant="outline" className="w-full" onClick={applyPrice}>Terapkan harga</Button>
             </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
-              <span className="text-5xl block mb-3">🔍</span>
-              <h3 className="font-bold text-gray-900 mb-1">Produk tidak ditemukan</h3>
-              <p className="text-gray-500 mb-4 text-sm">Coba ubah kata kunci atau hapus filter pencarian.</p>
-              <button
-                onClick={handleReset}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
-              >
-                Reset Filter
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {products.map((product) => (
-                <Link key={product.id} to={`/products/${product.id}`}>
-                  <div className="product-card h-full group bg-white">
-                    {/* Image */}
-                    <div className="aspect-square bg-gray-100 relative overflow-hidden">
-                      {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          <span className="text-4xl">📦</span>
-                        </div>
-                      )}
-                    </div>
+          </aside>
 
-                    {/* Content */}
-                    <div className="p-3">
-                      <h3 className="text-sm text-gray-800 leading-snug line-clamp-2 mb-1 group-hover:text-primary-600 transition-colors h-10">
-                        {product.name}
-                      </h3>
-                      <p className="font-bold text-gray-900 mb-1">
-                        {formatPrice(product.price)}
-                      </p>
-                      <div className="flex items-center text-xs text-gray-500 mb-1">
-                        <svg className="w-3 h-3 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span className="truncate">{product.store?.name || 'Toko'}</span>
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <span className="text-yellow-400 mr-1">★</span>
-                        <span className="mr-1">4.9</span>
-                        <span className="mx-1">|</span>
-                        <span>Stok: {product.stock}</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+          <main>
+            {/* Toolbar: Category Title + Filter Trigger (Mobile) + Sort */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg sm:text-xl font-extrabold text-ink">
+                  {CATEGORIES.find((item) => item.id === category)?.label || 'Semua produk'}
+                </h2>
+                <p className="mt-0.5 text-xs sm:text-sm text-slate-500">
+                  {loading ? 'Mencari produk...' : `${pagination.total || 0} produk ditemukan`}
+                </p>
+              </div>
 
-          {/* Pagination */}
-          {pagination.last_page > 1 && (
-            <div className="flex justify-center gap-2 mt-8">
-              <button
-                disabled={pagination.current_page === 1}
-                onClick={() => fetchProducts(pagination.current_page - 1)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50"
-              >
-                ← Sebelumnya
-              </button>
-              <span className="px-4 py-2 text-gray-600 text-sm">
-                Halaman {pagination.current_page} dari {pagination.last_page}
-              </span>
-              <button
-                disabled={pagination.current_page === pagination.last_page}
-                onClick={() => fetchProducts(pagination.current_page + 1)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50"
-              >
-                Selanjutnya →
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMobileFilterOpen(true)}
+                  className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:border-primary-300 hover:text-primary-800 lg:hidden active:scale-95"
+                >
+                  <FadersHorizontal size={16} weight="bold" />
+                  <span>Filter</span>
+                  {(minPrice || maxPrice) && (
+                    <span className="h-2 w-2 rounded-full bg-primary-600" />
+                  )}
+                </button>
+                <select
+                  value={sort}
+                  onChange={(event) => { setSort(event.target.value); syncUrl({ sort: event.target.value }) }}
+                  className="input h-10 w-auto flex-1 sm:w-48 text-xs font-bold py-1 px-3"
+                  aria-label="Urutkan produk"
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          )}
+
+            {(appliedSearch || minPrice || maxPrice) && <div className="mt-4 flex flex-wrap gap-2">{appliedSearch && <span className="inline-flex items-center gap-2 rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary-700">“{appliedSearch}” <button type="button" aria-label="Hapus pencarian" onClick={() => { setSearch(''); setAppliedSearch(''); syncUrl({ search: '' }) }}><X size={13} /></button></span>}{minPrice && <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">Min. {formatCurrency(minPrice)}</span>}{maxPrice && <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">Maks. {formatCurrency(maxPrice)}</span>}</div>}
+
+            {loadError && <div className="mt-6 rounded-2xl border border-danger-200 bg-danger-50 p-5 text-sm font-semibold text-danger-600">{loadError}</div>}
+            {!loadError && <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              {loading && Array.from({ length: 8 }, (_, index) => <div key={index} className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="aspect-square animate-pulse bg-slate-100" /><div className="space-y-3 p-4"><div className="h-3 animate-pulse rounded bg-slate-100" /><div className="h-4 w-2/3 animate-pulse rounded bg-slate-100" /></div></div>)}
+              {!loading && products.length === 0 && <div className="col-span-full rounded-3xl border border-dashed border-slate-300 bg-white py-14 text-center"><MagnifyingGlass size={40} className="mx-auto text-slate-400" /><h3 className="mt-4 font-extrabold text-ink">Produk tidak ditemukan</h3><p className="mt-2 text-sm text-slate-500">Ubah kata kunci atau hapus filter aktif.</p><Button type="button" variant="outline" className="mt-5" onClick={reset}>Reset filter</Button></div>}
+              {!loading && products.map((product) => <Link key={product.id} to={`/products/${product.id}`} className="product-card group"><div className="aspect-square overflow-hidden bg-slate-100"><ProductImage src={product.image_url} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /></div><div className="p-3 sm:p-4"><h3 className="line-clamp-2 min-h-9 sm:min-h-10 text-xs sm:text-sm font-semibold leading-snug sm:leading-5 text-slate-700 group-hover:text-primary-700">{product.name}</h3><p className="mt-1.5 sm:mt-2 text-sm sm:text-base font-extrabold text-ink">{formatCurrency(product.price)}</p><p className="mt-1.5 sm:mt-2 flex items-center gap-1 truncate text-[11px] sm:text-xs text-slate-500"><Storefront size={14} className="text-primary-600 shrink-0" /> <span className="truncate">{product.store?.name || 'Toko SEAPEDIA'}</span></p><p className="mt-1 text-[11px] sm:text-xs font-semibold text-success-600">Stok {product.stock}</p></div></Link>)}
+            </div>}
+
+            {pagination.last_page > 1 && <div className="mt-8 flex items-center justify-center gap-3"><Button variant="outline" size="sm" disabled={pagination.current_page === 1} onClick={() => fetchProducts(pagination.current_page - 1)} leftIcon={<ArrowLeft size={16} />}>Sebelumnya</Button><span className="text-sm font-semibold text-slate-500">{pagination.current_page} / {pagination.last_page}</span><Button variant="outline" size="sm" disabled={pagination.current_page === pagination.last_page} onClick={() => fetchProducts(pagination.current_page + 1)} rightIcon={<ArrowRight size={16} />}>Selanjutnya</Button></div>}
+          </main>
         </div>
       </div>
+
+      {/* Mobile Filter Modal */}
+      <Modal
+        isOpen={mobileFilterOpen}
+        onClose={() => setMobileFilterOpen(false)}
+        title="Filter Rentang Harga"
+      >
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="mobile-min-price" className="text-xs font-bold text-slate-600">Harga minimum (Rp)</label>
+            <input
+              id="mobile-min-price"
+              type="number"
+              min="0"
+              value={minPrice}
+              onChange={(event) => setMinPrice(event.target.value)}
+              className="input mt-1.5"
+              placeholder="Contoh: 10000"
+            />
+          </div>
+          <div>
+            <label htmlFor="mobile-max-price" className="text-xs font-bold text-slate-600">Harga maksimum (Rp)</label>
+            <input
+              id="mobile-max-price"
+              type="number"
+              min="0"
+              value={maxPrice}
+              onChange={(event) => setMaxPrice(event.target.value)}
+              className="input mt-1.5"
+              placeholder="Contoh: 500000"
+            />
+          </div>
+          <div className="flex gap-2.5 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setMinPrice('')
+                setMaxPrice('')
+                syncUrl({ min_price: '', max_price: '' })
+                setMobileFilterOpen(false)
+              }}
+            >
+              Reset
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={() => {
+                applyPrice()
+                setMobileFilterOpen(false)
+              }}
+            >
+              Terapkan
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
-
-export default ProductsPage

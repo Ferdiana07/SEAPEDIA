@@ -21,6 +21,7 @@ const useCartStore = create(
       
       /** @type {boolean} Loading state */
       isLoading: false,
+      error: null,
       
       // ======================================================
       // GETTERS
@@ -58,7 +59,7 @@ const useCartStore = create(
        * Fetch data cart dari backend
        */
       fetchCart: async () => {
-        set({ isLoading: true })
+        set({ isLoading: true, error: null })
         try {
           const response = await cartService.getCart()
           if (response.success && response.data) {
@@ -69,8 +70,7 @@ const useCartStore = create(
             })
           }
         } catch (error) {
-          console.error("Gagal memuat keranjang:", error)
-          set({ isLoading: false })
+          set({ isLoading: false, error: error.response?.data?.message || 'Gagal memuat keranjang' })
         }
       },
 
@@ -109,17 +109,17 @@ const useCartStore = create(
       
       /**
        * Update quantity item di backend
-       * @param {number} productId - ID produk
+       * @param {number} cartItemId - ID item keranjang
        * @param {number} quantity - Jumlah baru
        */
-      updateQuantity: async (productId, quantity) => {
+      updateQuantity: async (cartItemId, quantity) => {
         if (quantity <= 0) {
-          return get().removeItem(productId)
+          return get().removeItem(cartItemId)
         }
         
         set({ isLoading: true })
         try {
-          const response = await cartService.updateItem(productId, quantity)
+          const response = await cartService.updateItem(cartItemId, quantity)
           if (response.success) {
             await get().fetchCart()
           }
@@ -132,12 +132,12 @@ const useCartStore = create(
       
       /**
        * Hapus item dari cart backend
-       * @param {number} productId - ID produk
+       * @param {number} cartItemId - ID item keranjang
        */
-      removeItem: async (productId) => {
+      removeItem: async (cartItemId) => {
         set({ isLoading: true })
         try {
-          const response = await cartService.removeItem(productId)
+          const response = await cartService.removeItem(cartItemId)
           if (response.success) {
             await get().fetchCart()
           }
@@ -163,7 +163,7 @@ const useCartStore = create(
             set({ items: [], store: null, isLoading: false })
           }
           return response
-        } catch (error) {
+        } catch {
           // Fallback to clearing frontend state
           set({ items: [], store: null, isLoading: false })
         }
@@ -173,7 +173,7 @@ const useCartStore = create(
        * Reset state frontend saja (digunakan saat logout)
        */
       resetLocalCart: () => {
-        set({ items: [], store: null, isLoading: false })
+        set({ items: [], store: null, isLoading: false, error: null })
       },
       
       /**

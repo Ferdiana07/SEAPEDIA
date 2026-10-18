@@ -1,15 +1,32 @@
 // File: src/pages/dashboard/seller/ProductsPage.jsx
 // Penjelasan: Halaman untuk seller mengelola produk mereka sendiri
 
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useState, useEffect } from 'react'
 import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
 import Badge from '../../../components/ui/Badge'
 import Modal from '../../../components/ui/Modal'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import Input from '../../../components/ui/Input'
+import ProductImage from '../../../components/ui/ProductImage'
+import ProductImageUpload from '../../../components/ui/ProductImageUpload'
 import useUIStore from '../../../stores/uiStore'
 import productService from '../../../services/productService'
+import { CheckCircle, Package, Plus, Warning } from '@phosphor-icons/react'
+
+const PRODUCT_CATEGORIES = [
+  ['alat pancing', 'Alat Pancing'],
+  ['budidaya', 'Budidaya'],
+  ['pakan', 'Pakan'],
+  ['akuarium', 'Akuarium'],
+  ['biota hidup', 'Biota Hidup'],
+  ['tanaman laut', 'Tanaman Laut'],
+  ['hasil laut', 'Hasil Laut'],
+  ['kuliner laut', 'Kuliner Laut'],
+  ['lainnya', 'Lainnya'],
+]
+
+const categoryLabel = (value) => PRODUCT_CATEGORIES.find(([id]) => id === value)?.[1] || 'Lainnya'
 
 // ============================================================
 // SELLER PRODUCTS PAGE
@@ -33,21 +50,17 @@ const SellerProductsPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    category: 'alat pancing',
     price: '',
     stock: '',
-    image_url: '',
   })
+  const [imageFile, setImageFile] = useState(null)
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // Fetch products on mount
-  useEffect(() => {
-    fetchProducts()
-    fetchStats()
-  }, [])
+  const [confirmation, setConfirmation] = useState(null)
 
   // Fetch products
-  const fetchProducts = async (page = 1) => {
+  const fetchProducts = useCallback(async (page = 1) => {
     setIsLoading(true)
     try {
       const response = await productService.getMyProducts({ page })
@@ -62,25 +75,30 @@ const SellerProductsPage = () => {
           })
         }
       }
-    } catch (err) {
+    } catch {
       showError('Gagal mengambil produk')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [showError])
 
   // Fetch stats
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await productService.getMyStats()
 
       if (response.success) {
         setStats(response.data)
       }
-    } catch (err) {
-      console.error('Gagal mengambil statistik:', err)
+    } catch {
+      showError('Statistik produk belum dapat dimuat')
     }
-  }
+  }, [showError])
+
+  useEffect(() => {
+    fetchProducts()
+    fetchStats()
+  }, [fetchProducts, fetchStats])
 
   // Format currency
   const formatPrice = (price) => {
@@ -106,10 +124,11 @@ const SellerProductsPage = () => {
     setFormData({
       name: product.name,
       description: product.description || '',
+      category: product.category || 'lainnya',
       price: product.price.toString(),
       stock: product.stock.toString(),
-      image_url: product.image_url || '',
     })
+    setImageFile(null)
     setFormErrors({})
     setShowEditModal(true)
   }
@@ -119,17 +138,24 @@ const SellerProductsPage = () => {
     setFormData({
       name: '',
       description: '',
+      category: 'alat pancing',
       price: '',
       stock: '',
-      image_url: '',
     })
+    setImageFile(null)
     setFormErrors({})
     setSelectedProduct(null)
   }
 
   // Handle create
-  const handleCreate = async (e) => {
-    e.preventDefault()
+  const requestSave = (event, type) => {
+    event.preventDefault()
+    setShowCreateModal(false)
+    setShowEditModal(false)
+    setConfirmation({ type, product: selectedProduct })
+  }
+
+  const handleCreate = async () => {
     setIsSubmitting(true)
     setFormErrors({})
 
@@ -138,10 +164,12 @@ const SellerProductsPage = () => {
         ...formData,
         price: parseInt(formData.price),
         stock: parseInt(formData.stock),
+        image: imageFile,
       })
 
       if (response.success) {
         success('Produk berhasil ditambahkan!')
+        setConfirmation(null)
         setShowCreateModal(false)
         resetForm()
         fetchProducts()
@@ -150,6 +178,8 @@ const SellerProductsPage = () => {
     } catch (err) {
       if (err.response?.data?.errors) {
         setFormErrors(err.response.data.errors)
+        setConfirmation(null)
+        setShowCreateModal(true)
       } else {
         showError(err.response?.data?.message || 'Gagal membuat produk')
       }
@@ -159,8 +189,7 @@ const SellerProductsPage = () => {
   }
 
   // Handle update
-  const handleUpdate = async (e) => {
-    e.preventDefault()
+  const handleUpdate = async () => {
     if (!selectedProduct) return
 
     setIsSubmitting(true)
@@ -171,10 +200,12 @@ const SellerProductsPage = () => {
         ...formData,
         price: parseInt(formData.price),
         stock: parseInt(formData.stock),
+        image: imageFile,
       })
 
       if (response.success) {
         success('Produk berhasil diupdate!')
+        setConfirmation(null)
         setShowEditModal(false)
         resetForm()
         fetchProducts()
@@ -182,6 +213,8 @@ const SellerProductsPage = () => {
     } catch (err) {
       if (err.response?.data?.errors) {
         setFormErrors(err.response.data.errors)
+        setConfirmation(null)
+        setShowEditModal(true)
       } else {
         showError(err.response?.data?.message || 'Gagal update produk')
       }
@@ -190,20 +223,22 @@ const SellerProductsPage = () => {
     }
   }
 
-  // Handle delete
-  const handleDelete = async (product) => {
-    if (!confirm(`Yakin ingin menghapus "${product.name}"?`)) return
-
+  const handleAvailability = async (product) => {
+    const nextActive = !product.is_active
+    setIsSubmitting(true)
     try {
-      const response = await productService.delete(product.id)
+      const response = await productService.update(product.id, { is_active: nextActive })
 
       if (response.success) {
-        success('Produk berhasil dihapus!')
+        success(nextActive ? 'Produk kembali aktif.' : 'Produk dinonaktifkan.')
+        setConfirmation(null)
         fetchProducts()
         fetchStats()
       }
-    } catch (err) {
-      showError('Gagal menghapus produk')
+    } catch {
+      showError('Status produk gagal diubah')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -221,7 +256,7 @@ const SellerProductsPage = () => {
               resetForm()
               setShowCreateModal(true)
             }}
-            leftIcon={<span>➕</span>}
+            leftIcon={<Plus size={18} weight="bold" />}
           >
             Tambah Produk
           </Button>
@@ -236,7 +271,7 @@ const SellerProductsPage = () => {
                   <p className="text-sm text-gray-500">Total Produk</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.total_products}</p>
                 </div>
-                <span className="text-3xl">📦</span>
+                <Package size={30} className="text-primary-500" weight="duotone" />
               </div>
             </Card>
 
@@ -246,7 +281,7 @@ const SellerProductsPage = () => {
                   <p className="text-sm text-gray-500">Produk Aktif</p>
                   <p className="text-2xl font-bold text-green-600">{stats.active_products}</p>
                 </div>
-                <span className="text-3xl">✅</span>
+                <CheckCircle size={30} className="text-emerald-500" weight="duotone" />
               </div>
             </Card>
 
@@ -256,7 +291,7 @@ const SellerProductsPage = () => {
                   <p className="text-sm text-gray-500">Stok Habis</p>
                   <p className="text-2xl font-bold text-red-600">{stats.out_of_stock}</p>
                 </div>
-                <span className="text-3xl">⚠️</span>
+                <Warning size={30} className="text-amber-500" weight="duotone" />
               </div>
             </Card>
           </div>
@@ -271,7 +306,7 @@ const SellerProductsPage = () => {
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12">
-              <span className="text-6xl">📦</span>
+              <Package size={54} className="mx-auto text-primary-300" weight="duotone" />
               <h2 className="text-xl font-semibold text-gray-900 mt-4 mb-2">
                 Belum Ada Produk
               </h2>
@@ -283,82 +318,126 @@ const SellerProductsPage = () => {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Produk</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Harga</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Stok</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Status</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-600">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((product) => (
-                    <tr key={product.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                            {product.image_url ? (
-                              <img
-                                src={product.image_url}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                📦
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{product.name}</p>
-                            <p className="text-sm text-gray-500 line-clamp-1">
-                              {product.description || 'Tidak ada deskripsi'}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-semibold text-primary-600">
-                          {formatPrice(product.price)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={product.stock > 0 ? 'text-gray-900' : 'text-red-600'}>
-                          {product.stock}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant={product.stock > 0 ? 'success' : 'danger'} dot>
-                          {product.stock > 0 ? 'Tersedia' : 'Stok Habis'}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(product)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(product)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            Hapus
-                          </Button>
-                        </div>
-                      </td>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-600">Produk</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-600">Kategori</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-600">Harga</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-600">Stok</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-600">Status</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-600">Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {products.map((product) => (
+                      <tr key={product.id} className="border-b hover:bg-gray-50">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                              <ProductImage src={product.image_url} alt={product.name} iconSize={22} className="h-full w-full object-cover" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">{product.name}</p>
+                              <p className="text-sm text-gray-500 line-clamp-1">
+                                {product.description || 'Tidak ada deskripsi'}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm font-semibold text-slate-600">
+                          {categoryLabel(product.category)}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-semibold text-primary-600">
+                            {formatPrice(product.price)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={product.stock > 0 ? 'text-gray-900' : 'text-red-600'}>
+                            {product.stock}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge variant={product.is_active && product.stock > 0 ? 'success' : 'danger'} dot>
+                            {!product.is_active ? 'Nonaktif' : product.stock > 0 ? 'Tersedia' : 'Stok Habis'}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(product)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setConfirmation({ type: 'availability', product })}
+                              className={product.is_active ? 'text-red-500 hover:text-red-700' : 'text-emerald-600 hover:text-emerald-700'}
+                            >
+                              {product.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card List View */}
+              <div className="space-y-3 md:hidden">
+                {products.map((product) => (
+                  <div key={product.id} className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+                    <div className="flex gap-3">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                        <ProductImage src={product.image_url} alt={product.name} iconSize={24} className="h-full w-full object-cover" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="truncate text-sm font-bold text-slate-800">{product.name}</h4>
+                          <Badge variant={product.is_active && product.stock > 0 ? 'success' : 'danger'} dot className="shrink-0 text-[10px]">
+                            {!product.is_active ? 'Nonaktif' : product.stock > 0 ? 'Tersedia' : 'Habis'}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-sm font-extrabold text-primary-700">{formatPrice(product.price)}</p>
+                        <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-500">
+                          <span className="rounded-md bg-slate-100 px-2 py-0.5 font-medium">{categoryLabel(product.category)}</span>
+                          <span>•</span>
+                          <span className={product.stock > 0 ? 'font-semibold text-slate-700' : 'font-semibold text-danger-600'}>
+                            Stok: {product.stock}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-end gap-2 border-t border-slate-100 pt-2.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(product)}
+                        className="text-xs !py-1 !px-3"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirmation({ type: 'availability', product })}
+                        className={`text-xs !py-1 !px-3 ${product.is_active ? 'text-danger-600 hover:bg-danger-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                      >
+                        {product.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
 
           {/* Pagination */}
@@ -397,14 +476,14 @@ const SellerProductsPage = () => {
         }}
         title="Tambah Produk Baru"
       >
-        <form onSubmit={handleCreate} className="space-y-4">
+        <form onSubmit={(event) => requestSave(event, 'create')} className="space-y-4">
           <Input
             label="Nama Produk"
             name="name"
             value={formData.name}
             onChange={handleChange}
             error={formErrors.name?.[0]}
-            placeholder="Contoh: Nasi Goreng Spesial"
+            placeholder="Contoh: Reel Spinning Laut"
             required
           />
 
@@ -421,6 +500,14 @@ const SellerProductsPage = () => {
               placeholder="Jelaskan produk kamu..."
             />
           </div>
+
+          <label className="block text-sm font-medium text-gray-700">
+            Kategori
+            <select name="category" value={formData.category} onChange={handleChange} className="input mt-1" required>
+              {PRODUCT_CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+            {formErrors.category?.[0] && <span className="mt-1 block text-xs font-semibold text-danger-600">{formErrors.category[0]}</span>}
+          </label>
 
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -446,14 +533,12 @@ const SellerProductsPage = () => {
             />
           </div>
 
-          <Input
-            label="URL Gambar (opsional)"
-            name="image_url"
-            type="url"
-            value={formData.image_url}
-            onChange={handleChange}
-            error={formErrors.image_url?.[0]}
-            placeholder="https://example.com/image.jpg"
+          <ProductImageUpload
+            inputId="create-product-image"
+            file={imageFile}
+            error={Array.isArray(formErrors.image) ? formErrors.image[0] : formErrors.image}
+            onChange={setImageFile}
+            onError={(message) => setFormErrors((current) => ({ ...current, image: message }))}
           />
 
           <div className="flex justify-end gap-3 pt-4">
@@ -483,7 +568,7 @@ const SellerProductsPage = () => {
         }}
         title="Edit Produk"
       >
-        <form onSubmit={handleUpdate} className="space-y-4">
+        <form onSubmit={(event) => requestSave(event, 'update')} className="space-y-4">
           <Input
             label="Nama Produk"
             name="name"
@@ -505,6 +590,14 @@ const SellerProductsPage = () => {
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
+
+          <label className="block text-sm font-medium text-gray-700">
+            Kategori
+            <select name="category" value={formData.category} onChange={handleChange} className="input mt-1" required>
+              {PRODUCT_CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+            {formErrors.category?.[0] && <span className="mt-1 block text-xs font-semibold text-danger-600">{formErrors.category[0]}</span>}
+          </label>
 
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -528,13 +621,13 @@ const SellerProductsPage = () => {
             />
           </div>
 
-          <Input
-            label="URL Gambar (opsional)"
-            name="image_url"
-            type="url"
-            value={formData.image_url}
-            onChange={handleChange}
-            error={formErrors.image_url?.[0]}
+          <ProductImageUpload
+            inputId="edit-product-image"
+            file={imageFile}
+            currentImage={selectedProduct?.image_url}
+            error={Array.isArray(formErrors.image) ? formErrors.image[0] : formErrors.image}
+            onChange={setImageFile}
+            onError={(message) => setFormErrors((current) => ({ ...current, image: message }))}
           />
 
           <div className="flex justify-end gap-3 pt-4">
@@ -554,6 +647,32 @@ const SellerProductsPage = () => {
           </div>
         </form>
       </Modal>
+      <ConfirmDialog
+        isOpen={!!confirmation}
+        onClose={() => {
+          const type = confirmation?.type
+          setConfirmation(null)
+          if (type === 'create') setShowCreateModal(true)
+          if (type === 'update') setShowEditModal(true)
+        }}
+        onConfirm={() => confirmation?.type === 'create' ? handleCreate() : confirmation?.type === 'update' ? handleUpdate() : handleAvailability(confirmation.product)}
+        title={confirmation?.type === 'create' ? 'Publikasikan produk?' : confirmation?.type === 'update' ? 'Simpan perubahan produk?' : `${confirmation?.product?.is_active ? 'Nonaktifkan' : 'Aktifkan'} produk?`}
+        description={confirmation?.type === 'availability'
+          ? 'Status katalog berubah langsung. Cart Buyer tetap divalidasi ulang saat checkout.'
+          : 'Periksa nama, kategori, harga, dan stok sebelum data produk disimpan.'}
+        details={confirmation?.type === 'availability' && confirmation?.product ? [
+          { label: 'Produk', value: confirmation.product.name },
+          { label: 'Status baru', value: confirmation.product.is_active ? 'Nonaktif' : 'Aktif' },
+        ] : [
+          { label: 'Produk', value: formData.name || '-' },
+          { label: 'Harga', value: formData.price ? formatPrice(formData.price) : '-' },
+          { label: 'Stok', value: formData.stock || '0' },
+          { label: 'Foto', value: imageFile?.name || (selectedProduct?.image_url ? 'Tetap gunakan foto saat ini' : 'Tanpa foto') },
+        ]}
+        confirmLabel={confirmation?.type === 'create' ? 'Publikasikan' : confirmation?.type === 'update' ? 'Simpan perubahan' : 'Ubah status'}
+        tone={confirmation?.type === 'availability' && confirmation?.product?.is_active ? 'danger' : 'primary'}
+        isLoading={isSubmitting}
+      />
     </div>
   )
 }

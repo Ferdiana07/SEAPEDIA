@@ -39,16 +39,16 @@ class WalletSeeder extends Seeder
             'balance' => 150000,
         ]);
 
-        // Wallet untuk Buyer 1 - Ani (User ID 4) - saldo 500000
+        // Wallet untuk Buyer 1 - Ani (User ID 4) - saldo demo 1000000
         Wallet::create([
             'user_id' => 4,
-            'balance' => 500000,
+            'balance' => 1000000,
         ]);
 
-        // Wallet untuk Buyer 2 - Rudi (User ID 5) - saldo 300000
+        // Wallet untuk Buyer 2 - Rudi (User ID 5) - saldo demo 1000000
         Wallet::create([
             'user_id' => 5,
-            'balance' => 300000,
+            'balance' => 1000000,
         ]);
 
         // Wallet untuk Driver 1 - Caca (User ID 6) - saldo 50000
@@ -63,10 +63,10 @@ class WalletSeeder extends Seeder
             'balance' => 75000,
         ]);
 
-        // Wallet untuk Multi-role - Fika (User ID 8) - saldo 200000
+        // Wallet untuk Multi-role - Fika (User ID 8) - saldo demo 3000000
         Wallet::create([
             'user_id' => 8,
-            'balance' => 200000,
+            'balance' => 3000000,
         ]);
 
         // Wallet untuk Guest (User ID 9) - saldo 100000

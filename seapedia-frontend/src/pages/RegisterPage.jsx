@@ -1,177 +1,106 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, CheckCircle, EnvelopeSimple, Key, ShieldCheck, User } from '@phosphor-icons/react'
+import BrandMark from '../components/ui/BrandMark'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
-import Card from '../components/ui/Card'
-import useUIStore from '../stores/uiStore'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import authService from '../services/authService'
+import useUIStore from '../stores/uiStore'
 
-// ============================================================
-// REGISTER PAGE
-// ============================================================
-const RegisterPage = () => {
+const BENEFITS = [
+  'Akses ribuan produk lokal pilihan dengan harga jujur',
+  'Dompet digital terintegrasi untuk checkout instan & aman',
+  'Bisa buka toko atau jadi mitra driver kapan saja dari satu akun',
+]
+
+export default function RegisterPage() {
   const navigate = useNavigate()
   const { success, error: showError } = useUIStore()
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    password_confirmation: '',
-  })
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', password_confirmation: '' })
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
-  
-  // Handle input change
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-    
-    // Clear error when typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }))
-    }
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const handleChange = (event) => {
+    const { name, value } = event.target
+    setFormData((current) => ({ ...current, [name]: value }))
+    if (errors[name]) setErrors((current) => ({ ...current, [name]: '' }))
   }
-  
-  // Handle form submit
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+
+  const requestSubmit = (event) => {
+    event.preventDefault()
+    if (formData.password !== formData.password_confirmation) {
+      setErrors({ password_confirmation: ['Konfirmasi password tidak sama.'] })
+      return
+    }
+    setConfirmOpen(true)
+  }
+
+  const handleSubmit = async () => {
     setIsLoading(true)
     setErrors({})
-    
     try {
-      // Call API
       const response = await authService.register(formData)
-      
       if (response.success) {
-        // Show success
-        success('Registrasi berhasil! Silakan login.')
-        
-        // Redirect to login
+        success('Akun berhasil dibuat. Silakan masuk.')
         navigate('/login')
       }
-    } catch (err) {
-      // Handle error
-      if (err.response?.data?.errors) {
-        setErrors(err.response.data.errors)
-      } else {
-        showError(err.response?.data?.message || 'Registrasi gagal!')
-      }
+    } catch (error) {
+      if (error.response?.data?.errors) setErrors(error.response.data.errors)
+      else showError(error.response?.data?.message || 'Registrasi gagal. Coba lagi.')
     } finally {
       setIsLoading(false)
     }
   }
-  
-  return (
-    <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full">
-        
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="font-extrabold text-3xl text-primary-500 tracking-tight">SEAPEDIA</span>
-          </Link>
-        </div>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.05)] border border-gray-100 p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Daftar Sekarang</h1>
-            <p className="text-gray-500 mt-2 text-sm">Bergabung dan nikmati kemudahan bertransaksi</p>
+  return (
+    <div className="bg-white px-4 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-card-hover lg:grid-cols-[0.85fr_1.15fr]">
+        <aside className="order-2 bg-primary-950 p-7 text-white sm:p-10 lg:order-1 lg:p-12">
+          <Link to="/" className="inline-flex"><BrandMark inverse /></Link>
+          <p className="mt-12 text-sm font-bold text-primary-200">Mulai sebagai pembeli</p>
+          <h1 className="mt-3 max-w-md text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">Satu akun untuk seluruh ekosistem marketplace.</h1>
+          <p className="mt-4 max-w-md leading-7 text-primary-100">Daftar sebagai pembeli, lalu aktifkan peran penjual atau driver kapan saja dari pengaturan akun.</p>
+
+          <div className="mt-8 space-y-3">
+            {BENEFITS.map((benefit) => (
+              <div key={benefit} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-semibold text-primary-50">
+                <CheckCircle size={20} className="shrink-0 text-accent-300" weight="fill" />
+                {benefit}
+              </div>
+            ))}
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name */}
-            <Input
-              label="Nama Lengkap"
-              name="name"
-              type="text"
-              placeholder="Masukkan nama kamu"
-              value={formData.name}
-              onChange={handleChange}
-              error={errors.name?.[0]}
-              required
-              leftIcon={
-                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              }
-            />
-            
-            {/* Email */}
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              placeholder="nama@email.com"
-              value={formData.email}
-              onChange={handleChange}
-              error={errors.email?.[0]}
-              required
-              leftIcon={
-                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                </svg>
-              }
-            />
-            
-            {/* Password */}
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              placeholder="Minimal 8 karakter"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password?.[0]}
-              required
-              helperText="Minimal 8 karakter"
-              leftIcon={
-                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              }
-            />
-            
-            {/* Confirm Password */}
-            <Input
-              label="Konfirmasi Password"
-              name="password_confirmation"
-              type="password"
-              placeholder="Ulangi password"
-              value={formData.password_confirmation}
-              onChange={handleChange}
-              error={errors.password_confirmation?.[0]}
-              required
-              leftIcon={
-                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              }
-            />
-            
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full"
-              isLoading={isLoading}
-            >
-              Register
-            </Button>
+        </aside>
+
+        <section className="order-1 flex flex-col justify-center p-6 sm:p-10 lg:order-2 lg:p-12" aria-labelledby="register-heading">
+          <div className="max-w-lg">
+            <p className="text-sm font-bold text-primary-700">Buat akun baru</p>
+            <h2 id="register-heading" className="mt-2 text-3xl font-extrabold tracking-[-0.04em] text-ink sm:text-4xl">Selamat datang di SEAPEDIA.</h2>
+            <p className="mt-3 leading-7 text-slate-600">Isi data dasar berikut. Role awal akunmu adalah Pembeli.</p>
+          </div>
+
+          <form onSubmit={requestSubmit} className="mt-8 grid max-w-lg gap-x-4 sm:grid-cols-2">
+            <div className="sm:col-span-2"><Input label="Nama lengkap" name="name" type="text" autoComplete="name" placeholder="Nama kamu" value={formData.name} onChange={handleChange} error={errors.name?.[0]} required leftIcon={<User size={20} className="text-slate-400" />} /></div>
+            <div className="sm:col-span-2"><Input label="Email" name="email" type="email" autoComplete="email" placeholder="nama@email.com" value={formData.email} onChange={handleChange} error={errors.email?.[0]} required leftIcon={<EnvelopeSimple size={20} className="text-slate-400" />} /></div>
+            <Input label="Password" name="password" type="password" autoComplete="new-password" placeholder="Min. 8 karakter" value={formData.password} onChange={handleChange} error={errors.password?.[0]} required leftIcon={<Key size={20} className="text-slate-400" />} />
+            <Input label="Konfirmasi" name="password_confirmation" type="password" autoComplete="new-password" placeholder="Ulangi password" value={formData.password_confirmation} onChange={handleChange} error={errors.password_confirmation?.[0]} required leftIcon={<ShieldCheck size={20} className="text-slate-400" />} />
+            <Button type="submit" className="mt-2 w-full sm:col-span-2" size="lg" isLoading={isLoading} rightIcon={<ArrowRight size={19} weight="bold" />}>Buat akun</Button>
           </form>
-          
-          {/* Login Link */}
-          <div className="mt-8 text-center text-sm">
-            <p className="text-gray-600">
-              Sudah punya akun?{' '}
-              <Link to="/login" className="text-primary-500 hover:text-primary-600 font-bold">
-                Masuk di sini
-              </Link>
-            </p>
-          </div>
-        </div>
+
+          <p className="mt-6 text-sm text-slate-600">Sudah punya akun? <Link to="/login" className="font-bold text-primary-700 hover:text-primary-900">Masuk di sini</Link></p>
+        </section>
       </div>
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleSubmit}
+        title="Konfirmasi Pendaftaran Akun"
+        description="Periksa kembali data Anda. Akun baru langsung aktif dengan dompet digital dan siap digunakan untuk berbelanja."
+        details={[{ label: 'Nama Lengkap', value: formData.name || '-' }, { label: 'Alamat Email', value: formData.email || '-' }, { label: 'Peran Akun', value: 'Pembeli (Dapat upgrade)' }]}
+        confirmLabel="Buat akun"
+        isLoading={isLoading}
+      />
     </div>
   )
 }
-
-export default RegisterPage

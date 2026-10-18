@@ -67,13 +67,14 @@ class Wallet extends Model
     /**
      * Menambah (kredit) saldo
      */
-    public function credit(float $amount, ?string $description = null): Transaction
+    public function credit(float $amount, ?string $description = null, ?string $idempotencyKey = null): Transaction
     {
         $this->increment('balance', $amount);
 
         return $this->transactions()->create([
             'type' => Transaction::TYPE_TOPUP,
             'amount' => $amount,
+            'idempotency_key' => $idempotencyKey,
             'description' => $description ?? 'Top up balance',
         ]);
     }
@@ -83,7 +84,7 @@ class Wallet extends Model
      */
     public function debit(float $amount, ?int $orderId = null, ?string $description = null): bool
     {
-        if (!$this->hasSufficientBalance($amount)) {
+        if (! $this->hasSufficientBalance($amount)) {
             return false;
         }
 
@@ -120,6 +121,7 @@ class Wallet extends Model
     public function getFormattedBalanceAttribute(): string
     {
         $balance = (float) $this->balance;
-        return 'Rp ' . number_format($balance, 0, ',', '.');
+
+        return 'Rp '.number_format($balance, 0, ',', '.');
     }
 }

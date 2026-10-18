@@ -34,6 +34,7 @@ class Review extends Model
      * Batas rating
      */
     public const MIN_RATING = 1;
+
     public const MAX_RATING = 5;
 
     /**

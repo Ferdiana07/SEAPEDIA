@@ -71,7 +71,8 @@ class CartItem extends Model
     public function getFormattedSubtotalAttribute(): string
     {
         $subtotal = (float) $this->subtotal;
-        return 'Rp ' . number_format($subtotal, 0, ',', '.');
+
+        return 'Rp '.number_format($subtotal, 0, ',', '.');
     }
 
     /**

@@ -1,304 +1,273 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  CaretDown,
+  GearSix,
+  List,
+  MagnifyingGlass,
+  ShoppingBag,
+  SignOut,
+  Storefront,
+  UserCircle,
+  UsersThree,
+  X,
+} from '@phosphor-icons/react'
+import authService from '../../services/authService'
 import useAuthStore from '../../stores/authStore'
 import useCartStore from '../../stores/cartStore'
 import useUIStore from '../../stores/uiStore'
-import authService from '../../services/authService'
+import BrandMark from '../ui/BrandMark'
 import Button from '../ui/Button'
-import Badge from '../ui/Badge'
 
-// ============================================================
-// NAVBAR COMPONENT
-// ============================================================
-// Navigasi utama di atas halaman
+const ROLE_LABELS = {
+  buyer: 'Pembeli',
+  seller: 'Penjual',
+  driver: 'Driver',
+  admin: 'Admin',
+}
 
-const Navbar = () => {
+const ROLE_DESTINATIONS = {
+  buyer: '/buyer/dashboard',
+  seller: '/seller/dashboard',
+  driver: '/driver/dashboard',
+  admin: '/admin/dashboard',
+}
+
+const ROLE_LINKS = {
+  buyer: [
+    ['/buyer/dashboard', 'Ringkasan'],
+    ['/buyer/orders', 'Pesanan'],
+    ['/buyer/wallet', 'Dompet'],
+  ],
+  seller: [
+    ['/seller/dashboard', 'Ringkasan toko'],
+    ['/seller/products', 'Produk'],
+    ['/seller/orders', 'Pesanan masuk'],
+  ],
+  driver: [
+    ['/driver/dashboard', 'Ringkasan'],
+    ['/driver/orders', 'Pengantaran'],
+  ],
+  admin: [
+    ['/admin/dashboard', 'Monitoring'],
+    ['/admin/users', 'Pengguna'],
+    ['/admin/discounts', 'Voucher & promo'],
+  ],
+}
+
+const isActive = (pathname, to) =>
+  to === '/products' ? pathname.startsWith('/products') : pathname === to
+
+export default function Navbar() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [search, setSearch] = useState('')
+  const [mobileOpen, setMobileOpen] = useState(false)
   const { user, isAuthenticated, logout, activeRole } = useAuthStore()
   const { getTotalItems, resetLocalCart } = useCartStore()
   const { success, error: showError } = useUIStore()
-  
-  const cartItemCount = getTotalItems()
-  
-  // Handle logout
-  const handleLogout = () => {
+
+  const authenticated = isAuthenticated()
+  const roleLinks = ROLE_LINKS[activeRole] || []
+
+  const handleSearch = (event) => {
+    event.preventDefault()
+    const query = search.trim()
+    navigate(query ? `/products?search=${encodeURIComponent(query)}` : '/products')
+    setMobileOpen(false)
+  }
+
+  const handleLogout = async () => {
+    try { await authService.logout() } catch { /* local logout still works */ }
     resetLocalCart()
     logout()
     navigate('/')
   }
 
-  // Helper check if user has role
-  const hasUserRole = (roleName) => {
-    if (!user || !user.roles) return false
-    return user.roles.some(r => r.role === roleName)
-  }
-
-  // Handle Switch Role
-  const handleSwitchRole = async (role) => {
+  const switchRole = async (role) => {
     try {
-      const res = await authService.selectRole(role)
-      if (res.success) {
-        useAuthStore.setState({ 
-          user: res.user,
-          activeRole: res.user.active_role 
-        })
-        success(`Role ${role === 'buyer' ? 'Pembeli' : role === 'seller' ? 'Penjual' : 'Driver'} diaktifkan!`)
-        
-        // Redirect based on role
-        if (role === 'seller') {
-          navigate('/seller/dashboard')
-        } else if (role === 'driver') {
-          navigate('/driver/orders')
-        } else if (role === 'admin') {
-          navigate('/admin/dashboard')
-        } else {
-          navigate('/')
-        }
-      }
-    } catch (err) {
-      showError(err.response?.data?.message || 'Gagal mengubah role')
+      const response = await authService.selectRole(role)
+      useAuthStore.setState({ user: response.user, activeRole: response.user.active_role })
+      success(`Mode ${ROLE_LABELS[role]} aktif.`)
+      navigate(ROLE_DESTINATIONS[role])
+      setMobileOpen(false)
+    } catch (error) {
+      showError(error.response?.data?.message || 'Role belum dapat diubah.')
     }
   }
 
-  // Handle Assign & Select Role
-  const handleAssignAndSelectRole = async (role) => {
-    try {
-      const assignRes = await authService.assignRole(role)
-      if (assignRes.success) {
-        const selectRes = await authService.selectRole(role)
-        if (selectRes.success) {
-          useAuthStore.setState({ 
-            user: selectRes.user,
-            activeRole: selectRes.user.active_role 
-          })
-          success(`Berhasil mendaftar & mengaktifkan role ${role === 'buyer' ? 'Pembeli' : role === 'seller' ? 'Penjual' : 'Driver'}!`)
-          
-          if (role === 'seller') {
-            navigate('/seller/dashboard')
-          } else if (role === 'driver') {
-            navigate('/driver/orders')
-          } else {
-            navigate('/')
-          }
-        }
-      }
-    } catch (err) {
-      showError(err.response?.data?.message || 'Gagal mendaftar role baru')
-    }
-  }
-  
   return (
-    <nav className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 gap-4 md:gap-8">
-          
-          {/* Logo & Brand */}
-          <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="flex items-center gap-2">
-              <span className="font-extrabold text-2xl text-primary-500 tracking-tight">SEAPEDIA</span>
+    <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/75 backdrop-blur-md shadow-sm transition-all duration-300">
+      <div className="page-shell flex h-[68px] items-center gap-3">
+        {/* Brand */}
+        <Link to="/" aria-label="SEAPEDIA beranda" className="shrink-0">
+          <BrandMark />
+        </Link>
+
+        {/* Search */}
+        <form onSubmit={handleSearch} className="relative hidden max-w-lg flex-1 md:block">
+          <label htmlFor="nav-search" className="sr-only">Cari produk</label>
+          <MagnifyingGlass
+            size={17}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+          <input
+            id="nav-search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="input pl-10 pr-4"
+            placeholder="Cari produk atau toko…"
+          />
+        </form>
+
+        {/* Desktop nav */}
+        <nav className="ml-auto hidden items-center gap-0.5 lg:flex" aria-label="Navigasi utama">
+          <Link
+            to="/products"
+            className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+              isActive(location.pathname, '/products')
+                ? 'bg-primary-50 text-primary-900 font-bold'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-ink'
+            }`}
+          >
+            Jelajahi
+          </Link>
+          {roleLinks.slice(0, 2).map(([to, label]) => (
+            <Link
+              key={to}
+              to={to}
+              className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                isActive(location.pathname, to)
+                  ? 'bg-primary-50 text-primary-900 font-bold'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-ink'
+              }`}
+            >
+              {label}
             </Link>
-          </div>
-          
-          {/* Middle - Search Bar (Visual Only for now) */}
-          <div className="flex-1 hidden md:flex">
-            <div className="w-full relative">
-              <input 
-                type="text" 
-                placeholder="Cari di Seapedia..." 
-                className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors text-sm"
-              />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-500 bg-transparent">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+          ))}
+        </nav>
+
+        {/* Cart badge (buyer only) */}
+        {authenticated && activeRole === 'buyer' && (
+          <Link
+            to="/cart"
+            aria-label={`Keranjang, ${getTotalItems()} barang`}
+            className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-600 hover:bg-primary-50 hover:text-primary-900 transition-colors"
+          >
+            <ShoppingBag size={21} weight="bold" />
+            {getTotalItems() > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 grid min-h-[18px] min-w-[18px] place-items-center rounded-full bg-cobalt-500 px-1 text-[10px] font-extrabold text-white">
+                {Math.min(getTotalItems(), 99)}
+              </span>
+            )}
+          </Link>
+        )}
+
+        {/* User menu */}
+        {authenticated ? (
+          <details className="group relative hidden sm:block">
+            <summary className="flex cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 pr-2.5 text-sm transition hover:border-primary-300 hover:bg-primary-50">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary-900 text-xs font-extrabold text-white">
+                {user?.name?.charAt(0)?.toUpperCase()}
+              </span>
+              <span className="max-w-24 truncate font-semibold text-ink">{user?.name}</span>
+              <CaretDown size={13} className="text-slate-400 transition group-open:rotate-180" />
+            </summary>
+
+            {/* Dropdown */}
+            <div className="absolute right-0 mt-2 w-60 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-card-up animate-slide-down">
+              <div className="px-3 py-2.5">
+                <p className="truncate text-sm font-semibold text-ink">{user?.email}</p>
+                <span className="mt-1 inline-flex items-center rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-bold text-primary-900">
+                  Mode {ROLE_LABELS[activeRole]}
+                </span>
+              </div>
+              <div className="my-1 h-px bg-slate-100" />
+              {(user?.roles || []).filter((item) => item.role !== activeRole).map((item) => (
+                <button
+                  key={item.role}
+                  type="button"
+                  onClick={() => switchRole(item.role)}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-600 hover:bg-primary-50 hover:text-primary-900"
+                >
+                  <UsersThree size={17} /> Ganti ke {ROLE_LABELS[item.role]}
+                </button>
+              ))}
+              <Link
+                to="/settings"
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-ink"
+              >
+                <GearSix size={17} /> Pengaturan
+              </Link>
+              <div className="my-1 h-px bg-slate-100" />
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium text-danger-600 hover:bg-danger-50"
+              >
+                <SignOut size={17} /> Keluar
               </button>
             </div>
+          </details>
+        ) : (
+          <div className="hidden items-center gap-2 sm:flex">
+            <Button as={Link} to="/login" variant="ghost" size="sm">Masuk</Button>
+            <Button as={Link} to="/register" size="sm">Daftar</Button>
           </div>
-          
-          {/* Right Side - Auth & Cart */}
-          <div className="flex-shrink-0 flex items-center gap-3 md:gap-5">
-            {/* Nav Links (Desktop) */}
-            <div className="hidden lg:flex items-center space-x-6 mr-2">
-              <Link to="/products" className="text-gray-500 hover:text-primary-500 font-medium text-sm transition-colors">
-                Semua Kategori
+        )}
+
+        {/* Mobile hamburger */}
+        <button
+          type="button"
+          className="grid h-9 w-9 place-items-center rounded-xl text-slate-600 hover:bg-slate-100 lg:hidden transition-colors"
+          onClick={() => setMobileOpen((open) => !open)}
+          aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
+          aria-expanded={mobileOpen}
+        >
+          {mobileOpen ? <X size={21} weight="bold" /> : <List size={21} weight="bold" />}
+        </button>
+      </div>
+
+      {/* Mobile menu */}
+      {mobileOpen && (
+        <div className="border-t border-slate-100 bg-white px-4 py-4 lg:hidden animate-fade-in">
+          <form onSubmit={handleSearch} className="relative mb-4 md:hidden">
+            <MagnifyingGlass size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="input pl-9 pr-4"
+              placeholder="Cari produk atau toko…"
+              aria-label="Cari produk"
+            />
+          </form>
+          <div className="grid gap-0.5">
+            <Link to="/products" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary-900">
+              <Storefront size={19} /> Jelajahi produk
+            </Link>
+            {roleLinks.map(([to, label]) => (
+              <Link key={to} to={to} onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary-900">
+                <UserCircle size={19} /> {label}
               </Link>
-            </div>
-
-            {/* Cart */}
-            {isAuthenticated() && activeRole === 'buyer' && (
-              <Link 
-                to="/cart" 
-                className="relative p-2 text-gray-500 hover:text-primary-500 transition-colors group rounded-lg hover:bg-gray-100"
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                {/* Cart Badge */}
-                {cartItemCount > 0 && (
-                  <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
-                    {cartItemCount > 9 ? '9+' : cartItemCount}
-                  </span>
-                )}
-              </Link>
-            )}
-            
-            <div className="h-6 w-px bg-gray-300 hidden md:block"></div>
-            
-            {/* Auth Buttons */}
-            {isAuthenticated() ? (
-              <div className="flex items-center gap-4">
-                {/* User Menu */}
-                <div className="relative group">
-                  <button className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all">
-                    {/* Avatar */}
-                    <div className="w-8 h-8 bg-primary-50 rounded-full flex items-center justify-center border border-primary-100 overflow-hidden">
-                      {user?.avatar_url ? (
-                        <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-primary-600 font-bold text-sm">
-                          {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Name */}
-                    <span className="hidden md:block text-sm font-medium text-gray-700 truncate max-w-[100px]">{user?.name}</span>
-                  </button>
-                  
-                  {/* Dropdown */}
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden">
-                    
-                    {/* Header Dropdown */}
-                    <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary-600 font-bold">
-                          {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                        </span>
-                      </div>
-                      <div className="overflow-hidden">
-                        <p className="text-sm font-bold text-gray-900 truncate">{user?.name}</p>
-                        {activeRole && (
-                          <span className="text-[10px] uppercase font-bold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full inline-block mt-1">
-                            {activeRole}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="py-2">
-                      {/* Role-specific links */}
-                      {activeRole === 'buyer' && (
-                        <>
-                          <Link to="/buyer/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">
-                            Dashboard Pembeli
-                          </Link>
-                          <Link to="/buyer/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">
-                            Daftar Transaksi
-                          </Link>
-                        </>
-                      )}
-
-                      {activeRole === 'seller' && (
-                        <>
-                          <Link to="/seller/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">
-                            Dashboard Toko
-                          </Link>
-                          <Link to="/seller/products" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">
-                            Kelola Produk
-                          </Link>
-                          <Link to="/seller/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">
-                            Pesanan Masuk
-                          </Link>
-                        </>
-                      )}
-
-                      {activeRole === 'driver' && (
-                        <>
-                          <Link to="/driver/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">
-                            Dashboard Driver
-                          </Link>
-                          <Link to="/driver/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">
-                            Ambil Pesanan
-                          </Link>
-                        </>
-                      )}
-
-                      {activeRole === 'admin' && (
-                        <>
-                          <Link to="/admin/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">
-                            🛡️ Admin Dashboard
-                          </Link>
-                          <Link to="/admin/users" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">
-                            👥 Kelola Pengguna
-                          </Link>
-                        </>
-                      )}
-
-                      <div className="h-px bg-gray-100 my-2"></div>
-                      
-                      {/* Settings Link */}
-                      <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 font-medium">
-                        ⚙️ Pengaturan Akun
-                      </Link>
-
-                      <div className="h-px bg-gray-100 my-2"></div>
-                      
-                      {/* Role Switcher Section */}
-                      <div className="px-4 py-1.5">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Ganti / Daftar Role</p>
-                        <div className="space-y-1">
-                          {[
-                            { id: 'buyer', label: 'Pembeli 🛒' },
-                            { id: 'seller', label: 'Penjual 🏪' },
-                            { id: 'driver', label: 'Driver 🚗' }
-                          ].map((roleItem) => {
-                            const isAssigned = hasUserRole(roleItem.id);
-                            const isActive = activeRole === roleItem.id;
-                            
-                            return (
-                              <button
-                                key={roleItem.id}
-                                onClick={() => isAssigned ? handleSwitchRole(roleItem.id) : handleAssignAndSelectRole(roleItem.id)}
-                                className={`w-full text-left px-2 py-1 rounded text-xs flex justify-between items-center transition-all ${
-                                  isActive 
-                                    ? 'bg-primary-50 text-primary-600 font-bold' 
-                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                }`}
-                              >
-                                <span>{roleItem.label}</span>
-                                {isActive && <span className="text-[10px] bg-primary-500 text-white px-1.5 py-0.5 rounded-full font-bold">Aktif</span>}
-                                {!isActive && !isAssigned && <span className="text-[9px] bg-gray-100 text-gray-400 px-1 py-0.5 rounded border border-gray-200">Daftar</span>}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                      
-                      <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                        Keluar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            ))}
+            {authenticated ? (
+              <>
+                <Link to="/settings" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                  <GearSix size={19} /> Pengaturan
+                </Link>
+                <button type="button" onClick={handleLogout} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-danger-600 hover:bg-danger-50">
+                  <SignOut size={19} /> Keluar
+                </button>
+              </>
             ) : (
-              <div className="flex items-center gap-3">
-                <Link to="/login">
-                  <button className="px-4 py-1.5 text-sm font-bold text-primary-500 border border-primary-500 rounded-lg hover:bg-primary-50 transition-colors">
-                    Masuk
-                  </button>
-                </Link>
-                <Link to="/register">
-                  <button className="px-4 py-1.5 text-sm font-bold text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors shadow-sm hidden md:block">
-                    Daftar
-                  </button>
-                </Link>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button as={Link} to="/login" className="w-full" variant="outline">Masuk</Button>
+                <Button as={Link} to="/register" className="w-full">Daftar</Button>
               </div>
             )}
           </div>
         </div>
-      </div>
-    </nav>
+      )}
+    </header>
   )
 }
-
-export default Navbar

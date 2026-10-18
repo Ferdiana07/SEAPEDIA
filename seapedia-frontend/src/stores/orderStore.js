@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import orderService from '../services/orderService'
+import { createRequestKey } from '../utils/requestKey'
 
 // ============================================================
 // ORDER STORE
@@ -113,7 +114,7 @@ const useOrderStore = create((set, get) => ({
     set({ isLoading: true, error: null })
     
     try {
-      const response = await orderService.create(data)
+      const response = await orderService.create(data, createRequestKey('checkout'))
       
       if (response.success) {
         set({ currentOrder: response.data })
@@ -121,37 +122,6 @@ const useOrderStore = create((set, get) => ({
       }
     } catch (err) {
       set({ error: err.response?.data?.message || 'Checkout gagal' })
-      throw err
-    } finally {
-      set({ isLoading: false })
-    }
-  },
-  
-  /**
-   * Update status pesanan (Seller/Driver)
-   * @param {number} id - Order ID
-   * @param {string} status - Status baru
-   */
-  updateStatus: async (id, status) => {
-    set({ isLoading: true, error: null })
-    
-    try {
-      const response = await orderService.updateStatus(id, status)
-      
-      if (response.success) {
-        // Update order di list
-        const orders = get().orders.map(order =>
-          order.id === id ? { ...order, status } : order
-        )
-        set({ orders })
-        
-        // Update currentOrder jika sama
-        if (get().currentOrder?.id === id) {
-          set({ currentOrder: { ...get().currentOrder, status } })
-        }
-      }
-    } catch (err) {
-      set({ error: err.response?.data?.message || 'Update status gagal' })
       throw err
     } finally {
       set({ isLoading: false })

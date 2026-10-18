@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
-use Illuminate\Http\Request;
+use DomainException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CartController extends Controller
 {
@@ -90,79 +92,59 @@ class CartController extends Controller
         $quantity = $validated['quantity'] ?? 1;
 
         // Cek apakah user punya role buyer
-        if (!$user->hasRole('buyer')) {
+        if (! $user->hasRole('buyer')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Hanya buyer yang bisa menambahkan ke cart',
             ], 403);
         }
 
-        // Ambil atau buat cart
-        $cart = Cart::firstOrCreate(['user_id' => $user->id]);
+        try {
+            $result = DB::transaction(function () use ($user, $validated, $quantity): array {
+                $cart = Cart::firstOrCreate(['user_id' => $user->id]);
+                $cart = Cart::whereKey($cart->id)->lockForUpdate()->firstOrFail();
+                $cart->load('items.product');
 
-        // Load items dengan relasi untuk cek store
-        $cart->load('items.product.store');
+                $product = Product::with('store')->whereKey($validated['product_id'])->lockForUpdate()->firstOrFail();
+                if (! $product->is_active || ! $product->store?->is_active) {
+                    throw new DomainException('Produk atau toko sedang tidak aktif.');
+                }
 
-        // Ambil produk
-        $product = Product::with('store')->findOrFail($validated['product_id']);
+                $firstStoreId = $cart->items->first()?->product?->store_id;
+                if ($firstStoreId !== null && $firstStoreId !== $product->store_id) {
+                    throw new DomainException('Cart hanya boleh berisi produk dari 1 toko yang sama. Selesaikan checkout atau kosongkan cart terlebih dahulu.');
+                }
 
-        // CEK SINGLE-STORE RULE
-        if ($cart->items->isNotEmpty()) {
-            $firstStoreId = $cart->items->first()->product->store_id;
+                $existingItem = CartItem::where('cart_id', $cart->id)
+                    ->where('product_id', $product->id)
+                    ->lockForUpdate()
+                    ->first();
+                $newQuantity = ($existingItem?->quantity ?? 0) + $quantity;
+                if ($product->stock < $newQuantity) {
+                    throw new DomainException('Stok tidak mencukupi untuk jumlah yang diminta.');
+                }
 
-            if ($firstStoreId !== $product->store_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cart hanya boleh berisi produk dari 1 toko yang sama. Selesaikan checkout atau kosongkan cart terlebih dahulu.',
-                ], 400);
-            }
+                if ($existingItem) {
+                    $existingItem->update(['quantity' => $newQuantity]);
+
+                    return ['item' => $existingItem->fresh(), 'created' => false];
+                }
+
+                return ['item' => CartItem::create([
+                    'cart_id' => $cart->id,
+                    'product_id' => $product->id,
+                    'quantity' => $quantity,
+                ]), 'created' => true];
+            }, 3);
+        } catch (DomainException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 409);
         }
-
-        // Cek stok
-        if ($product->stock < $quantity) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Stok tidak mencukupi',
-            ], 400);
-        }
-
-        // Cek apakah sudah ada di cart
-        $existingItem = CartItem::where('cart_id', $cart->id)
-            ->where('product_id', $product->id)
-            ->first();
-
-        if ($existingItem) {
-            // Update quantity
-            $newQuantity = $existingItem->quantity + $quantity;
-
-            if ($product->stock < $newQuantity) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Stok tidak mencukupi untuk jumlah yang diminta',
-                ], 400);
-            }
-
-            $existingItem->update(['quantity' => $newQuantity]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Jumlah item di cart berhasil diupdate',
-                'data' => $existingItem->fresh()->load('product'),
-            ]);
-        }
-
-        // Tambah item baru
-        $item = CartItem::create([
-            'cart_id' => $cart->id,
-            'product_id' => $product->id,
-            'quantity' => $quantity,
-        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Item berhasil ditambahkan ke cart',
-            'data' => $item->load('product'),
-        ], 201);
+            'message' => $result['created'] ? 'Item berhasil ditambahkan ke cart' : 'Jumlah item di cart berhasil diupdate',
+            'data' => $result['item']->load('product'),
+        ], $result['created'] ? 201 : 200);
     }
 
     /**
@@ -183,37 +165,42 @@ class CartController extends Controller
 
         $user = $request->user();
 
-        // Cari item yang milik cart user ini
-        $item = CartItem::whereHas('cart', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })->find($id);
-
-        if (!$item) {
+        $cart = Cart::where('user_id', $user->id)->first();
+        if (! $cart) {
             return response()->json([
                 'success' => false,
                 'message' => 'Item tidak ditemukan',
             ], 404);
         }
 
-        // Jika quantity 0, hapus item
-        if ($validated['quantity'] === 0) {
-            $item->delete();
+        try {
+            $item = DB::transaction(function () use ($cart, $id, $validated) {
+                Cart::whereKey($cart->id)->lockForUpdate()->firstOrFail();
+                $item = CartItem::where('cart_id', $cart->id)->whereKey($id)->lockForUpdate()->first();
+                if (! $item) {
+                    throw new DomainException('Item tidak ditemukan.');
+                }
+                if ($validated['quantity'] === 0) {
+                    $item->delete();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Item dihapus dari cart',
-            ]);
+                    return null;
+                }
+
+                $product = Product::whereKey($item->product_id)->lockForUpdate()->first();
+                if (! $product || ! $product->is_active || $product->stock < $validated['quantity']) {
+                    throw new DomainException('Produk tidak aktif atau stok tidak mencukupi.');
+                }
+                $item->update(['quantity' => $validated['quantity']]);
+
+                return $item->fresh();
+            }, 3);
+        } catch (DomainException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 409);
         }
 
-        // Cek stok
-        if ($item->product->stock < $validated['quantity']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Stok tidak mencukupi',
-            ], 400);
+        if (! $item) {
+            return response()->json(['success' => true, 'message' => 'Item dihapus dari cart']);
         }
-
-        $item->update(['quantity' => $validated['quantity']]);
 
         return response()->json([
             'success' => true,
@@ -235,19 +222,28 @@ class CartController extends Controller
     {
         $user = $request->user();
 
-        // Cari item yang milik cart user ini
-        $item = CartItem::whereHas('cart', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })->find($id);
-
-        if (!$item) {
+        $cart = Cart::where('user_id', $user->id)->first();
+        if (! $cart) {
             return response()->json([
                 'success' => false,
                 'message' => 'Item tidak ditemukan',
             ], 404);
         }
 
-        $item->delete();
+        $removed = DB::transaction(function () use ($cart, $id): bool {
+            Cart::whereKey($cart->id)->lockForUpdate()->firstOrFail();
+            $item = CartItem::where('cart_id', $cart->id)->whereKey($id)->lockForUpdate()->first();
+            if (! $item) {
+                return false;
+            }
+            $item->delete();
+
+            return true;
+        }, 3);
+
+        if (! $removed) {
+            return response()->json(['success' => false, 'message' => 'Item tidak ditemukan'], 404);
+        }
 
         return response()->json([
             'success' => true,
@@ -271,7 +267,10 @@ class CartController extends Controller
         $cart = Cart::where('user_id', $user->id)->first();
 
         if ($cart) {
-            $cart->items()->delete();
+            DB::transaction(function () use ($cart): void {
+                $lockedCart = Cart::whereKey($cart->id)->lockForUpdate()->firstOrFail();
+                $lockedCart->items()->delete();
+            }, 3);
         }
 
         return response()->json([

@@ -1,4 +1,5 @@
 <?php
+
 // File: app/Models/Product.php
 // Penjelasan: Model Product untuk interaksi dengan tabel products
 
@@ -8,11 +9,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
     use HasFactory;
-    
+
     /**
      * Mass assignable attributes.
      */
@@ -24,8 +26,19 @@ class Product extends Model
         'price',
         'stock',
         'image_url',
+        'image_path',
+        'image_disk',
+        'is_active',
     ];
-    
+
+    /**
+     * Internal storage identifiers are never part of the public API payload.
+     */
+    protected $hidden = [
+        'image_path',
+        'image_disk',
+    ];
+
     /**
      * Castable attributes.
      */
@@ -34,7 +47,7 @@ class Product extends Model
         'stock' => 'integer',
         'is_active' => 'boolean',
     ];
-    
+
     /**
      * Default attribute values.
      */
@@ -42,16 +55,16 @@ class Product extends Model
         'stock' => 0,
         'is_active' => true,
     ];
-    
+
     // =================================================================
     // RELATIONSHIPS
     // =================================================================
-    
+
     /**
      * Product dimiliki oleh satu Store
-     * 
+     *
      * @return BelongsTo
-     * 
+     *
      * Penggunaan:
      * ```php
      * $product = Product::find(1);
@@ -66,8 +79,6 @@ class Product extends Model
 
     /**
      * Semua review untuk produk ini
-     *
-     * @return HasMany
      */
     public function reviews(): HasMany
     {
@@ -77,7 +88,7 @@ class Product extends Model
     // =================================================================
     // SCOPES
     // =================================================================
-    
+
     /**
      * Scope: Hanya produk aktif
      */
@@ -85,7 +96,7 @@ class Product extends Model
     {
         return $query->where('is_active', true);
     }
-    
+
     /**
      * Scope: Hanya produk dengan stok
      */
@@ -93,7 +104,7 @@ class Product extends Model
     {
         return $query->where('stock', '>', 0);
     }
-    
+
     /**
      * Scope: Pencarian berdasarkan nama atau deskripsi
      */
@@ -101,16 +112,16 @@ class Product extends Model
     {
         return $query->where(function ($q) use ($keyword) {
             $q->where('name', 'LIKE', "%{$keyword}%")
-              ->orWhere('description', 'LIKE', "%{$keyword}%");
+                ->orWhere('description', 'LIKE', "%{$keyword}%");
         });
     }
-    
+
     /**
      * Scope: Filter berdasarkan kategori
      */
     public function scopeByCategory($query, $category)
     {
-        return $query->where('category', $category);
+        return $query->whereRaw('LOWER(category) = ?', [strtolower($category)]);
     }
 
     /**
@@ -120,14 +131,29 @@ class Product extends Model
     {
         return $query->whereBetween('price', [$min, $max]);
     }
-    
+
     // =================================================================
     // ACCESSORS & MUTATORS
     // =================================================================
-    
+
+    /**
+     * Resolve uploaded images from their configured disk while preserving
+     * legacy external and frontend-bundled image URLs.
+     */
+    public function getImageUrlAttribute(?string $value): ?string
+    {
+        if (! $this->image_path) {
+            return $value;
+        }
+
+        $disk = $this->image_disk ?: config('filesystems.product_images_disk', 'public');
+
+        return Storage::disk($disk)->url($this->image_path);
+    }
+
     /**
      * Accessor: Format harga untuk display
-     * 
+     *
      * Penggunaan:
      * ```php
      * $product = Product::find(1);
@@ -138,9 +164,10 @@ class Product extends Model
     public function getFormattedPriceAttribute(): string
     {
         $price = (float) $this->price;
-        return 'Rp ' . number_format($price, 0, ',', '.');
+
+        return 'Rp '.number_format($price, 0, ',', '.');
     }
-    
+
     /**
      * Accessor: Cek apakah stok cukup
      */
@@ -170,10 +197,10 @@ class Product extends Model
     {
         return (int) $this->reviews()->count();
     }
-    
+
     /**
      * Mutator: Set price dari input user
-     * 
+     *
      * Penjelasan:
      * Jika user input "25000" (string), konversi ke integer
      * Hapus titik ribuan: "Rp 25.000" → 25000
@@ -184,37 +211,33 @@ class Product extends Model
         $cleaned = preg_replace('/[^0-9]/', '', $value);
         $this->attributes['price'] = (int) $cleaned;
     }
-    
+
     // =================================================================
     // HELPER METHODS
     // =================================================================
-    
+
     /**
      * Kurangi stok
-     * 
-     * @param int $quantity
-     * @return bool
      */
     public function reduceStock(int $quantity): bool
     {
         if ($this->stock < $quantity) {
             return false; // Stok tidak cukup
         }
-        
+
         $this->decrement('stock', $quantity);
+
         return true;
     }
-    
+
     /**
      * Tambah stok
-     * 
-     * @param int $quantity
      */
     public function addStock(int $quantity): void
     {
         $this->increment('stock', $quantity);
     }
-    
+
     /**
      * Cek apakah dimiliki oleh user tertentu
      */

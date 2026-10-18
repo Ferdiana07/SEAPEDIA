@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import useUIStore from '../../../stores/uiStore'
 import orderService from '../../../services/orderService'
+import { CheckCircle, ClipboardText, Lightning } from '@phosphor-icons/react'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 
 const STATUS_LABELS = {
   packaging:       'Dikemas',
@@ -32,6 +34,7 @@ const SellerOrdersPage = () => {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
+  const [confirmOrder, setConfirmOrder] = useState(null)
 
   const formatPrice = (v) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v || 0)
@@ -39,19 +42,19 @@ const SellerOrdersPage = () => {
   const formatDate = (d) =>
     new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true)
     try {
       const res = await orderService.getSellerOrders(statusFilter ? { status: statusFilter } : {})
       if (res.success) setOrders(res.data)
-    } catch (err) {
+    } catch {
       showError('Gagal memuat pesanan')
     } finally {
       setLoading(false)
     }
-  }
+  }, [showError, statusFilter])
 
-  useEffect(() => { fetchOrders() }, [statusFilter])
+  useEffect(() => { fetchOrders() }, [fetchOrders])
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     setUpdatingId(orderId)
@@ -59,6 +62,7 @@ const SellerOrdersPage = () => {
       const res = await orderService.updateSellerOrderStatus(orderId, newStatus)
       if (res.success) {
         success(`Status pesanan berhasil diupdate!`)
+        setConfirmOrder(null)
         fetchOrders()
       }
     } catch (err) {
@@ -103,7 +107,7 @@ const SellerOrdersPage = () => {
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
-            <span className="text-5xl block mb-3">📋</span>
+            <ClipboardText size={50} className="mx-auto mb-3 text-primary-300" weight="duotone" />
             <h3 className="font-bold text-gray-900 mb-1">Belum ada pesanan</h3>
             <p className="text-gray-500 text-sm">
               {statusFilter ? `Tidak ada pesanan dengan status "${STATUS_LABELS[statusFilter]}"` : 'Pesanan akan muncul di sini ketika ada pembeli yang checkout'}
@@ -139,7 +143,7 @@ const SellerOrdersPage = () => {
                     {order.items?.map(item => (
                       <div key={item.id} className="flex justify-between text-sm">
                         <span className="text-gray-700">{item.product?.name || 'Produk'} × {item.quantity}</span>
-                        <span className="text-gray-600">{formatPrice(item.subtotal)}</span>
+                        <span className="text-gray-600">{formatPrice(Number(item.price_at_purchase || item.price || 0) * item.quantity)}</span>
                       </div>
                     ))}
                   </div>
@@ -149,13 +153,13 @@ const SellerOrdersPage = () => {
                 {order.status === 'packaging' && (
                   <div className="p-4 border-t border-gray-100 bg-yellow-50">
                     <div className="flex justify-between items-center">
-                      <p className="text-sm text-yellow-700 font-medium">⚡ Pesanan menunggu dikemas</p>
+                      <p className="flex items-center gap-2 text-sm font-medium text-amber-700"><Lightning size={17} weight="fill" /> Pesanan menunggu dikemas</p>
                       <button
-                        onClick={() => handleUpdateStatus(order.id, 'waiting_shipper')}
+                        onClick={() => setConfirmOrder(order)}
                         disabled={updatingId === order.id}
                         className="px-4 py-2 bg-primary-500 text-white text-sm font-bold rounded-lg hover:bg-primary-600 disabled:opacity-50 transition-colors"
                       >
-                        {updatingId === order.id ? 'Memproses...' : '✅ Tandai Sudah Dikemas'}
+                        {updatingId === order.id ? 'Memproses...' : <span className="inline-flex items-center gap-2"><CheckCircle size={17} weight="bold" /> Tandai Sudah Dikemas</span>}
                       </button>
                     </div>
                   </div>
@@ -165,6 +169,20 @@ const SellerOrdersPage = () => {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={!!confirmOrder}
+        onClose={() => setConfirmOrder(null)}
+        onConfirm={() => handleUpdateStatus(confirmOrder.id, 'waiting_shipper')}
+        title="Pesanan siap diambil Driver?"
+        description="Setelah dikonfirmasi, pesanan langsung tampil pada daftar job semua Driver dan tidak dapat kembali ke tahap pengemasan."
+        details={confirmOrder ? [
+          { label: 'Pesanan', value: confirmOrder.order_number },
+          { label: 'Pembeli', value: confirmOrder.user?.name || 'Pembeli' },
+          { label: 'Total', value: formatPrice(confirmOrder.total_amount) },
+        ] : []}
+        confirmLabel="Ya, siap diantar"
+        isLoading={updatingId === confirmOrder?.id}
+      />
     </div>
   )
 }

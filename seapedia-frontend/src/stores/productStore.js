@@ -6,7 +6,7 @@ import productService from '../services/productService'
 // ============================================================
 // Bertugas menyimpan data produk dan fetch dari API
 
-const useProductStore = create((set, get) => ({
+const useProductStore = create((set) => ({
   // ======================================================
   // STATE
   // ======================================================

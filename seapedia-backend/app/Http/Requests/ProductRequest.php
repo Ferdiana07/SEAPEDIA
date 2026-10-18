@@ -1,17 +1,17 @@
 <?php
+
 // File: app/Http/Requests/ProductRequest.php
 // Penjelasan: Validasi untuk request CRUD produk
 
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProductRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -44,6 +44,22 @@ class ProductRequest extends FormRequest
                 'max:2000',
             ],
 
+            'category' => [
+                $isCreate ? 'required' : 'sometimes',
+                'string',
+                Rule::in([
+                    'alat pancing', 'Alat Pancing',
+                    'budidaya', 'Budidaya',
+                    'pakan', 'Pakan',
+                    'akuarium', 'Akuarium',
+                    'biota hidup', 'Biota Hidup',
+                    'tanaman laut', 'Tanaman Laut',
+                    'hasil laut', 'Hasil Laut',
+                    'kuliner laut', 'Kuliner Laut',
+                    'lainnya', 'Lainnya',
+                ]),
+            ],
+
             'price' => [
                 $isCreate ? 'required' : 'sometimes',
                 'integer',
@@ -60,8 +76,23 @@ class ProductRequest extends FormRequest
 
             'image_url' => [
                 'nullable',
-                'url',
+                'string',
                 'max:500',
+                'regex:/^(https?:\/\/|\/)[^\s]+$/i',
+            ],
+
+            'image' => [
+                'nullable',
+                'file',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
+                'dimensions:max_width=6000,max_height=6000',
+            ],
+
+            'is_active' => [
+                'sometimes',
+                'boolean',
             ],
         ];
     }
@@ -76,6 +107,8 @@ class ProductRequest extends FormRequest
         return [
             'name.required' => 'Nama produk wajib diisi',
             'name.max' => 'Nama produk maksimal 255 karakter',
+            'category.required' => 'Kategori produk wajib dipilih',
+            'category.in' => 'Kategori produk tidak valid',
 
             'price.required' => 'Harga produk wajib diisi',
             'price.integer' => 'Harga harus berupa angka bulat',
@@ -87,7 +120,12 @@ class ProductRequest extends FormRequest
             'stock.min' => 'Stok minimal 0',
             'stock.max' => 'Stok maksimal 999.999',
 
-            'image_url.url' => 'URL gambar tidak valid',
+            'image_url.regex' => 'URL gambar harus berupa tautan http(s) atau path lokal yang diawali garis miring',
+            'image.file' => 'Gambar produk harus berupa file',
+            'image.image' => 'File harus berupa gambar yang valid',
+            'image.mimes' => 'Format gambar harus JPG, PNG, atau WebP',
+            'image.max' => 'Ukuran gambar maksimal 2 MB',
+            'image.dimensions' => 'Resolusi gambar maksimal 6000 x 6000 piksel',
         ];
     }
 
@@ -107,6 +145,19 @@ class ProductRequest extends FormRequest
         if ($this->has('stock')) {
             $this->merge(['stock' => (int) $this->stock]);
         }
+
+        if ($this->has('category') && is_string($this->category)) {
+            $category = mb_strtolower(trim($this->category));
+            $category = match ($category) {
+                'alat_pancing' => 'alat pancing',
+                'biota_hidup' => 'biota hidup',
+                'tanaman_laut' => 'tanaman laut',
+                'hasil_laut' => 'hasil laut',
+                'kuliner_laut' => 'kuliner laut',
+                default => $category,
+            };
+            $this->merge(['category' => $category]);
+        }
     }
 
     /**
@@ -114,15 +165,15 @@ class ProductRequest extends FormRequest
      */
     protected function failedAuthorization()
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             abort(401, 'Silakan login terlebih dahulu');
         }
 
-        if (!auth()->user()->hasRole('seller')) {
+        if (! auth()->user()->hasRole('seller')) {
             abort(403, 'Hanya pengguna dengan role Seller yang dapat mengelola produk');
         }
 
-        if (!auth()->user()->store) {
+        if (! auth()->user()->store) {
             abort(400, 'Anda harus membuat toko terlebih dahulu');
         }
     }

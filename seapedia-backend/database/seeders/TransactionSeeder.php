@@ -35,16 +35,16 @@ class TransactionSeeder extends Seeder
             'wallet_id' => 4,
             'order_id' => 1,
             'type' => Transaction::TYPE_PURCHASE,
-            'amount' => -72000,
-            'description' => 'Pembelian Order #1 - Nasi Goreng + Ayam Geprek',
+            'amount' => -362000,
+            'description' => 'Pembelian Order #1 - Set Pancing + Reel Spinning',
         ]);
 
         Transaction::create([
             'wallet_id' => 4,
             'order_id' => 3,
             'type' => Transaction::TYPE_PURCHASE,
-            'amount' => -40000,
-            'description' => 'Pembelian Order #3 - Mie Ayam (pending)',
+            'amount' => -227800,
+            'description' => 'Pembelian Order #3 - Kotak Tackle (menunggu driver)',
         ]);
 
         // Transaksi untuk Wallet Rudi (Wallet ID 5) - User ID 5
@@ -60,8 +60,8 @@ class TransactionSeeder extends Seeder
             'wallet_id' => 5,
             'order_id' => 2,
             'type' => Transaction::TYPE_PURCHASE,
-            'amount' => -65000,
-            'description' => 'Pembelian Order #2 - Rendang + Gado-Gado',
+            'amount' => -393100,
+            'description' => 'Pembelian Order #2 - Aerator + Pelet Ikan Laut',
         ]);
 
         // Transaksi untuk Wallet Fika (Wallet ID 8) - User ID 8

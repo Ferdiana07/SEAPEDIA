@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Wallet;
 use App\Models\Transaction;
-use Illuminate\Http\Request;
+use App\Models\Wallet;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WalletController extends Controller
 {
@@ -59,7 +60,7 @@ class WalletController extends Controller
         $wallet = Wallet::where('user_id', $user->id)->first();
 
         // Jika wallet tidak ada, return empty
-        if (!$wallet) {
+        if (! $wallet) {
             return response()->json([
                 'success' => true,
                 'data' => [],
@@ -106,6 +107,11 @@ class WalletController extends Controller
      */
     public function topUp(Request $request): JsonResponse
     {
+        $idempotencyKey = trim((string) $request->header('Idempotency-Key')) ?: null;
+        if ($idempotencyKey !== null && mb_strlen($idempotencyKey) > 100) {
+            return response()->json(['success' => false, 'message' => 'Idempotency key terlalu panjang.'], 422);
+        }
+
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:1000', 'max:100000000'],
         ]);
@@ -113,30 +119,45 @@ class WalletController extends Controller
         $user = $request->user();
 
         // Cek apakah user punya role buyer
-        if (!$user->hasRole('buyer')) {
+        if (! $user->hasRole('buyer')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Hanya buyer yang bisa top up wallet',
             ], 403);
         }
 
-        // Ambil atau buat wallet
-        $wallet = Wallet::firstOrCreate(
-            ['user_id' => $user->id],
-            ['balance' => 0]
-        );
+        $result = DB::transaction(function () use ($user, $validated, $idempotencyKey): array {
+            Wallet::firstOrCreate(['user_id' => $user->id], ['balance' => 0]);
+            $wallet = Wallet::where('user_id', $user->id)->lockForUpdate()->firstOrFail();
 
-        // Top up menggunakan method dari Wallet model
-        $transaction = $wallet->credit(
-            $validated['amount'],
-            'Top up saldo'
-        );
+            if ($idempotencyKey) {
+                $existing = Transaction::where('wallet_id', $wallet->id)
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->first();
+
+                if ($existing) {
+                    return ['wallet' => $wallet, 'transaction' => $existing, 'replayed' => true];
+                }
+            }
+
+            $transaction = $wallet->credit(
+                (float) $validated['amount'],
+                'Top up saldo',
+                $idempotencyKey
+            );
+
+            return ['wallet' => $wallet->fresh(), 'transaction' => $transaction, 'replayed' => false];
+        }, 3);
+
+        $wallet = $result['wallet'];
+        $transaction = $result['transaction'];
 
         return response()->json([
             'success' => true,
-            'message' => 'Top up berhasil!',
+            'message' => $result['replayed'] ? 'Top up yang sama sudah berhasil diproses.' : 'Top up berhasil!',
+            'replayed' => $result['replayed'],
             'data' => [
-                'balance' => $wallet->fresh()->balance,
+                'balance' => $wallet->balance,
                 'transaction' => [
                     'id' => $transaction->id,
                     'type' => $transaction->type,

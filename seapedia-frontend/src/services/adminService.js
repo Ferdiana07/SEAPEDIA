@@ -18,6 +18,11 @@ const adminService = {
     const response = await api.get('/admin/users', { params })
     return response.data
   },
+  getMonitoring: async () => (await api.get('/admin/monitoring')).data,
+  getDiscounts: async (params = {}) => (await api.get('/admin/discounts', { params })).data,
+  createDiscount: async (data) => (await api.post('/admin/discounts', data)).data,
+  updateDiscount: async (id, data) => (await api.put(`/admin/discounts/${id}`, data)).data,
+  simulateTime: async (hours) => (await api.post('/admin/simulate-time', { hours })).data,
 }
 
 export default adminService

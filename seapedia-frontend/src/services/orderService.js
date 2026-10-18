@@ -7,6 +7,10 @@ import api from './api'
 // Fungsi-fungsi untuk CRUD pesanan
 
 const orderService = {
+  quote: async (data) => {
+    const response = await api.post('/orders/quote', data)
+    return response.data
+  },
   /**
    * Ambil semua pesanan user
    * @param {Object} params - { page, per_page, status }
@@ -36,25 +40,15 @@ const orderService = {
     const response = await api.get('/orders', { params: { status } })
     return response.data
   },
+  getBuyerReport: async () => (await api.get('/orders/report/summary')).data,
   
   /**
    * Buat pesanan baru (checkout)
    * @param {Object} data - { address_id, shipping_address, notes }
    * @returns {Promise<Object>}
    */
-  create: async (data) => {
-    const response = await api.post('/orders', data)
-    return response.data
-  },
-  
-  /**
-   * Update status pesanan
-   * @param {number} id - Order ID
-   * @param {string} status - Status baru
-   * @returns {Promise<Object>}
-   */
-  updateStatus: async (id, status) => {
-    const response = await api.put(`/orders/${id}/status`, { status })
+  create: async (data, idempotencyKey) => {
+    const response = await api.post('/orders', data, { headers: { 'Idempotency-Key': idempotencyKey } })
     return response.data
   },
   
@@ -126,6 +120,7 @@ const orderService = {
     const response = await api.get('/seller/orders', { params })
     return response.data
   },
+  getSellerReport: async () => (await api.get('/seller/orders/report/summary')).data,
 
   /**
    * Update status pesanan (seller side)
@@ -151,6 +146,7 @@ const orderService = {
     const response = await api.get('/driver/orders', { params })
     return response.data
   },
+  getDriverReport: async () => (await api.get('/driver/orders/report/summary')).data,
 
   /**
    * Driver ambil pesanan (pickup)

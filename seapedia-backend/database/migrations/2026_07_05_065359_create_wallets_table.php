@@ -1,4 +1,5 @@
 <?php
+
 // File: database/migrations/xxxx_create_wallets_table.php
 // Penjelasan: Membuat tabel wallets untuk menyimpan saldo dompet digital user
 
@@ -10,10 +11,10 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Penjelasan:
      * Tabel wallets menyimpan saldo dompet digital untuk setiap user.
-     * 
+     *
      * Aturan:
      * - 1 User = 1 Wallet (relasi 1:1)
      * - Balance tidak boleh negatif
@@ -24,23 +25,23 @@ return new class extends Migration
         Schema::create('wallets', function (Blueprint $table) {
             // Primary Key
             $table->id();
-            
+
             // Foreign Key ke users
             // unique() → 1 user hanya punya 1 wallet
             // onDelete('cascade') → jika user dihapus, wallet ikut terhapus
             $table->foreignId('user_id')
-                  ->unique()
-                  ->constrained('users')
-                  ->onDelete('cascade');
-            
+                ->unique()
+                ->constrained('users')
+                ->onDelete('cascade');
+
             // Saldo dompet
             // decimal(15,2) → max: 9.999.999.999.999,99
             // default(0) → saldo awal 0
             $table->decimal('balance', 15, 2)->default(0);
-            
+
             // Timestamps
             $table->timestamps();
-            
+
             // Index untuk query
             $table->index('user_id');
         });

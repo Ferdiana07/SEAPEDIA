@@ -4,6 +4,17 @@
 import api from './api'
 import reviewService from './reviewService'
 
+const toProductFormData = (data, method) => {
+  const formData = new FormData()
+  if (method) formData.append('_method', method)
+
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) formData.append(key, value)
+  })
+
+  return formData
+}
+
 const productService = {
   // =================================================================
   // PUBLIC: Ambil semua produk aktif
@@ -55,11 +66,11 @@ const productService = {
   // SELLER: Tambah produk baru
   // =================================================================
   /**
-   * @param {Object} data - { name, description, price, stock, image_url }
+   * @param {Object} data - { name, description, category, price, stock, image }
    * @returns {Promise<Object>}
    */
   create: async (data) => {
-    const response = await api.post('/seller/products', data)
+    const response = await api.post('/seller/products', toProductFormData(data))
     return response.data
   },
   
@@ -72,6 +83,11 @@ const productService = {
    * @returns {Promise<Object>}
    */
   update: async (id, data) => {
+    if (data.image instanceof File) {
+      const response = await api.post(`/seller/products/${id}`, toProductFormData(data, 'PUT'))
+      return response.data
+    }
+
     const response = await api.put(`/seller/products/${id}`, data)
     return response.data
   },

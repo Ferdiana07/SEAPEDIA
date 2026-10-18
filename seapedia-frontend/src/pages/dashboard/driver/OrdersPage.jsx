@@ -2,10 +2,12 @@
 // Penjelasan: Halaman untuk driver mengelola pesanan.
 // BAB 9: pakai endpoint baru /driver/orders/{id}/{pickup|complete|return}.
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import Modal from '../../../components/ui/Modal'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import useUIStore from '../../../stores/uiStore'
 import orderService from '../../../services/orderService'
+import { ArrowCounterClockwise, Car, CheckCircle, ClockCounterClockwise, MapPin, Package, Storefront } from '@phosphor-icons/react'
 
 // ============================================================
 // DRIVER ORDERS PAGE
@@ -21,6 +23,7 @@ const DriverOrdersPage = () => {
   const [returnReason, setReturnReason] = useState('')
   const [submittingReturn, setSubmittingReturn] = useState(false)
   const [updatingId, setUpdatingId] = useState(null)
+  const [actionConfirm, setActionConfirm] = useState(null)
 
   // Format currency
   const formatPrice = (price) =>
@@ -31,20 +34,23 @@ const DriverOrdersPage = () => {
     new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
   // Fetch orders based on active tab
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true)
     try {
-      const status = activeTab === 'available' ? 'waiting_shipper' : 'shipping'
+      let status = 'waiting_shipper'
+      if (activeTab === 'active') status = 'shipping'
+      if (activeTab === 'history') status = 'history'
+
       const res = await orderService.getDriverOrders({ status })
       if (res.success) setOrders(res.data)
-    } catch (err) {
+    } catch {
       showError('Gagal memuat pesanan')
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeTab, showError])
 
-  useEffect(() => { fetchOrders() }, [activeTab])
+  useEffect(() => { fetchOrders() }, [fetchOrders])
 
   // Handle pickup → POST /driver/orders/{id}/pickup
   const handlePickup = async (orderId) => {
@@ -53,6 +59,7 @@ const DriverOrdersPage = () => {
       const res = await orderService.pickupOrder(orderId)
       if (res.success) {
         success('Pesanan berhasil diambil! Silakan antarkan ke pembeli.')
+        setActionConfirm(null)
         fetchOrders()
       }
     } catch (err) {
@@ -69,6 +76,7 @@ const DriverOrdersPage = () => {
       const res = await orderService.completeOrder(orderId)
       if (res.success) {
         success('Pesanan berhasil diantarkan! Pembeli akan menerima notifikasi.')
+        setActionConfirm(null)
         fetchOrders()
       }
     } catch (err) {
@@ -118,7 +126,7 @@ const DriverOrdersPage = () => {
                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
-            📦 Pesanan Tersedia
+            <Package size={17} /> Pesanan Tersedia
           </button>
           <button
             onClick={() => setActiveTab('active')}
@@ -128,7 +136,17 @@ const DriverOrdersPage = () => {
                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
-            🚗 Pesanan Aktif
+            <Car size={17} /> Pesanan Aktif
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-4 py-2 rounded-full font-medium text-sm transition-all ${
+              activeTab === 'history'
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <ClockCounterClockwise size={17} /> Riwayat
           </button>
         </div>
 
@@ -140,16 +158,14 @@ const DriverOrdersPage = () => {
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
-            <span className="text-5xl block mb-3">
-              {activeTab === 'available' ? '📦' : '🚗'}
-            </span>
+            {activeTab === 'available' ? <Package size={50} className="mx-auto mb-3 text-primary-300" weight="duotone" /> : activeTab === 'active' ? <Car size={50} className="mx-auto mb-3 text-primary-300" weight="duotone" /> : <ClockCounterClockwise size={50} className="mx-auto mb-3 text-primary-300" weight="duotone" />}
             <h2 className="text-xl font-semibold text-gray-900 mb-1">
-              {activeTab === 'available' ? 'Tidak Ada Pesanan Tersedia' : 'Tidak Ada Pesanan Aktif'}
+              {activeTab === 'available' ? 'Tidak Ada Pesanan Tersedia' : activeTab === 'active' ? 'Tidak Ada Pesanan Aktif' : 'Belum Ada Riwayat Pesanan'}
             </h2>
             <p className="text-gray-500 text-sm">
               {activeTab === 'available'
                 ? 'Saat ini belum ada pesanan yang perlu diantar.'
-                : 'Kamu belum mengambil pesanan apapun.'}
+                : activeTab === 'active' ? 'Kamu belum mengambil pesanan apapun.' : 'Kamu belum menyelesaikan atau mengembalikan pesanan.'}
             </p>
           </div>
         ) : (
@@ -162,13 +178,18 @@ const DriverOrdersPage = () => {
                     <p className="font-bold text-gray-900">{order.order_number}</p>
                     <p className="text-sm text-gray-500">{formatDate(order.created_at)}</p>
                     {order.store && (
-                      <p className="text-sm text-gray-600 mt-1">🏪 {order.store.name}</p>
+                      <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-600"><Storefront size={16} /> {order.store.name}</p>
                     )}
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                    order.status === 'waiting_shipper' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
+                    order.status === 'waiting_shipper' ? 'bg-yellow-100 text-yellow-800' :
+                    order.status === 'shipping' ? 'bg-blue-100 text-blue-800' :
+                    order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
                   }`}>
-                    {order.status === 'waiting_shipper' ? 'Menunggu Pickup' : 'Sedang Diantar'}
+                    {order.status === 'waiting_shipper' ? 'Menunggu Pickup' :
+                     order.status === 'shipping' ? 'Sedang Diantar' :
+                     order.status === 'completed' ? 'Selesai' : 'Dikembalikan'}
                   </span>
                 </div>
 
@@ -199,17 +220,17 @@ const DriverOrdersPage = () => {
 
                 {/* Actions */}
                 <div className={`p-4 border-t border-gray-100 ${
-                  activeTab === 'available' ? 'bg-yellow-50' : 'bg-blue-50'
+                  activeTab === 'available' ? 'bg-yellow-50' : activeTab === 'active' ? 'bg-blue-50' : 'bg-gray-50'
                 }`}>
                   {order.status === 'waiting_shipper' && (
                     <div className="flex justify-between items-center">
-                      <p className="text-sm text-yellow-700 font-medium">📦 Siap diambil!</p>
+                      <p className="flex items-center gap-2 text-sm font-medium text-amber-700"><Package size={17} /> Siap diambil</p>
                       <button
-                        onClick={() => handlePickup(order.id)}
+                        onClick={() => setActionConfirm({ type: 'pickup', order })}
                         disabled={updatingId === order.id}
                         className="px-4 py-2 bg-primary-500 text-white text-sm font-bold rounded-lg hover:bg-primary-600 disabled:opacity-50 transition-colors"
                       >
-                        {updatingId === order.id ? 'Memproses...' : '🚗 Ambil Pesanan'}
+                        {updatingId === order.id ? 'Memproses...' : <span className="inline-flex items-center gap-2"><Car size={17} weight="bold" /> Ambil Pesanan</span>}
                       </button>
                     </div>
                   )}
@@ -220,15 +241,23 @@ const DriverOrdersPage = () => {
                         onClick={() => { setReturnTarget(order); setReturnReason('') }}
                         className="px-4 py-2 border border-red-300 text-red-600 text-sm font-bold rounded-lg hover:bg-red-50 transition-colors"
                       >
-                        ↩️ Kembalikan
+                        <ArrowCounterClockwise size={17} /> Kembalikan
                       </button>
                       <button
-                        onClick={() => handleDeliver(order.id)}
+                        onClick={() => setActionConfirm({ type: 'deliver', order })}
                         disabled={updatingId === order.id}
                         className="px-4 py-2 bg-green-500 text-white text-sm font-bold rounded-lg hover:bg-green-600 disabled:opacity-50 transition-colors"
                       >
-                        {updatingId === order.id ? 'Memproses...' : '✅ Pesanan Terkirim'}
+                        {updatingId === order.id ? 'Memproses...' : <span className="inline-flex items-center gap-2"><CheckCircle size={17} weight="bold" /> Pesanan Terkirim</span>}
                       </button>
+                    </div>
+                  )}
+
+                  {(order.status === 'completed' || order.status === 'returned') && (
+                    <div className="flex justify-between items-center">
+                      <p className={`text-sm font-medium ${order.status === 'completed' ? 'text-green-600' : 'text-red-600'}`}>
+                        {order.status === 'completed' ? <span className="inline-flex items-center gap-2"><CheckCircle size={17} /> Pengantaran berhasil</span> : `Dikembalikan: ${order.cancellation_reason || 'Gagal antar'}`}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -250,7 +279,7 @@ const DriverOrdersPage = () => {
           </p>
           <div>
             <label className="block font-medium text-gray-700 mb-2">
-              Alasan Pengembalian <span className="text-red-500">*</span>
+              <span className="inline-flex items-center gap-2"><MapPin size={17} /> Alasan Pengembalian <span className="text-red-500">*</span></span>
             </label>
             <textarea
               value={returnReason}
@@ -279,6 +308,23 @@ const DriverOrdersPage = () => {
           </div>
         </div>
       </Modal>
+      <ConfirmDialog
+        isOpen={!!actionConfirm}
+        onClose={() => setActionConfirm(null)}
+        onConfirm={() => actionConfirm?.type === 'pickup' ? handlePickup(actionConfirm.order.id) : handleDeliver(actionConfirm.order.id)}
+        title={actionConfirm?.type === 'pickup' ? 'Ambil job pengantaran?' : 'Konfirmasi pesanan diterima'}
+        description={actionConfirm?.type === 'pickup'
+          ? 'Job akan terikat ke akun Driver ini dan hilang dari daftar Driver lain.'
+          : 'Gunakan aksi ini hanya setelah pesanan benar-benar diterima pembeli. Status selesai tidak dapat dibatalkan.'}
+        details={actionConfirm ? [
+          { label: 'Pesanan', value: actionConfirm.order.order_number },
+          { label: 'Toko', value: actionConfirm.order.store?.name || 'Toko' },
+          { label: 'Total', value: formatPrice(actionConfirm.order.total_amount) },
+        ] : []}
+        confirmLabel={actionConfirm?.type === 'pickup' ? 'Ambil job' : 'Pesanan diterima'}
+        tone={actionConfirm?.type === 'deliver' ? 'success' : 'primary'}
+        isLoading={updatingId === actionConfirm?.order.id}
+      />
     </div>
   )
 }

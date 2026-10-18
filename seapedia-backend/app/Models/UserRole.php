@@ -33,8 +33,11 @@ class UserRole extends Model
      * Konstanta role yang tersedia
      */
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_SELLER = 'seller';
+
     public const ROLE_BUYER = 'buyer';
+
     public const ROLE_DRIVER = 'driver';
 
     public const ROLES = [

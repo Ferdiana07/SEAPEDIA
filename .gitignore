@@ -15,6 +15,7 @@ yarn-error.log
 *.local
 
 # IDE
+.claude/
 .vscode/*
 !.vscode/settings.json
 .idea
@@ -23,3 +24,12 @@ yarn-error.log
 # OS
 .DS_Store
 Thumbs.db
+
+# Local QA artifacts
+tmp/
+seapedia-frontend/test-results/
+seapedia-frontend/playwright-report/
+
+# Retired pre-bahari catalog fixtures
+seapedia-backend/public/images/products/*.jpg
+seapedia-frontend/public/images/products/*.jpg

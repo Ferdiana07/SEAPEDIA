@@ -46,6 +46,7 @@ class Cart extends Model
     public function getStoreAttribute(): ?Store
     {
         $firstItem = $this->items()->first();
+
         return $firstItem ? $firstItem->product->store : null;
     }
 
@@ -80,6 +81,7 @@ class Cart extends Model
         foreach ($this->items as $item) {
             $subtotal += $item->quantity * $item->product->price;
         }
+
         return $subtotal;
     }
 
@@ -89,7 +91,8 @@ class Cart extends Model
     public function getFormattedSubtotalAttribute(): string
     {
         $subtotal = (float) $this->subtotal;
-        return 'Rp ' . number_format($subtotal, 0, ',', '.');
+
+        return 'Rp '.number_format($subtotal, 0, ',', '.');
     }
 
     /**
@@ -116,7 +119,7 @@ class Cart extends Model
         $productStore = $product->store;
 
         // Jika produk tidak punya toko atau cart tidak punya toko, jangan izinkan
-        if (!$cartStore || !$productStore) {
+        if (! $cartStore || ! $productStore) {
             return false;
         }
 

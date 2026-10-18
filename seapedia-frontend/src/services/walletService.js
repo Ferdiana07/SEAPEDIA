@@ -30,8 +30,8 @@ const walletService = {
    * @param {Object} data - { amount }
    * @returns {Promise<Object>}
    */
-  topUp: async (data) => {
-    const response = await api.post('/wallet/topup', data)
+  topUp: async (data, idempotencyKey) => {
+    const response = await api.post('/wallet/topup', data, { headers: { 'Idempotency-Key': idempotencyKey } })
     return response.data
   },
 }

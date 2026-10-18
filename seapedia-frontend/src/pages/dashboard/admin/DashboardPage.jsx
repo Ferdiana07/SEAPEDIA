@@ -1,172 +1,171 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  ArrowRight,
+  Bicycle,
+  ClockCounterClockwise,
+  CurrencyCircleDollar,
+  Package,
+  ShieldCheck,
+  ShoppingBag,
+  Storefront,
+  Ticket,
+  UsersThree,
+  Warning,
+} from '@phosphor-icons/react'
+import Button from '../../../components/ui/Button'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
+import adminService from '../../../services/adminService'
 import useAuthStore from '../../../stores/authStore'
 import useUIStore from '../../../stores/uiStore'
-import adminService from '../../../services/adminService'
+import { formatCurrency } from '../../../utils/formatCurrency'
 
-const STATS_CONFIG = [
-  { key: 'total_users',    label: 'Total Pengguna',    icon: '👥', color: 'text-blue-600',   bg: 'bg-blue-50' },
-  { key: 'total_stores',   label: 'Toko Aktif',        icon: '🏪', color: 'text-green-600',  bg: 'bg-green-50' },
-  { key: 'total_products', label: 'Produk Aktif',      icon: '📦', color: 'text-purple-600', bg: 'bg-purple-50' },
-  { key: 'total_orders',   label: 'Total Pesanan',     icon: '📋', color: 'text-orange-600', bg: 'bg-orange-50' },
-  { key: 'total_revenue',  label: 'Total Pendapatan',  icon: '💰', color: 'text-green-700',  bg: 'bg-green-50', isCurrency: true },
-  { key: 'pending_orders', label: 'Pesanan Pending',   icon: '⏳', color: 'text-yellow-600', bg: 'bg-yellow-50' },
+const STAT_CARDS = [
+  ['total_users', 'Pengguna', UsersThree, 'bg-sky-100 text-sky-700'],
+  ['total_stores', 'Toko aktif', Storefront, 'bg-orange-100 text-orange-700'],
+  ['total_products', 'Produk aktif', Package, 'bg-indigo-100 text-indigo-700'],
+  ['total_orders', 'Total pesanan', ShoppingBag, 'bg-emerald-100 text-emerald-700'],
+  ['completed_gmv', 'GMV selesai', CurrencyCircleDollar, 'bg-amber-100 text-amber-800', true],
+  ['active_discounts', 'Promo aktif', Ticket, 'bg-rose-100 text-rose-700'],
 ]
 
-const AdminDashboardPage = () => {
+const STATUS_LABELS = {
+  packaging: 'Dikemas',
+  waiting_shipper: 'Menunggu driver',
+  shipping: 'Dikirim',
+  completed: 'Selesai',
+  returned: 'Dikembalikan',
+}
+
+export default function AdminDashboardPage() {
   const { user } = useAuthStore()
-  const { error: showError } = useUIStore()
+  const { success, error: showError } = useUIStore()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({})
-  const [recentUsers, setRecentUsers] = useState([])
+  const [monitoring, setMonitoring] = useState({})
+  const [simulationHours, setSimulationHours] = useState(72)
+  const [simulating, setSimulating] = useState(false)
+  const [confirmSimulation, setConfirmSimulation] = useState(false)
 
-  const formatPrice = (v) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v || 0)
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      try {
-        const [statsRes, usersRes] = await Promise.all([
-          adminService.getStats(),
-          adminService.getUsers(),
-        ])
-        if (statsRes.success) setStats(statsRes.data)
-        if (usersRes.success) setRecentUsers(usersRes.data.slice(0, 8))
-      } catch (err) {
-        showError('Gagal memuat data admin')
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Memuat Admin Dashboard...</p>
-        </div>
-      </div>
-    )
+  const loadDashboard = async () => {
+    const [statsResponse, monitoringResponse] = await Promise.all([
+      adminService.getStats(),
+      adminService.getMonitoring(),
+    ])
+    if (statsResponse.success) setStats(statsResponse.data)
+    if (monitoringResponse.success) setMonitoring(monitoringResponse.data)
   }
 
+  useEffect(() => {
+    let active = true
+    Promise.all([adminService.getStats(), adminService.getMonitoring()])
+      .then(([statsResponse, monitoringResponse]) => {
+        if (!active) return
+        if (statsResponse.success) setStats(statsResponse.data)
+        if (monitoringResponse.success) setMonitoring(monitoringResponse.data)
+      })
+      .catch(() => { if (active) showError('Data monitoring belum dapat dimuat.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [showError])
+
+  const simulateOverdue = async () => {
+    setSimulating(true)
+    try {
+      const response = await adminService.simulateTime(Number(simulationHours))
+      success(response.message)
+      setConfirmSimulation(false)
+      await loadDashboard()
+    } catch (error) {
+      showError(error.response?.data?.message || 'Simulasi belum dapat dijalankan.')
+    } finally {
+      setSimulating(false)
+    }
+  }
+
+  if (loading) return <div className="dashboard-page"><div className="h-32 animate-pulse rounded-3xl bg-primary-100" /><div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <div key={index} className="h-28 animate-pulse rounded-2xl bg-slate-200" />)}</div></div>
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-gray-600 mt-1">Selamat datang, {user?.name}! Kelola platform SEAPEDIA.</p>
-          </div>
-          <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full uppercase tracking-wider">
-            Admin
-          </span>
+    <div className="dashboard-page">
+      <section className="grid overflow-hidden rounded-3xl bg-primary-950 text-white lg:grid-cols-[1fr_auto]">
+        <div className="p-7 sm:p-9">
+          <p className="flex items-center gap-2 text-sm font-bold text-primary-200"><ShieldCheck size={19} weight="fill" /> Pusat kendali platform</p>
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight">Selamat datang, {user?.name}.</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-primary-100">Pantau transaksi, stok, pengantaran, promo, dan kejadian melewati SLA dari satu layar.</p>
         </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-          {STATS_CONFIG.map(s => (
-            <div key={s.key} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-gray-500">{s.label}</p>
-                  <p className={`text-2xl font-bold mt-1 ${s.color}`}>
-                    {s.isCurrency ? formatPrice(stats[s.key]) : (stats[s.key] ?? 0)}
-                  </p>
-                </div>
-                <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center text-xl`}>
-                  {s.icon}
-                </div>
-              </div>
+        <div className="flex items-center border-t border-white/10 p-7 lg:border-l lg:border-t-0">
+          <div className="w-full min-w-72">
+            <label htmlFor="simulation-hours" className="text-sm font-bold text-white">Simulasi overdue</label>
+            <div className="mt-2 flex gap-2">
+              <input id="simulation-hours" type="number" min="1" max="720" value={simulationHours} onChange={(event) => setSimulationHours(event.target.value)} className="input" />
+              <Button onClick={() => setConfirmSimulation(true)} isLoading={simulating} className="bg-accent-500 hover:bg-accent-600" leftIcon={<ClockCounterClockwise size={18} />}>Jalankan</Button>
             </div>
-          ))}
-        </div>
-
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Recent Users */}
-          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm">
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="font-bold text-gray-900">Pengguna Terbaru</h2>
-              <Link to="/admin/users" className="text-sm text-primary-500 hover:underline">
-                Lihat Semua
-              </Link>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Nama</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Email</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Role</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentUsers.map(u => (
-                    <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center text-xs font-bold text-primary-600">
-                            {u.name?.charAt(0)?.toUpperCase()}
-                          </div>
-                          <span className="text-sm font-medium text-gray-900">{u.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-500">{u.email}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-wrap gap-1">
-                          {u.roles?.length > 0 ? u.roles.map(r => (
-                            <span key={r.role} className={`px-1.5 py-0.5 text-[10px] font-bold rounded uppercase ${
-                              r.is_active ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-500'
-                            }`}>
-                              {r.role}
-                            </span>
-                          )) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <p className="mt-2 text-xs text-primary-200">Jam simulasi, maksimal 720.</p>
           </div>
+        </div>
+      </section>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-            <h2 className="font-bold text-gray-900 mb-4">Menu Admin</h2>
-            <div className="space-y-2">
-              {[
-                { to: '/admin/users', icon: '👥', label: 'Kelola Pengguna', desc: 'Lihat & kelola semua user' },
-                { to: '/products', icon: '📦', label: 'Lihat Produk', desc: 'Semua produk di marketplace' },
-                { to: '/', icon: '🏠', label: 'Beranda', desc: 'Kembali ke halaman utama' },
-              ].map(item => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
-                >
-                  <span className="text-2xl">{item.icon}</span>
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{item.label}</p>
-                    <p className="text-xs text-gray-500">{item.desc}</p>
-                  </div>
-                </Link>
-              ))}
+      <section className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" aria-label="Statistik platform">
+        {STAT_CARDS.map(([key, label, Icon, tone, currency]) => (
+          <article key={key} className="surface p-4">
+            <span className={`grid h-10 w-10 place-items-center rounded-xl ${tone}`}><Icon size={21} weight="duotone" /></span>
+            <p className="mt-4 text-xs font-semibold text-slate-500">{label}</p>
+            <p className="mt-1 truncate text-xl font-extrabold text-ink">{currency ? formatCurrency(stats[key] || 0) : stats[key] ?? 0}</p>
+          </article>
+        ))}
+      </section>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[1.3fr_.7fr]">
+        <section className="surface overflow-hidden" aria-labelledby="orders-monitoring-heading">
+          <div className="flex items-center justify-between gap-4 border-b border-slate-100 p-5">
+            <div><h2 id="orders-monitoring-heading" className="font-extrabold text-ink">Pesanan terbaru</h2><p className="mt-1 text-xs text-slate-500">Aktivitas lintas pembeli, toko, dan driver.</p></div>
+            <span className="rounded-lg bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">{monitoring.recent_orders?.length || 0} ditampilkan</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[680px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="px-5 py-3 font-bold">Pesanan</th><th className="px-5 py-3 font-bold">Pembeli</th><th className="px-5 py-3 font-bold">Toko</th><th className="px-5 py-3 font-bold">Status</th><th className="px-5 py-3 text-right font-bold">Total</th></tr></thead>
+              <tbody>
+                {(monitoring.recent_orders || []).map((order) => <tr key={order.id} className="border-t border-slate-100"><td className="px-5 py-3 font-bold text-ink">#{order.order_number}</td><td className="px-5 py-3 text-slate-600">{order.user?.name || 'Pengguna'}</td><td className="px-5 py-3 text-slate-600">{order.store?.name || 'Toko'}</td><td className="px-5 py-3"><span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">{STATUS_LABELS[order.status] || order.status}</span></td><td className="px-5 py-3 text-right font-bold text-ink">{formatCurrency(order.total_amount)}</td></tr>)}
+                {!monitoring.recent_orders?.length && <tr><td colSpan="5" className="px-5 py-10 text-center text-slate-500">Belum ada pesanan untuk dipantau.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div className="space-y-5">
+          <section className="surface p-5">
+            <div className="flex items-center gap-2"><Warning size={20} weight="fill" className="text-amber-500" /><h2 className="font-extrabold text-ink">Stok perlu perhatian</h2></div>
+            <div className="mt-4 space-y-3">
+              {(monitoring.low_stock_products || []).slice(0, 5).map((product) => <div key={product.id} className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-bold text-ink">{product.name}</p><p className="truncate text-xs text-slate-500">{product.store?.name}</p></div><span className={`rounded-lg px-2 py-1 text-xs font-extrabold ${product.stock === 0 ? 'bg-danger-50 text-danger-600' : 'bg-amber-100 text-amber-800'}`}>{product.stock} unit</span></div>)}
+              {!monitoring.low_stock_products?.length && <p className="text-sm text-slate-500">Semua stok dalam kondisi aman.</p>}
             </div>
+          </section>
+
+          <section className="surface p-5">
+            <div className="flex items-center gap-2"><Bicycle size={21} className="text-primary-600" /><h2 className="font-extrabold text-ink">Pengantaran aktif</h2></div>
+            <div className="mt-4 space-y-3">
+              {(monitoring.delivery_jobs || []).slice(0, 4).map((job) => <div key={job.id} className="flex items-center justify-between gap-3"><div><p className="text-sm font-bold text-ink">#{job.order_number}</p><p className="text-xs text-slate-500">{job.driver?.name || 'Belum ada driver'}</p></div><span className="text-xs font-bold text-primary-700">{STATUS_LABELS[job.status] || job.status}</span></div>)}
+              {!monitoring.delivery_jobs?.length && <p className="text-sm text-slate-500">Tidak ada pengantaran aktif.</p>}
+            </div>
+          </section>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Link to="/admin/users" className="surface flex items-center justify-between p-4 text-sm font-bold text-ink hover:border-primary-200">Pengguna <ArrowRight size={17} /></Link>
+            <Link to="/admin/discounts" className="surface flex items-center justify-between p-4 text-sm font-bold text-ink hover:border-primary-200">Promo <ArrowRight size={17} /></Link>
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={confirmSimulation}
+        onClose={() => setConfirmSimulation(false)}
+        onConfirm={simulateOverdue}
+        title="Jalankan simulasi overdue?"
+        description="Pesanan yang melewati SLA akan dikembalikan, stok dipulihkan, dan saldo Buyer direfund. Aksi ini mengubah data transaksi."
+        details={[{ label: 'Waktu dimajukan', value: `${simulationHours} jam` }]}
+        confirmLabel="Jalankan simulasi"
+        tone="danger"
+        isLoading={simulating}
+      />
     </div>
   )
 }
-
-export default AdminDashboardPage

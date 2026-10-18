@@ -17,13 +17,22 @@ class Order extends Model
      */
     protected $fillable = [
         'order_number',
+        'idempotency_key',
         'user_id',
         'store_id',
         'driver_id',
         'status',
+        'delivery_method',
+        'subtotal',
+        'discount_amount',
+        'delivery_fee',
+        'tax_amount',
+        'discount_id',
         'total_amount',
         'shipping_address',
         'cancellation_reason',
+        'refunded_at',
+        'stock_restored_at',
     ];
 
     /**
@@ -33,15 +42,25 @@ class Order extends Model
      */
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'subtotal' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'delivery_fee' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
+        'refunded_at' => 'datetime',
+        'stock_restored_at' => 'datetime',
     ];
 
     /**
      * Konstanta status pesanan
      */
     public const STATUS_PACKAGING = 'packaging';
+
     public const STATUS_WAITING_SHIPPER = 'waiting_shipper';
+
     public const STATUS_SHIPPING = 'shipping';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_RETURNED = 'returned';
 
     public const STATUSES = [
@@ -52,12 +71,29 @@ class Order extends Model
         self::STATUS_RETURNED,
     ];
 
+    public const DELIVERY_INSTANT = 'instant';
+
+    public const DELIVERY_NEXT_DAY = 'next_day';
+
+    public const DELIVERY_REGULAR = 'regular';
+
+    public const DELIVERY_FEES = [
+        self::DELIVERY_INSTANT => 30000,
+        self::DELIVERY_NEXT_DAY => 18000,
+        self::DELIVERY_REGULAR => 10000,
+    ];
+
+    public const DELIVERY_SLA_HOURS = [
+        self::DELIVERY_INSTANT => 6,
+        self::DELIVERY_NEXT_DAY => 36,
+        self::DELIVERY_REGULAR => 120,
+    ];
+
     /**
      * ============================================================
      * BOOT METHOD
      * ============================================================
      */
-
     protected static function boot()
     {
         parent::boot();
@@ -77,6 +113,7 @@ class Order extends Model
     {
         $date = now()->format('Ymd');
         $random = strtoupper(Str::random(6));
+
         return "ORD-{$date}-{$random}";
     }
 
@@ -124,6 +161,25 @@ class Order extends Model
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function discount()
+    {
+        return $this->belongsTo(Discount::class);
+    }
+
+    public function statusHistories()
+    {
+        return $this->hasMany(OrderStatusHistory::class)->oldest('created_at');
+    }
+
+    public function recordStatus(?User $actor = null, ?string $note = null): OrderStatusHistory
+    {
+        return $this->statusHistories()->create([
+            'status' => $this->status,
+            'actor_id' => $actor?->id,
+            'note' => $note,
+        ]);
     }
 
     /**
@@ -189,7 +245,7 @@ class Order extends Model
             self::STATUS_SHIPPING => [self::STATUS_COMPLETED, self::STATUS_RETURNED],
         ];
 
-        if (!isset($validTransitions[$this->status])) {
+        if (! isset($validTransitions[$this->status])) {
             return false;
         }
 
@@ -201,11 +257,12 @@ class Order extends Model
      */
     public function updateStatus(string $newStatus): bool
     {
-        if (!$this->canUpdateToStatus($newStatus)) {
+        if (! $this->canUpdateToStatus($newStatus)) {
             return false;
         }
 
         $this->update(['status' => $newStatus]);
+
         return true;
     }
 
@@ -223,7 +280,8 @@ class Order extends Model
     public function getFormattedTotalAttribute(): string
     {
         $amount = (float) $this->total_amount;
-        return 'Rp ' . number_format($amount, 0, ',', '.');
+
+        return 'Rp '.number_format($amount, 0, ',', '.');
     }
 
     /**

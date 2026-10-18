@@ -1,4 +1,5 @@
 <?php
+
 // File: app/Http/Requests/UpdateStoreRequest.php
 
 namespace App\Http\Requests;
@@ -13,12 +14,12 @@ class UpdateStoreRequest extends FormRequest
         // User harus login dan punya role seller
         return auth()->check() && auth()->user()->hasRole('seller');
     }
-    
+
     public function rules(): array
     {
         // Ambil store_id dari route
-        $storeId = $this->route('store');
-        
+        $storeId = $this->user()?->store?->getKey();
+
         return [
             'name' => [
                 'sometimes',            // opsional (tidak wajib ada di request)
@@ -29,25 +30,25 @@ class UpdateStoreRequest extends FormRequest
                 // sudah ada di database
                 Rule::unique('stores', 'name')->ignore($storeId),
             ],
-            
+
             'description' => [
                 'nullable',
                 'string',
                 'max:1000',
             ],
-            
+
             'address' => [
                 'sometimes',
                 'string',
                 'max:500',
             ],
-            
+
             'phone' => [
                 'sometimes',
                 'string',
                 'max:20',
             ],
-            
+
             'logo_url' => [
                 'nullable',
                 'url',
@@ -55,7 +56,7 @@ class UpdateStoreRequest extends FormRequest
             ],
         ];
     }
-    
+
     public function messages(): array
     {
         return [

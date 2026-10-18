@@ -17,6 +17,7 @@ class Transaction extends Model
     protected $fillable = [
         'wallet_id',
         'order_id',
+        'idempotency_key',
         'type',
         'amount',
         'description',
@@ -35,8 +36,11 @@ class Transaction extends Model
      * Konstanta tipe transaksi
      */
     public const TYPE_TOPUP = 'topup';
+
     public const TYPE_PURCHASE = 'purchase';
+
     public const TYPE_REFUND = 'refund';
+
     public const TYPE_WITHDRAWAL = 'withdrawal';
 
     public const TYPES = [
@@ -151,7 +155,8 @@ class Transaction extends Model
     {
         $prefix = $this->isPositive() ? '+' : '-';
         $amount = (float) $this->amount;
-        return $prefix . 'Rp ' . number_format(abs($amount), 0, ',', '.');
+
+        return $prefix.'Rp '.number_format(abs($amount), 0, ',', '.');
     }
 
     /**
