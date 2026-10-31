@@ -1,10 +1,7 @@
 import { Link } from 'react-router-dom'
 import {
   CheckCircle,
-  EnvelopeSimple,
-  Headset,
   LockKey,
-  MapPin,
   ShieldCheck,
 } from '@phosphor-icons/react'
 import BrandMark from '../ui/BrandMark'
@@ -63,40 +60,30 @@ export default function Footer() {
               <Link
                 to="/help/keamanan-data"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-950/40 px-3 py-1.5 text-xs font-semibold text-emerald-300 backdrop-blur-sm transition-colors hover:border-emerald-300 hover:text-white"
-                title="Pelajari sistem proteksi keamanan data SEAPEDIA"
+                title="Pelajari pengamanan akun SEAPEDIA"
               >
-                <LockKey size={14} weight="bold" /> SSL Aman 256-bit
+                <LockKey size={14} weight="bold" /> Akses sesuai peran
               </Link>
               <Link
                 to="/help/keamanan-data"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/30 bg-blue-950/40 px-3 py-1.5 text-xs font-semibold text-blue-300 backdrop-blur-sm transition-colors hover:border-blue-300 hover:text-white"
-                title="Pelajari enkripsi database dan transaksi SEAPEDIA"
+                title="Pelajari mekanisme autentikasi SEAPEDIA"
               >
-                <ShieldCheck size={14} weight="bold" /> Data Terenkripsi
+                <ShieldCheck size={14} weight="bold" /> Autentikasi akun
               </Link>
               <Link
                 to="/help/keamanan-data"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-950/40 px-3 py-1.5 text-xs font-semibold text-cyan-300 backdrop-blur-sm transition-colors hover:border-cyan-300 hover:text-white"
-                title="Pelajari jaminan escrow dan proteksi transaksi SEAPEDIA"
+                title="Pelajari alur transaksi simulasi SEAPEDIA"
               >
-                <CheckCircle size={14} weight="bold" /> Transaksi Terlindungi
+                <CheckCircle size={14} weight="bold" /> Wallet simulasi
               </Link>
             </div>
 
             {/* Office & Customer Support */}
             <div className="space-y-2 border-t border-white/10 pt-5 text-xs text-blue-200/80">
-              <Link to="/help/faq" className="flex items-center gap-2 hover:text-white transition-colors">
-                <MapPin size={15} className="text-cyan-400 shrink-0" />
-                <span>Gedung Bahari Nusantara, Jakarta Pusat, Indonesia</span>
-              </Link>
-              <Link to="/help/faq" className="flex items-center gap-2 hover:text-white transition-colors">
-                <Headset size={15} className="text-cyan-400 shrink-0" />
-                <span>Layanan Pelanggan: Senin - Minggu (08:00 - 21:00 WIB)</span>
-              </Link>
-              <a href="mailto:support@seapedia.id" className="flex items-center gap-2 hover:text-white transition-colors">
-                <EnvelopeSimple size={15} className="text-cyan-400 shrink-0" />
-                <span>Bantuan: support@seapedia.id</span>
-              </a>
+              <p>Proyek demo dan portofolio. Katalog, saldo, serta transaksi menggunakan data simulasi.</p>
+              <a href="/photo-credits.html" className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-white">Sumber dan lisensi foto produk</a>
             </div>
           </div>
 

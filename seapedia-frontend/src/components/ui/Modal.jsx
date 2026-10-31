@@ -21,7 +21,9 @@ const Modal = ({
   className = '',
 }) => {
   const dialogRef = useRef(null)
+  const onCloseRef = useRef(onClose)
   const titleId = useId()
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
   // Size styles
   const sizeStyles = {
     sm: 'max-w-sm',
@@ -43,7 +45,7 @@ const Modal = ({
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        onClose()
+        onCloseRef.current()
         return
       }
 
@@ -68,18 +70,15 @@ const Modal = ({
       window.removeEventListener('keydown', handleKeyDown)
       previousFocus?.focus?.()
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
   
   // Prevent body scroll when modal is open
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    
+    if (!isOpen) return undefined
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     return () => {
-      document.body.style.overflow = 'unset'
+      document.body.style.overflow = previousOverflow
     }
   }, [isOpen])
   
@@ -120,7 +119,7 @@ const Modal = ({
               {showCloseButton && (
                 <button
                   onClick={onClose}
-                  className="grid h-9 w-9 place-items-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  className="grid h-11 w-11 place-items-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Tutup dialog"
                 >
                   <X size={20} weight="bold" />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -36,53 +36,57 @@ const SORT_OPTIONS = [
 
 export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  return <ProductCatalog key={searchParams.toString()} searchParams={searchParams} setSearchParams={setSearchParams} />
+}
+
+function ProductCatalog({ searchParams, setSearchParams }) {
   const initialCategory = searchParams.get('category') || 'all'
   const normalizedCategory = CATEGORIES.some((item) => item.id === initialCategory)
     ? initialCategory
-    : (CATEGORIES.find((item) => item.value === initialCategory)?.id || 'all')
+    : (CATEGORIES.find((item) => item.value.toLowerCase() === initialCategory.toLowerCase())?.id || 'all')
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [pagination, setPagination] = useState({ current_page: 1, total: 0, last_page: 1 })
   const [search, setSearch] = useState(searchParams.get('search') || '')
-  const [appliedSearch, setAppliedSearch] = useState(searchParams.get('search') || '')
-  const [category, setCategory] = useState(normalizedCategory)
+  const appliedSearch = searchParams.get('search') || ''
+  const category = normalizedCategory
+  const appliedMinPrice = searchParams.get('min_price') || ''
+  const appliedMaxPrice = searchParams.get('max_price') || ''
   const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '')
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '')
-  const [sort, setSort] = useState(searchParams.get('sort') || 'created_at:desc')
+  const sort = SORT_OPTIONS.some((item) => item.value === searchParams.get('sort')) ? searchParams.get('sort') : 'created_at:desc'
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
+  const [filterError, setFilterError] = useState('')
+  const currentPage = Math.max(1, Number(searchParams.get('page')) || 1)
 
-  const fetchProducts = useCallback(async (page = 1) => {
-    setLoading(true)
-    setLoadError('')
+  useEffect(() => {
+    const controller = new AbortController()
     const selected = CATEGORIES.find((item) => item.id === category)
     const [sort_by, sort_order] = sort.split(':')
-    try {
-      const response = await productService.getAll({
-        page,
+    productService.getAll({
+        page: currentPage,
         per_page: 12,
         sort_by,
         sort_order,
         ...(selected?.value ? { category: selected.value } : {}),
         ...(appliedSearch ? { search: appliedSearch } : {}),
-        ...(minPrice ? { min_price: Number(minPrice) } : {}),
-        ...(maxPrice ? { max_price: Number(maxPrice) } : {}),
-      })
+        ...(appliedMinPrice !== '' ? { min_price: appliedMinPrice } : {}),
+        ...(appliedMaxPrice !== '' ? { max_price: appliedMaxPrice } : {}),
+      }, { signal: controller.signal }).then((response) => {
+      if (controller.signal.aborted) return
       if (response.success) {
         setProducts(response.data)
         setPagination(response.meta || { current_page: 1, total: response.data.length, last_page: 1 })
       }
-    } catch {
-      setLoadError('Katalog belum dapat dimuat. Coba beberapa saat lagi.')
-    } finally {
-      setLoading(false)
-    }
-  }, [appliedSearch, category, maxPrice, minPrice, sort])
-
-  useEffect(() => { fetchProducts(1) }, [fetchProducts])
+    }).catch((error) => {
+      if (!controller.signal.aborted) setLoadError(error.response?.status === 422 ? 'Filter tidak valid. Reset filter lalu coba kembali.' : 'Katalog belum dapat dimuat. Coba beberapa saat lagi.')
+    }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [appliedSearch, category, appliedMaxPrice, appliedMinPrice, sort, currentPage])
 
   const syncUrl = (overrides = {}) => {
-    const values = { search: appliedSearch, category, min_price: minPrice, max_price: maxPrice, sort, ...overrides }
+    const values = { search: appliedSearch, category, min_price: appliedMinPrice, max_price: appliedMaxPrice, sort, ...overrides }
     const next = {}
     Object.entries(values).forEach(([key, value]) => {
       if (value && value !== 'all' && value !== 'created_at:desc') next[key] = value
@@ -93,24 +97,32 @@ export default function ProductsPage() {
   const submitSearch = (event) => {
     event.preventDefault()
     const nextSearch = search.trim()
-    setAppliedSearch(nextSearch)
     syncUrl({ search: nextSearch })
   }
 
-  const applyPrice = () => syncUrl()
+  const applyPrice = () => {
+    if ([minPrice, maxPrice].some((value) => value !== '' && (!/^\d+$/.test(value) || Number(value) > 1000000000))) {
+      setFilterError('Masukkan harga bulat antara Rp0 dan Rp1.000.000.000.')
+      return false
+    }
+    if (minPrice !== '' && maxPrice !== '' && Number(minPrice) > Number(maxPrice)) {
+      setFilterError('Harga maksimum harus sama atau lebih besar dari harga minimum.')
+      return false
+    }
+    setFilterError('')
+    syncUrl({ min_price: minPrice, max_price: maxPrice })
+    return true
+  }
 
   const reset = () => {
     setSearch('')
-    setAppliedSearch('')
-    setCategory('all')
     setMinPrice('')
     setMaxPrice('')
-    setSort('created_at:desc')
+    setFilterError('')
     setSearchParams({}, { replace: true })
   }
 
   const selectCategory = (value) => {
-    setCategory(value)
     syncUrl({ category: value })
   }
 
@@ -136,8 +148,9 @@ export default function ProductsPage() {
             <button
               key={id}
               type="button"
+              aria-pressed={category === id}
               onClick={() => selectCategory(id)}
-              className={`flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm font-bold transition active:scale-95 ${
+              className={`flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm font-bold transition active:scale-95 ${
                 category === id
                   ? 'border-primary-900 bg-primary-900 text-white shadow-sm'
                   : 'border-slate-200/90 bg-white text-slate-700 hover:border-primary-300 hover:text-primary-900 hover:shadow-card-sm'
@@ -161,17 +174,18 @@ export default function ProductsPage() {
               <div><label htmlFor="min-price" className="text-xs font-bold text-slate-500">Harga minimum</label><input id="min-price" type="number" min="0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} className="input mt-2" placeholder="Rp0" /></div>
               <div><label htmlFor="max-price" className="text-xs font-bold text-slate-500">Harga maksimum</label><input id="max-price" type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} className="input mt-2" placeholder="Tanpa batas" /></div>
               <Button type="button" variant="outline" className="w-full" onClick={applyPrice}>Terapkan harga</Button>
+              {filterError && <p role="alert" className="text-sm text-danger-600">{filterError}</p>}
             </div>
           </aside>
 
-          <main>
+          <section aria-label="Hasil katalog" aria-busy={loading}>
             {/* Toolbar: Category Title + Filter Trigger (Mobile) + Sort */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg sm:text-xl font-extrabold text-ink">
                   {CATEGORIES.find((item) => item.id === category)?.label || 'Semua produk'}
                 </h2>
-                <p className="mt-0.5 text-xs sm:text-sm text-slate-500">
+                <p role="status" className="mt-0.5 text-xs sm:text-sm text-slate-500">
                   {loading ? 'Mencari produk...' : `${pagination.total || 0} produk ditemukan`}
                 </p>
               </div>
@@ -190,7 +204,7 @@ export default function ProductsPage() {
                 </button>
                 <select
                   value={sort}
-                  onChange={(event) => { setSort(event.target.value); syncUrl({ sort: event.target.value }) }}
+                  onChange={(event) => syncUrl({ sort: event.target.value })}
                   className="input h-10 w-auto flex-1 sm:w-48 text-xs font-bold py-1 px-3"
                   aria-label="Urutkan produk"
                 >
@@ -201,17 +215,17 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            {(appliedSearch || minPrice || maxPrice) && <div className="mt-4 flex flex-wrap gap-2">{appliedSearch && <span className="inline-flex items-center gap-2 rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary-700">“{appliedSearch}” <button type="button" aria-label="Hapus pencarian" onClick={() => { setSearch(''); setAppliedSearch(''); syncUrl({ search: '' }) }}><X size={13} /></button></span>}{minPrice && <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">Min. {formatCurrency(minPrice)}</span>}{maxPrice && <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">Maks. {formatCurrency(maxPrice)}</span>}</div>}
+            {(appliedSearch || appliedMinPrice || appliedMaxPrice) && <div className="mt-4 flex flex-wrap gap-2">{appliedSearch && <span className="inline-flex items-center gap-2 rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary-700">“{appliedSearch}” <button type="button" aria-label="Hapus pencarian" onClick={() => syncUrl({ search: '' })}><X size={13} /></button></span>}{appliedMinPrice && <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">Min. {formatCurrency(appliedMinPrice)}</span>}{appliedMaxPrice && <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">Maks. {formatCurrency(appliedMaxPrice)}</span>}</div>}
 
-            {loadError && <div className="mt-6 rounded-2xl border border-danger-200 bg-danger-50 p-5 text-sm font-semibold text-danger-600">{loadError}</div>}
+            {loadError && <div role="alert" className="mt-6 rounded-2xl border border-danger-200 bg-danger-50 p-5 text-sm font-semibold text-danger-600">{loadError}<Button type="button" variant="outline" className="ml-3" onClick={reset}>Reset filter</Button></div>}
             {!loadError && <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
               {loading && Array.from({ length: 8 }, (_, index) => <div key={index} className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="aspect-square animate-pulse bg-slate-100" /><div className="space-y-3 p-4"><div className="h-3 animate-pulse rounded bg-slate-100" /><div className="h-4 w-2/3 animate-pulse rounded bg-slate-100" /></div></div>)}
               {!loading && products.length === 0 && <div className="col-span-full rounded-3xl border border-dashed border-slate-300 bg-white py-14 text-center"><MagnifyingGlass size={40} className="mx-auto text-slate-400" /><h3 className="mt-4 font-extrabold text-ink">Produk tidak ditemukan</h3><p className="mt-2 text-sm text-slate-500">Ubah kata kunci atau hapus filter aktif.</p><Button type="button" variant="outline" className="mt-5" onClick={reset}>Reset filter</Button></div>}
               {!loading && products.map((product) => <Link key={product.id} to={`/products/${product.id}`} className="product-card group"><div className="aspect-square overflow-hidden bg-slate-100"><ProductImage src={product.image_url} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /></div><div className="p-3 sm:p-4"><h3 className="line-clamp-2 min-h-9 sm:min-h-10 text-xs sm:text-sm font-semibold leading-snug sm:leading-5 text-slate-700 group-hover:text-primary-700">{product.name}</h3><p className="mt-1.5 sm:mt-2 text-sm sm:text-base font-extrabold text-ink">{formatCurrency(product.price)}</p><p className="mt-1.5 sm:mt-2 flex items-center gap-1 truncate text-[11px] sm:text-xs text-slate-500"><Storefront size={14} className="text-primary-600 shrink-0" /> <span className="truncate">{product.store?.name || 'Toko SEAPEDIA'}</span></p><p className="mt-1 text-[11px] sm:text-xs font-semibold text-success-600">Stok {product.stock}</p></div></Link>)}
             </div>}
 
-            {pagination.last_page > 1 && <div className="mt-8 flex items-center justify-center gap-3"><Button variant="outline" size="sm" disabled={pagination.current_page === 1} onClick={() => fetchProducts(pagination.current_page - 1)} leftIcon={<ArrowLeft size={16} />}>Sebelumnya</Button><span className="text-sm font-semibold text-slate-500">{pagination.current_page} / {pagination.last_page}</span><Button variant="outline" size="sm" disabled={pagination.current_page === pagination.last_page} onClick={() => fetchProducts(pagination.current_page + 1)} rightIcon={<ArrowRight size={16} />}>Selanjutnya</Button></div>}
-          </main>
+            {pagination.last_page > 1 && <div className="mt-8 flex items-center justify-center gap-3"><Button variant="outline" size="sm" disabled={loading || pagination.current_page === 1} onClick={() => syncUrl({ page: pagination.current_page - 1 })} leftIcon={<ArrowLeft size={16} />}>Sebelumnya</Button><span className="text-sm font-semibold text-slate-500">{pagination.current_page} / {pagination.last_page}</span><Button variant="outline" size="sm" disabled={loading || pagination.current_page === pagination.last_page} onClick={() => syncUrl({ page: pagination.current_page + 1 })} rightIcon={<ArrowRight size={16} />}>Selanjutnya</Button></div>}
+          </section>
         </div>
       </div>
 
@@ -264,13 +278,13 @@ export default function ProductsPage() {
               type="button"
               className="flex-1"
               onClick={() => {
-                applyPrice()
-                setMobileFilterOpen(false)
+                if (applyPrice()) setMobileFilterOpen(false)
               }}
             >
               Terapkan
             </Button>
           </div>
+          {filterError && <p role="alert" className="text-sm text-danger-600">{filterError}</p>}
         </div>
       </Modal>
     </div>

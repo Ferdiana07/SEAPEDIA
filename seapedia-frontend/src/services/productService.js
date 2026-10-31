@@ -23,8 +23,8 @@ const productService = {
    * @param {Object} params - { search, store_id, min_price, max_price, sort_by, sort_order, page, per_page }
    * @returns {Promise<Object>}
    */
-  getAll: async (params = {}) => {
-    const response = await api.get('/products', { params })
+  getAll: async (params = {}, options = {}) => {
+    const response = await api.get('/products', { ...options, params })
     return response.data
   },
   

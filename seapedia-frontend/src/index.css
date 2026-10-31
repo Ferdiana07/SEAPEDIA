@@ -38,8 +38,8 @@
   }
 
   :focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.30);
+    outline: 2px solid #1e40af;
+    outline-offset: 3px;
     border-radius: 0.5rem;
   }
 

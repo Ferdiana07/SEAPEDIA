@@ -14,6 +14,8 @@ export default function StoreDetailPage() {
 
   useEffect(() => {
     let active = true
+    setLoading(true)
+    setError('')
     storeService.getById(Number(id))
       .then((response) => { if (active && response.success) setStore(response.data) })
       .catch(() => { if (active) setError('Toko tidak ditemukan atau sedang tidak aktif.') })

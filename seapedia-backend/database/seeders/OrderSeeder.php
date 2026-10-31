@@ -33,8 +33,8 @@ class OrderSeeder extends Seeder
             'delivery_method' => Order::DELIVERY_REGULAR,
             'subtotal' => 320000,
             'delivery_fee' => 10000,
-            'tax_amount' => 32000,
-            'total_amount' => 362000,
+            'tax_amount' => 38400,
+            'total_amount' => 368400,
             'shipping_address' => 'Jl. Mawar No. 5, RT 01/RW 02, Kelurahan Menteng, Jakarta Pusat, 10310',
         ]);
         $order->recordStatus(null, 'Pesanan demo selesai.');
@@ -49,8 +49,8 @@ class OrderSeeder extends Seeder
             'delivery_method' => Order::DELIVERY_NEXT_DAY,
             'subtotal' => 341000,
             'delivery_fee' => 18000,
-            'tax_amount' => 34100,
-            'total_amount' => 393100,
+            'tax_amount' => 40920,
+            'total_amount' => 399920,
             'shipping_address' => 'Jl. Melati No. 15, RT 03/RW 05, Jakarta Selatan, 12110',
         ]);
         $order->recordStatus(null, 'Pesanan demo sedang dikirim.');
@@ -65,8 +65,8 @@ class OrderSeeder extends Seeder
             'delivery_method' => Order::DELIVERY_REGULAR,
             'subtotal' => 198000,
             'delivery_fee' => 10000,
-            'tax_amount' => 19800,
-            'total_amount' => 227800,
+            'tax_amount' => 23760,
+            'total_amount' => 231760,
             'shipping_address' => 'Jl. Mawar No. 5, RT 01/RW 02, Jakarta Pusat, 10310',
         ]);
         $order->recordStatus(null, 'Pesanan demo menunggu Driver.');
@@ -81,8 +81,8 @@ class OrderSeeder extends Seeder
             'delivery_method' => Order::DELIVERY_INSTANT,
             'subtotal' => 735000,
             'delivery_fee' => 30000,
-            'tax_amount' => 73500,
-            'total_amount' => 838500,
+            'tax_amount' => 88200,
+            'total_amount' => 853200,
             'shipping_address' => 'Jl. Anggrek No. 20, Jakarta Barat, 11480',
         ]);
         $order->recordStatus(null, 'Pesanan demo sedang dikemas.');

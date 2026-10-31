@@ -137,14 +137,13 @@ class ProductRequest extends FormRequest
         // Jika price ada dan berupa string dengan formatting
         if ($this->has('price') && is_string($this->price)) {
             // Hapus karakter non-numerik
-            $cleaned = preg_replace('/[^0-9]/', '', $this->price);
-            $this->merge(['price' => (int) $cleaned]);
+            if (preg_match('/^(?:Rp\s*)?(?:\d{1,3}(?:\.\d{3})+|\d+)$/', $this->price)) {
+                $cleaned = preg_replace('/[^0-9]/', '', $this->price);
+                $this->merge(['price' => $cleaned]);
+            }
         }
 
-        // Pastikan stock adalah integer
-        if ($this->has('stock')) {
-            $this->merge(['stock' => (int) $this->stock]);
-        }
+        // Leave stock untouched: validation must reject decimals, arrays and text.
 
         if ($this->has('category') && is_string($this->category)) {
             $category = mb_strtolower(trim($this->category));

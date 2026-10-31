@@ -31,6 +31,11 @@ class StoreController extends Controller
      */
     public function index(): JsonResponse
     {
+        request()->validate([
+            'search' => ['nullable', 'string', 'max:200'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
         $query = Store::with('user:id,name')  // Eager load seller info
             ->active()              // Scope: is_active = true
             ->withCount('products'); // Tambah field: products_count
@@ -69,7 +74,7 @@ class StoreController extends Controller
     public function show(int $id): JsonResponse
     {
         $store = Store::with([
-            'user:id,name,email',  // Info seller
+            'user:id,name',  // Public seller identity; email stays private.
             'products' => function ($query) {
                 // ⭐ Hanya produk aktif
                 $query->active()

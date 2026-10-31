@@ -54,7 +54,9 @@ Jangan menjalankan `migrate:fresh` pada production karena menghapus seluruh data
 
 ## Frontend
 
-Vercel menggunakan root directory `seapedia-frontend`, build command `npm run build`, dan output directory `dist`. Sebelum deploy publik, API client perlu membaca `VITE_API_URL` production dan Laravel CORS perlu mengizinkan domain frontend.
+Vercel menggunakan root directory `seapedia-frontend`, build command `npm run build`, dan output directory `dist`. API client sudah membaca `VITE_API_URL` (sertakan suffix `/api`), dan `vercel.json` sudah menyediakan fallback route SPA. Isi `CORS_ALLOWED_ORIGINS` pada backend dengan origin frontend, dipisahkan koma bila lebih dari satu. Seluruh nilai `VITE_*` bersifat publik; simpan kredensial database/storage hanya pada backend.
+
+Foto fixture katalog sudah tersimpan lokal di kedua aplikasi. Foto upload seller tetap perlu object storage persisten. Ini konfigurasi untuk persiapan hosting; deployment publik belum diverifikasi pada audit 31 Oktober 2026.
 
 ## Smoke test production
 

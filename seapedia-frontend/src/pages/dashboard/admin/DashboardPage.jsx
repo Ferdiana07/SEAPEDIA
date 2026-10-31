@@ -121,7 +121,7 @@ export default function AdminDashboardPage() {
             <div><h2 id="orders-monitoring-heading" className="font-extrabold text-ink">Pesanan terbaru</h2><p className="mt-1 text-xs text-slate-500">Aktivitas lintas pembeli, toko, dan driver.</p></div>
             <span className="rounded-lg bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700">{monitoring.recent_orders?.length || 0} ditampilkan</span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabel pesanan terbaru; gulir untuk melihat kolom lainnya">
             <table className="w-full min-w-[680px] text-left text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="px-5 py-3 font-bold">Pesanan</th><th className="px-5 py-3 font-bold">Pembeli</th><th className="px-5 py-3 font-bold">Toko</th><th className="px-5 py-3 font-bold">Status</th><th className="px-5 py-3 text-right font-bold">Total</th></tr></thead>
               <tbody>

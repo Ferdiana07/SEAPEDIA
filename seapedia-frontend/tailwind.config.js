@@ -11,7 +11,7 @@ export default {
           200: '#bfdbfe',
           300: '#93c5fd',
           400: '#60a5fa',
-          500: '#3b82f6',
+          500: '#1A56DB',
           600: '#1d4ed8',
           700: '#1e40af',
           800: '#1e3a8a',
@@ -30,7 +30,12 @@ export default {
           700: '#1e40af',
         },
         // Status
-        success: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' },
+        success: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#15803d', 700: '#166534' },
+        // Text shades meet AA on the light surfaces used throughout the app.
+        slate: { 400: '#64748b', 500: '#52637a' },
+        gray: { 400: '#64748b', 500: '#4b5563' },
+        green: { 600: '#15803d' },
+        red: { 500: '#dc2626' },
         warning: { 50: '#fffbeb', 100: '#fef3c7', 500: '#f59e0b', 600: '#d97706' },
         danger:  { 50: '#fff1f2', 100: '#ffe4e6', 500: '#ef4444', 600: '#dc2626' },
         // Semantic tokens — ocean blue palette

@@ -94,10 +94,10 @@ test('buyer melihat ringkasan konfirmasi sebelum checkout diproses', async ({ pa
 
   const token = await page.evaluate(() => JSON.parse(localStorage.getItem('seapedia-auth') || '{}').state?.token)
   const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' }
-  const productsResponse = await page.request.get('http://127.0.0.1:8000/api/products?per_page=1')
+  const productsResponse = await page.request.get('http://127.0.0.1:18000/api/products?per_page=1')
   const productId = (await productsResponse.json()).data[0].id
-  await page.request.delete('http://127.0.0.1:8000/api/cart', { headers })
-  const addResponse = await page.request.post('http://127.0.0.1:8000/api/cart/items', {
+  await page.request.delete('http://127.0.0.1:18000/api/cart', { headers })
+  const addResponse = await page.request.post('http://127.0.0.1:18000/api/cart/items', {
     headers,
     data: { product_id: productId, quantity: 1 },
   })
@@ -118,7 +118,7 @@ test('buyer melihat ringkasan konfirmasi sebelum checkout diproses', async ({ pa
   await dialog.getByRole('button', { name: 'Periksa lagi' }).click()
   await expect(dialog).toBeHidden()
   await expect(page).toHaveURL(/\/cart$/)
-  await page.request.delete('http://127.0.0.1:8000/api/cart', { headers })
+  await page.request.delete('http://127.0.0.1:18000/api/cart', { headers })
 })
 
 test('seller dapat memilih foto produk dan memeriksa preview sebelum submit', async ({ page }) => {

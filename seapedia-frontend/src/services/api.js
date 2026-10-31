@@ -8,7 +8,7 @@ import axios from 'axios'
 
 const api = axios.create({
   // Base URL - semua request akan menambahkan ini
-  baseURL: '/api',  // Proxy akan redirect ke localhost:8000/api
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   
   // Timeout - request akan gagal jika lebih dari 30 detik
   timeout: 30000,

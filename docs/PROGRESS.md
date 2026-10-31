@@ -2,9 +2,9 @@
 
 ## Current checkpoint
 
-Tanggal: 2026-10-18
+Tanggal: 2026-10-31
 
-Status: milestone portofolio utama selesai dan seluruh quality gate lulus.
+Status: katalog diperbarui menjadi 40 produk dengan foto internet berlisensi; audit fungsi, keamanan, UI desktop/mobile, dan dependensi dilakukan. Hasil serta temuan yang masih terbuka ada di `AUDIT-2026-10-31.md` dan `QUALITY.md`.
 
 Jika sesi berikutnya dimulai, baca berurutan:
 
@@ -14,9 +14,21 @@ Jika sesi berikutnya dimulai, baca berurutan:
 4. `ROADMAP.md` untuk status milestone.
 5. `DEMO_GUIDE.md` untuk memeriksa setiap role.
 
-Tidak ada blocker atau pekerjaan wajib tersisa. Kandidat pengembangan opsional: deployment publik, payment gateway sandbox, background scheduler untuk overdue, dan observability.
+Tidak ada blocker untuk demo lokal. Sebelum produksi: tindak lanjuti advisory development ESLint/minimatch, verifikasi integrasi PostgreSQL/concurrency, dan lakukan smoke test deployment. Kandidat pengembangan opsional: payment gateway sandbox, background scheduler untuk overdue, dan observability.
 
 ## Session log
+
+### 2026-10-31 — Foto internet, perluasan katalog, dan audit menyeluruh
+
+- Mengganti seluruh 16 foto fixture dan menambahkan 24 foto/produk; total 40 dengan lima produk per kategori. Semua foto bersumber dari Wikimedia Commons, disimpan lokal pada frontend/backend, disertai kredit publik, metadata lisensi, dan hash. Tidak menggunakan image generation.
+- ProductSeeder diubah menjadi sinkronisasi fixture yang dapat diulang, mempertahankan ID, stock, harga, status aktif, upload seller, dan relasi transaksi. Database kerja bertambah 24 produk lalu sinkronisasi ulang menghasilkan 0 produk baru.
+- Memperbaiki throttle login/registrasi, coercion input produk, eksposur email seller, visibilitas toko/produk nonaktif, query katalog, pencarian lintas field, filter harga, pagination URL, request cancellation, state detail, serta lifecycle fokus dialog.
+- Memperbaiki kontras, label profil/password/alamat, kartu saldo, rating ARIA, pause/reduced-motion dan touch banner, serta akses keyboard tabel Admin pada mobile. Klaim komersial/keamanan yang tidak terbukti di footer/help/banner diganti dengan informasi demo yang akurat.
+- Full seed baru memakai pajak 12% dan ledger yang merekonsiliasi saldo wallet. Riwayat order/ledger pada database kerja tidak diubah.
+- Dependency update kompatibel menghilangkan advisory Composer serta seluruh advisory npm production. Tersisa enam moderate pada tooling development frontend. Lockfile scaffolding npm backend ditambahkan; build dan audit backend npm bersih.
+- E2E diisolasi dari database kerja dengan SQLite dan port khusus; test backend diperluas menjadi 29 test / 233 assertion. Lint, build, uji browser, dan audit aksesibilitas memiliki command yang dapat diulang di QUALITY.md.
+- Menambahkan `VITE_API_URL`, konfigurasi origin CORS, dan fallback route SPA untuk persiapan hosting; belum memublikasikan aplikasi.
+- Verifikasi akhir: 29 test backend / 233 assertion, 17 E2E, lint dan build lulus. Audit 43 variasi halaman/viewport bersih dari pelanggaran axe pada ruleset yang diuji, overflow halaman, broken image, dan runtime exception / respons 5xx. API MySQL lokal mengonfirmasi 40 produk serta CORS frontend.
 
 ### 2026-10-16 - Audit dan domain foundation
 

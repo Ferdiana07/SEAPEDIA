@@ -52,7 +52,7 @@ export default function ApplicationReviews() {
             {!loading && reviews.length === 0 && <p className="rounded-2xl border border-slate-300 p-5 text-sm text-slate-600 sm:col-span-2">Belum ada ulasan publik. Jadilah yang pertama memberikan masukan tentang pengalamanmu.</p>}
             {!loading && reviews.slice(0, 4).map((review) => (
               <article key={review.id} className="rounded-2xl border border-slate-200/80 bg-white p-5">
-                <div className="flex gap-1 text-warning-500" aria-label={`${review.rating} dari 5 bintang`}>
+                <div role="img" className="flex gap-1 text-warning-500" aria-label={`${review.rating} dari 5 bintang`}>
                   {Array.from({ length: review.rating }, (_, index) => <Star key={index} size={15} weight="fill" />)}
                 </div>
                 <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-600">{review.comment}</p>

@@ -282,7 +282,7 @@ const HELP_TOPICS = {
           <div>
             <h3 className="font-bold text-slate-900 text-base">4. Enkripsi dan Keamanan Standar Tinggi</h3>
             <p className="mt-1.5 text-slate-600">
-              Seluruh transmisi data sensitif dilindungi dengan sertifikasi SSL/TLS 256-bit. Kata sandi disimpan dengan enkripsi bcrypt yang tidak dapat dibaca oleh staf internal sekalipun.
+              Kata sandi disimpan sebagai hash bcrypt. HTTPS perlu dikonfigurasi pada layanan hosting sebelum aplikasi digunakan secara publik; tidak ada sertifikasi keamanan khusus yang diklaim oleh proyek demo ini.
             </p>
           </div>
 
@@ -330,7 +330,7 @@ const HELP_TOPICS = {
           <div>
             <h3 className="font-bold text-slate-900 text-base">3. Alur Pembayaran & Saldo Dompet</h3>
             <p className="mt-1.5 text-slate-600">
-              Pembayaran pesanan dilakukan melalui Saldo Dompet Digital SEAPEDIA. Dana pembeli diproteksi dalam sistem rekening bersama (*escrow*) hingga barang sampai di tangan pembeli dengan selamat.
+              Pembayaran menggunakan saldo simulasi di database. Top-up, pemotongan saldo, dan refund ditujukan untuk demonstrasi alur aplikasi; tidak ada transfer uang atau rekening escrow nyata.
             </p>
           </div>
 
@@ -363,7 +363,7 @@ const HELP_TOPICS = {
         <div>
           <h2 className="text-xl font-bold text-slate-900">Arsitektur Keamanan Multi-Lapis</h2>
           <p className="mt-2 text-slate-600 leading-relaxed">
-            Keamanan transaksi adalah prioritas utama kami. SEAPEDIA menerapkan standar pengamanan tingkat enterprise untuk menjaga uang dan privasi Anda.
+            SEAPEDIA mendemonstrasikan autentikasi, pembatasan akses per peran, dan konsistensi transaksi database. Saldo serta pembayaran di aplikasi ini bersifat simulasi.
           </p>
         </div>
 
@@ -371,7 +371,7 @@ const HELP_TOPICS = {
           {[
             {
               title: 'Proteksi Transaksi Bersamaan (Concurrency Control)',
-              desc: 'Pengecekan stok dan saldo menggunakan database locking otomatis. Mencegah stok minus dan saldo terpotong ganda saat ribuan pengguna checkout serentak.',
+              desc: 'Checkout memeriksa stok dan saldo dalam transaksi database dengan penguncian baris pada database yang mendukungnya. Beban ribuan pengguna belum diuji.',
             },
             {
               title: 'Idempotency Key Protection',
@@ -383,7 +383,7 @@ const HELP_TOPICS = {
             },
             {
               title: 'Isolasi Hak Akses Multi-Role',
-              desc: 'Pembeli, Penjual, Driver, dan Admin memiliki batasan akses ketat (Role-Based Access Control) sehingga data tidak dapat disusupi antar peran.',
+              desc: 'Backend memeriksa peran aktif dan kepemilikan resource sebelum mengizinkan tindakan Pembeli, Penjual, Driver, atau Admin.',
             },
           ].map((item, idx) => (
             <div key={idx} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card-sm">
@@ -401,7 +401,7 @@ const HELP_TOPICS = {
           <ul className="mt-3 space-y-2 text-sm text-slate-600">
             <li>• Jangan pernah membagikan password atau kredensial akun kepada siapa pun.</li>
             <li>• Selalu lakukan transaksi hanya di dalam aplikasi resmi SEAPEDIA.</li>
-            <li>• Laporkan segera aktivitas mencurigakan ke tim bantuan kami di support@seapedia.id.</li>
+            <li>• Gunakan data percobaan saat menjelajahi proyek demo ini.</li>
           </ul>
         </div>
       </div>
@@ -443,7 +443,7 @@ const HELP_TOPICS = {
             },
             {
               q: 'Bagaimana cara menghubungi tim layanan pelanggan?',
-              a: 'Anda dapat menghubungi kami melalui email di support@seapedia.id atau mendatangi kantor operasional kami di Gedung Bahari Nusantara, Jakarta Pusat (Senin-Minggu 08:00 - 21:00 WIB).',
+              a: 'SEAPEDIA saat ini merupakan proyek demo dan portofolio. Panduan di halaman ini membantu mencoba fiturnya; belum ada kantor operasional atau layanan pelanggan komersial.',
             },
           ].map((item, idx) => (
             <details key={idx} className="group rounded-2xl border border-slate-200 bg-white p-5 open:bg-slate-50 transition-colors">
@@ -459,10 +459,10 @@ const HELP_TOPICS = {
         <div className="rounded-2xl bg-primary-950 p-6 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h3 className="font-bold text-lg">Masih Butuh Bantuan Lain?</h3>
-            <p className="mt-1 text-sm text-blue-200">Tim kami siap membantu menyelesaikan kendala transaksi Anda setiap hari.</p>
+            <p className="mt-1 text-sm text-blue-200">Gunakan panduan untuk mencoba alur belanja, penjualan, dan pengantaran pada proyek demo ini.</p>
           </div>
-          <Button as="a" href="mailto:support@seapedia.id" variant="secondary" className="!bg-white !text-primary-950 font-bold shrink-0">
-            Kirim Email Dukungan
+          <Button as={Link} to="/products" variant="secondary" className="!bg-white !text-primary-950 font-bold shrink-0">
+            Jelajahi Katalog Demo
           </Button>
         </div>
       </div>
@@ -532,12 +532,12 @@ export default function HelpInfoPage() {
               <p className="font-semibold text-slate-700 flex items-center gap-1.5">
                 <Headset size={15} className="text-cyan-600" /> Butuh bantuan langsung?
               </p>
-              <p className="mt-1 text-slate-500">Hubungi <span className="font-bold text-primary-700">support@seapedia.id</span></p>
+              <p className="mt-1 text-slate-500">Panduan ini mendampingi penggunaan proyek demo SEAPEDIA.</p>
             </div>
           </aside>
 
           {/* Main Content Area */}
-          <main className="rounded-3xl border border-slate-200 bg-white p-7 sm:p-10 shadow-card">
+          <section aria-label={activeTopic.title} className="rounded-3xl border border-slate-200 bg-white p-7 sm:p-10 shadow-card">
             {/* Header */}
             <div className="border-b border-slate-100 pb-7">
               <div className="flex items-center gap-2">
@@ -558,7 +558,7 @@ export default function HelpInfoPage() {
             <div className="pt-7">
               {activeTopic.content}
             </div>
-          </main>
+          </section>
 
         </div>
       </div>

@@ -121,10 +121,11 @@ const ProfileTab = ({ user, onUpdate }) => {
             </div>
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-gray-700 mb-1">Foto Profil</p>
+            <label htmlFor="profile-avatar" className="block text-sm font-semibold text-gray-700 mb-1">Foto Profil</label>
             <p className="text-xs text-gray-500 mb-2">Masukkan URL foto profil kamu</p>
             <input
               name="avatar_url"
+              id="profile-avatar"
               type="url"
               value={form.avatar_url}
               onChange={handleChange}
@@ -138,11 +139,12 @@ const ProfileTab = ({ user, onUpdate }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Nama */}
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="profile-name" className="block text-sm font-medium text-gray-700 mb-1">
               Nama Lengkap <span className="text-red-500">*</span>
             </label>
             <input
               name="name"
+              id="profile-name"
               type="text"
               value={form.name}
               onChange={handleChange}
@@ -155,13 +157,14 @@ const ProfileTab = ({ user, onUpdate }) => {
 
           {/* Nomor HP */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nomor HP</label>
+            <label htmlFor="profile-phone" className="block text-sm font-medium text-gray-700 mb-1">Nomor HP</label>
             <div className="flex">
               <span className="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 rounded-l-lg text-sm text-gray-500">
                 +62
               </span>
               <input
                 name="phone"
+                id="profile-phone"
                 type="tel"
                 value={form.phone}
                 onChange={handleChange}
@@ -174,9 +177,10 @@ const ProfileTab = ({ user, onUpdate }) => {
 
           {/* Gender */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin</label>
+            <label htmlFor="profile-gender" className="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin</label>
             <select
               name="gender"
+              id="profile-gender"
               value={form.gender}
               onChange={handleChange}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary-500 bg-white"
@@ -189,9 +193,10 @@ const ProfileTab = ({ user, onUpdate }) => {
 
           {/* Tanggal Lahir */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Lahir</label>
+            <label htmlFor="profile-birth-date" className="block text-sm font-medium text-gray-700 mb-1">Tanggal Lahir</label>
             <input
               name="birth_date"
+              id="profile-birth-date"
               type="date"
               value={form.birth_date}
               onChange={handleChange}
@@ -202,11 +207,12 @@ const ProfileTab = ({ user, onUpdate }) => {
 
           {/* Email (readonly) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="profile-email" className="block text-sm font-medium text-gray-700 mb-1">
               Email <span className="text-xs text-gray-400">(tidak bisa diubah)</span>
             </label>
             <input
               type="email"
+              id="profile-email"
               value={user?.email || ''}
               readOnly
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
@@ -215,9 +221,10 @@ const ProfileTab = ({ user, onUpdate }) => {
 
           {/* Bio */}
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+            <label htmlFor="profile-bio" className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
             <textarea
               name="bio"
+              id="profile-bio"
               value={form.bio}
               onChange={handleChange}
               rows={2}
@@ -351,26 +358,26 @@ const AddressTab = () => {
           <form onSubmit={requestSubmit} className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Label Alamat</label>
-                <input type="text" placeholder="Rumah / Kantor" value={formData.label}
+                <label htmlFor="settings-address-label" className="block text-xs font-medium text-gray-600 mb-1">Label Alamat</label>
+                <input id="settings-address-label" type="text" placeholder="Rumah / Kantor" value={formData.label}
                   onChange={e => setFormData(p => ({ ...p, label: e.target.value }))} required
                   className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Nama Penerima</label>
-                <input type="text" placeholder="Nama lengkap penerima" value={formData.recipient_name}
+                <label htmlFor="settings-address-recipient" className="block text-xs font-medium text-gray-600 mb-1">Nama Penerima</label>
+                <input id="settings-address-recipient" type="text" placeholder="Nama lengkap penerima" value={formData.recipient_name}
                   onChange={e => setFormData(p => ({ ...p, recipient_name: e.target.value }))} required
                   className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Nomor HP Penerima</label>
-                <input type="tel" placeholder="08xx..." value={formData.phone}
+                <label htmlFor="settings-address-phone" className="block text-xs font-medium text-gray-600 mb-1">Nomor HP Penerima</label>
+                <input id="settings-address-phone" type="tel" placeholder="08xx..." value={formData.phone}
                   onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} required
                   className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500" />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Alamat Lengkap</label>
-                <textarea rows={2} placeholder="Jl. ..." value={formData.full_address}
+                <label htmlFor="settings-address-full" className="block text-xs font-medium text-gray-600 mb-1">Alamat Lengkap</label>
+                <textarea id="settings-address-full" rows={2} placeholder="Jl. ..." value={formData.full_address}
                   onChange={e => setFormData(p => ({ ...p, full_address: e.target.value }))} required
                   className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 resize-none" />
               </div>
@@ -496,10 +503,11 @@ const SecurityTab = () => {
 
   const renderPassInput = (name, label, keyName) => (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label htmlFor={`security-${name}`} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       <div className="relative">
         <input
           name={name}
+          id={`security-${name}`}
           type={showPass[keyName] ? 'text' : 'password'}
           value={form[name]}
           onChange={handleChange}
@@ -508,7 +516,7 @@ const SecurityTab = () => {
           className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary-500 pr-10"
           placeholder={name === 'current_password' ? 'Password saat ini' : name === 'password' ? 'Min. 8 karakter' : 'Ulangi password baru'}
         />
-        <button type="button" onClick={() => setShowPass(p => ({ ...p, [keyName]: !p[keyName] }))}
+        <button type="button" aria-label={`${showPass[keyName] ? 'Sembunyikan' : 'Tampilkan'} ${label.toLowerCase()}`} onClick={() => setShowPass(p => ({ ...p, [keyName]: !p[keyName] }))}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
           {showPass[keyName] ? <EyeSlash size={19} /> : <Eye size={19} />}
         </button>

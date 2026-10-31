@@ -1,0 +1,92 @@
+import { expect, test } from '@playwright/test'
+
+test('40 products have local photos and all eight categories contain five products', async ({ page }) => {
+  const response = await page.request.get('http://127.0.0.1:18000/api/products?per_page=100')
+  const catalog = await response.json()
+  expect(catalog.meta.total).toBe(40)
+  const categories = new Map()
+  for (const product of catalog.data) {
+    categories.set(product.category, (categories.get(product.category) || 0) + 1)
+    const image = await page.request.get(product.image_url)
+    expect(image.ok(), product.name).toBe(true)
+    expect(image.headers()['content-type']).toContain('image/webp')
+  }
+  expect(categories.size).toBe(8)
+  expect([...categories.values()]).toEqual(Array(8).fill(5))
+})
+
+test('navbar and footer navigation update an already open catalog', async ({ page }) => {
+  await page.goto('/products')
+  await expect(page.getByRole('status')).toHaveText('40 produk ditemukan')
+  await page.locator('footer').getByRole('link', { name: 'Pakan Ikan', exact: true }).click()
+  await expect(page.getByRole('status')).toHaveText('5 produk ditemukan')
+  await expect(page.getByRole('button', { name: 'Pakan', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  const navbarSearch = page.locator('header input[type="search"], header input[placeholder*="Cari"]').first()
+  await navbarSearch.fill('Gramma')
+  await navbarSearch.press('Enter')
+  await expect(page.getByRole('status')).toHaveText('1 produk ditemukan')
+  await expect(page.getByRole('link', { name: /Ikan Royal Gramma Budidaya/ })).toBeVisible()
+})
+
+test('price drafts wait for apply and reversed ranges show actionable feedback', async ({ page }) => {
+  await page.goto('/products')
+  await expect(page.getByRole('status')).toHaveText('40 produk ditemukan')
+  await page.getByLabel('Harga minimum', { exact: true }).fill('100000')
+  await expect(page.getByRole('status')).toHaveText('40 produk ditemukan')
+  await page.getByLabel('Harga maksimum', { exact: true }).fill('50000')
+  await page.getByRole('button', { name: 'Terapkan harga' }).click()
+  await expect(page.getByRole('alert')).toContainText('Harga maksimum harus')
+  await page.getByLabel('Harga minimum', { exact: true }).fill('0')
+  await page.getByLabel('Harga maksimum', { exact: true }).fill('0')
+  await page.getByRole('button', { name: 'Terapkan harga' }).click()
+  await expect(page.getByRole('status')).toHaveText('0 produk ditemukan')
+  await expect(page.getByRole('heading', { name: 'Produk tidak ditemukan' })).toBeVisible()
+})
+
+test('catalog pagination and sorting persist in the URL', async ({ page }) => {
+  await page.goto('/products')
+  await expect(page.getByRole('status')).toHaveText('40 produk ditemukan')
+  const firstPage = await page.locator('.product-card').first().getAttribute('href')
+  await page.getByRole('button', { name: 'Selanjutnya' }).click()
+  await expect(page).toHaveURL(/page=2/)
+  await expect(page.getByRole('status')).toHaveText('40 produk ditemukan')
+  expect(await page.locator('.product-card').first().getAttribute('href')).not.toBe(firstPage)
+  await page.reload()
+  await expect(page.getByText('2 / 4', { exact: true })).toBeVisible()
+  await page.getByLabel('Urutkan produk').selectOption('price:asc')
+  await expect(page).not.toHaveURL(/page=2/)
+  await expect(page.getByText('1 / 4', { exact: true })).toBeVisible()
+})
+
+test('mobile category filter has no overflow and keyboard focus stays inside price dialog', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 })
+  await page.goto('/products')
+  await expect(page.getByRole('status')).toHaveText('40 produk ditemukan')
+  await page.getByRole('button', { name: 'Filter', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Filter Rentang Harga' })
+  await expect(dialog).toBeVisible()
+  await page.keyboard.press('Shift+Tab')
+  expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
+
+test('banner respects reduced motion and a touch tap does not advance the slide', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/')
+  const banner = page.getByRole('region', { name: 'Promo & Banner Pilihan SEAPEDIA' })
+  await expect(banner.getByRole('button', { name: 'Putar banner otomatis' })).toBeVisible()
+  const first = banner.getByRole('button', { name: 'Pindah ke banner 1' })
+  const touch = (type, x) => banner.evaluate((element, data) => {
+    const points = data.x === null ? [] : [new Touch({ identifier: 1, target: element, clientX: data.x, clientY: 100 })]
+    element.dispatchEvent(new TouchEvent(data.type, { bubbles: true, touches: points, changedTouches: points }))
+  }, { type, x })
+  await touch('touchstart', 200)
+  await touch('touchend', null)
+  await expect(first).toHaveAttribute('aria-current', 'true')
+  await touch('touchstart', 300)
+  await touch('touchmove', 100)
+  await touch('touchend', null)
+  await expect(banner.getByRole('button', { name: 'Pindah ke banner 2' })).toHaveAttribute('aria-current', 'true')
+})

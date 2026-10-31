@@ -51,6 +51,9 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     let active = true
+    setLoading(true)
+    setLoadError('')
+    setQuantity(1)
     Promise.all([productService.getById(Number(id)), reviewService.getForProduct(Number(id))])
       .then(([productResponse, reviewResponse]) => {
         if (!active) return

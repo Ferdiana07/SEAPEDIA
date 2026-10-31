@@ -50,7 +50,7 @@ const AdminUsersPage = () => {
     }
     return (
       <span key={role} className={`inline-block px-1.5 py-0.5 text-[10px] font-bold rounded uppercase mr-1 ${
-        isActive ? colors[role] || 'bg-gray-100 text-gray-600' : 'bg-gray-100 text-gray-400'
+        isActive ? colors[role] || 'bg-gray-100 text-gray-600' : 'bg-gray-100 text-gray-500'
       }`}>
         {role}{isActive ? ' ✓' : ''}
       </span>
@@ -96,7 +96,7 @@ const AdminUsersPage = () => {
               <p className="mt-3 text-gray-500 text-sm">Memuat...</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabel pengguna; gulir untuk melihat kolom lainnya">
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">

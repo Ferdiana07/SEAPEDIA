@@ -1,6 +1,33 @@
 # Quality Gate
 
-Tanggal verifikasi terakhir: 2026-10-18.
+Tanggal audit terbaru: 2026-10-31. Lihat [laporan audit](AUDIT-2026-10-31.md) untuk cakupan dan batas verifikasi.
+
+## Checkpoint 31 Oktober 2026
+
+| Check | Hasil |
+|---|---|
+| Backend feature/unit | 29 test, 233 assertion lulus |
+| Laravel Pint | Lulus |
+| Composer audit locked | 0 advisory |
+| Frontend lint / production build | Lulus |
+| Backend Vite build / npm audit | Lulus / 0 vulnerability |
+| Frontend npm production | 0 vulnerability |
+| Frontend npm penuh | 6 moderate pada jalur development ESLint/minimatch; 0 high/critical |
+| Foto produk | 40 WebP lokal, 40 metadata kredit, SHA-256 dan mirror backend cocok |
+| Seeder katalog | 24 tambahan; sinkronisasi kedua 0 tambahan; tidak reset database kerja |
+| Playwright E2E | 17 test lulus dalam full run terakhir |
+| Audit rendered | 43 variasi halaman/viewport: 0 pelanggaran axe, 0 overflow halaman, 0 gambar rusak, 0 runtime exception / respons 5xx pada cakupan test |
+| Smoke API MySQL lokal | 40 produk; delapan kategori masing-masing lima; pencarian case-insensitive dan CORS preflight lulus |
+
+E2E sekarang memakai SQLite khusus di `tmp/e2e/`, API port 18000, dan frontend port 15173. Server developer pada 8000/5173 tidak dipakai E2E. `npm run test:e2e` menjalankan regression flow dan audit axe; hasil detail/screenshot dibuat di `tmp/qa/audit-20261031/`.
+
+Validasi aset tanpa network dari root proyek:
+
+```powershell
+python scripts/import-catalog-photos.py --check
+```
+
+Untuk mengambil ulang foto berdasarkan manifest yang sudah ditinjau (memerlukan Pillow dan koneksi internet): `python scripts/import-catalog-photos.py`. Metadata dan lisensi tetap tersedia pada `/photo-credits.html`.
 
 ## Commands
 
@@ -32,7 +59,7 @@ npx --yes @redocly/cli@2.3.0 lint docs/OPENAPI.yaml
 
 OpenAPI valid. Recommended Redocly rules memberi warning dokumentasi gaya karena kontrak sengaja tidak memakai `operationId` dan tidak menambahkan respons 4xx generik pada setiap operasi read-only; tidak ada schema error.
 
-## Hasil terakhir (Upload foto produk Seller - 2026-10-18)
+## Arsip hasil upload foto Seller — 18 Oktober 2026
 
 | Check | Status | Hasil |
 |---|---|---|
@@ -50,7 +77,7 @@ OpenAPI valid. Recommended Redocly rules memberi warning dokumentasi gaya karena
 
 ## Dependency audit note
 
-Frontend sudah dimigrasikan ke Tailwind CSS 4 dengan plugin Vite. Audit npm penuh, termasuk dependency development, kini bersih tanpa `audit fix --force`.
+Pada checkpoint 18 Oktober, audit npm penuh bersih. Audit ulang 31 Oktober menemukan advisory baru: setelah update kompatibel, production bersih dan tersisa enam entri moderate pada jalur development ESLint/minimatch. Tidak digunakan `audit fix --force` atau override major yang belum diverifikasi. Detail tersedia pada laporan audit terbaru.
 
 ## Cakupan test backend
 

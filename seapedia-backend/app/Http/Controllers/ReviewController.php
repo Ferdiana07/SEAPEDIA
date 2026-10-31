@@ -27,7 +27,7 @@ class ReviewController extends Controller
      */
     public function index(Request $request, int $productId): JsonResponse
     {
-        $product = Product::find($productId);
+        $product = Product::active()->whereHas('store', fn ($store) => $store->active())->find($productId);
 
         if (! $product) {
             return response()->json([
@@ -88,7 +88,7 @@ class ReviewController extends Controller
             'comment' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $product = Product::find($productId);
+        $product = Product::active()->whereHas('store', fn ($store) => $store->active())->find($productId);
 
         if (! $product) {
             return response()->json([

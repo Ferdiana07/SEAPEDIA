@@ -40,7 +40,20 @@ class ProductController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $request->validate([
+            'search' => ['nullable', 'string', 'max:200'],
+            'category' => ['nullable', 'string', 'max:80'],
+            'store_id' => ['nullable', 'integer', 'min:1'],
+            'min_price' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
+            'max_price' => ['nullable', 'integer', 'min:0', 'max:1000000000', ...($request->filled('min_price') ? ['gte:min_price'] : [])],
+            'sort_by' => ['nullable', 'string', 'in:price,name,created_at'],
+            'sort_order' => ['nullable', 'string', 'in:asc,desc'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
         $query = Product::with('store:id,name,logo_url')  // Eager load toko
+            ->whereHas('store', fn ($store) => $store->active())
             ->active()                            // Hanya aktif
             ->inStock();                         // Hanya ada stok
 
@@ -60,11 +73,11 @@ class ProductController extends Controller
         }
 
         // Filter by price range
-        if ($minPrice = $request->input('min_price')) {
-            $query->where('price', '>=', (int) $minPrice);
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', (int) $request->input('min_price'));
         }
-        if ($maxPrice = $request->input('max_price')) {
-            $query->where('price', '<=', (int) $maxPrice);
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', (int) $request->input('max_price'));
         }
 
         // Sorting
@@ -80,7 +93,7 @@ class ProductController extends Controller
 
         // Pagination
         $perPage = max(1, min((int) $request->input('per_page', 12), 100));
-        $products = $query->paginate($perPage);
+        $products = $query->orderBy('id', $sortOrder === 'asc' ? 'asc' : 'desc')->paginate($perPage);
 
         return response()->json([
             'success' => true,
@@ -103,27 +116,16 @@ class ProductController extends Controller
     public function show(int $id): JsonResponse
     {
         $product = Product::with([
-            'store:id,name,description,address,phone',
+            'store:id,user_id,name,description,address,phone,is_active',
             'store.user:id,name',  // Info seller
             'reviews.user:id,name', // Reviews + nama reviewer (BAB 9)
         ])->find($id);
 
-        if (! $product) {
+        if (! $product || ! $product->is_active || ! $product->store?->is_active) {
             return response()->json([
                 'success' => false,
                 'message' => 'Produk tidak ditemukan',
             ], 404);
-        }
-
-        // Jika produk tidak aktif, hanya owner yang bisa lihat
-        if (! $product->is_active) {
-            $user = auth()->user();
-            if (! $user || ! $product->isOwnedByUser($user->id)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Produk tidak ditemukan',
-                ], 404);
-            }
         }
 
         return response()->json([

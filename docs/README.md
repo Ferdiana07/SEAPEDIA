@@ -21,6 +21,7 @@ Brief awal berada di `SEAPEDIA.pdf`. Proyek ini dilanjutkan sebagai proyek porto
 - `PRODUCT_SPEC.md`: ruang lingkup produk dan aturan bisnis yang dipilih.
 - `ARCHITECTURE.md`: arsitektur, lifecycle, dan keputusan teknis.
 - `AUDIT.md`: hasil audit awal terhadap source code.
+- `AUDIT-2026-10-31.md`: audit terbaru, katalog 40 produk, kredit foto, perbaikan, hasil pengujian, serta temuan tersisa.
 - `ROADMAP.md`: checklist milestone implementasi.
 - `PROGRESS.md`: log progres kronologis dan handoff sesi.
 - `QUALITY.md`: command verifikasi dan status kualitas.

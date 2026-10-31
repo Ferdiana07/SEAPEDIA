@@ -111,8 +111,10 @@ class Product extends Model
     public function scopeSearch($query, $keyword)
     {
         return $query->where(function ($q) use ($keyword) {
-            $q->where('name', 'LIKE', "%{$keyword}%")
-                ->orWhere('description', 'LIKE', "%{$keyword}%");
+            $q->whereLike('name', "%{$keyword}%")
+                ->orWhereLike('description', "%{$keyword}%")
+                ->orWhereLike('category', "%{$keyword}%")
+                ->orWhereHas('store', fn ($store) => $store->whereLike('name', "%{$keyword}%"));
         });
     }
 

@@ -1,0 +1,394 @@
+[
+  {
+    "name": "Set Pancing Pantai Carbon 3,6 m",
+    "description": "Paket joran carbon, reel spinning, dan senar untuk memancing dari pantai. Ringan, kokoh, serta memakai komponen tahan korosi air asin.",
+    "category": "alat pancing",
+    "image_url": "/images/products/set-pancing-pantai.webp",
+    "store_id": 1,
+    "price": 175000,
+    "stock": 24,
+    "legacy_name": "Set Pancing Pantai Carbon 3,6 m",
+    "legacy_image_url": "/images/products/set-pancing-pantai.webp"
+  },
+  {
+    "name": "Reel Spinning Laut Anti-Korosi",
+    "description": "Reel aluminium bersegel dengan drag halus dan spool berkapasitas besar. Bilas dengan air tawar setelah digunakan agar umur pakai lebih panjang.",
+    "category": "alat pancing",
+    "image_url": "/images/products/reel-spinning-laut.webp",
+    "store_id": 1,
+    "price": 145000,
+    "stock": 32,
+    "legacy_name": "Reel Spinning Laut Anti-Korosi",
+    "legacy_image_url": "/images/products/reel-spinning-laut.webp"
+  },
+  {
+    "name": "Kotak Tackle Kedap Air 48 Kompartemen",
+    "description": "Kotak perlengkapan dengan sekat transparan, pengunci rapat, kail, swivel, umpan lunak, dan tang mini untuk perjalanan memancing.",
+    "category": "alat pancing",
+    "image_url": "/images/products/kotak-tackle.webp",
+    "store_id": 1,
+    "price": 99000,
+    "stock": 41,
+    "legacy_name": "Kotak Tackle Kedap Air 48 Kompartemen",
+    "legacy_image_url": "/images/products/kotak-tackle.webp"
+  },
+  {
+    "name": "Pelampung Pancing Warna Set 5 Buah",
+    "description": "Pelampung berwarna kontras untuk membantu membaca gerakan umpan. Set demo berisi lima ukuran untuk latihan memancing di perairan tenang.",
+    "category": "alat pancing",
+    "image_url": "/images/products/rompi-pancing.webp",
+    "store_id": 1,
+    "price": 135000,
+    "stock": 27,
+    "legacy_name": "Rompi Pancing Pesisir Quick-Dry",
+    "legacy_image_url": "/images/products/rompi-pancing.webp"
+  },
+  {
+    "name": "Kincir Air Aerator Tambak 4 Kipas",
+    "description": "Kincir air paddlewheel 4 kipas bertenaga untuk tambak udang dan kolam budidaya pesisir. Menjaga aerasi dan kadar oksigen terlarut tetap optimal.",
+    "category": "budidaya",
+    "image_url": "/images/products/aerator-kolam.webp",
+    "store_id": 2,
+    "price": 225000,
+    "stock": 18,
+    "legacy_name": "Kincir Air Aerator Tambak 4 Kipas",
+    "legacy_image_url": "/images/products/aerator-kolam.webp"
+  },
+  {
+    "name": "Jaring Keramba Apung HDPE Pesisir",
+    "description": "Fasilitas jaring keramba apung (KJA) berstruktur pipa HDPE kokoh tahan gelombang. Sesuai untuk budidaya kerapu, bawal bintang, dan kakap pesisir.",
+    "category": "budidaya",
+    "image_url": "/images/products/jaring-keramba.webp",
+    "store_id": 2,
+    "price": 275000,
+    "stock": 12,
+    "legacy_name": "Jaring Keramba Apung HDPE Pesisir",
+    "legacy_image_url": "/images/products/jaring-keramba.webp"
+  },
+  {
+    "name": "Pelet Ikan Laut Protein Tinggi 2 kg",
+    "description": "Pakan apung butiran padat nutrisi tinggi untuk ikan laut budidaya. Memacu pertumbuhan optimal dan menjaga stabilitas kualitas air kolam.",
+    "category": "pakan",
+    "image_url": "/images/products/pelet-ikan-laut.webp",
+    "store_id": 2,
+    "price": 58000,
+    "stock": 80,
+    "legacy_name": "Pelet Ikan Laut Protein Tinggi 2 kg",
+    "legacy_image_url": "/images/products/pelet-ikan-laut.webp"
+  },
+  {
+    "name": "Refraktometer Salinitas Air Laut",
+    "description": "Refraktometer genggam untuk memeriksa kadar garam pada sampel air. Bersihkan prisma dan lakukan kalibrasi sesuai petunjuk sebelum digunakan.",
+    "category": "budidaya",
+    "image_url": "/images/products/meter-kualitas-air.webp",
+    "store_id": 2,
+    "price": 325000,
+    "stock": 15,
+    "legacy_name": "Meter Digital Salinitas & Kualitas Air",
+    "legacy_image_url": "/images/products/meter-kualitas-air.webp"
+  },
+  {
+    "name": "Akuarium Nano Reef Starter Kit",
+    "description": "Tangki nano untuk simulasi katalog akuarium laut. Foto memperlihatkan contoh penataan reef; biota dan dekorasi tambahan dijual terpisah.",
+    "category": "akuarium",
+    "image_url": "/images/products/akuarium-nano-reef.webp",
+    "store_id": 3,
+    "price": 585000,
+    "stock": 9,
+    "legacy_name": "Akuarium Nano Reef 45 L Starter Kit",
+    "legacy_image_url": "/images/products/akuarium-nano-reef.webp"
+  },
+  {
+    "name": "Pasir Aragonit Natural Karang 5 kg",
+    "description": "Substrat pasir karang bertekstur untuk penataan akuarium laut. Cuci dan siapkan sesuai kebutuhan sistem; kemasan demo 5 kg.",
+    "category": "akuarium",
+    "image_url": "/images/products/pasir-aragonit.webp",
+    "store_id": 3,
+    "price": 75000,
+    "stock": 36,
+    "legacy_name": "Pasir Aragonit Natural Karang 5 kg",
+    "legacy_image_url": "/images/products/pasir-aragonit.webp"
+  },
+  {
+    "name": "Lampu LED Akuarium 60 cm",
+    "description": "Lampu LED dengan dudukan di atas akuarium. Foto menunjukkan contoh pemasangan pada tangki; akuarium dan tanaman tidak termasuk.",
+    "category": "akuarium",
+    "image_url": "/images/products/lampu-led-reef.webp",
+    "store_id": 3,
+    "price": 285000,
+    "stock": 17,
+    "legacy_name": "Lampu LED Reef Full-Spectrum 60 cm",
+    "legacy_image_url": "/images/products/lampu-led-reef.webp"
+  },
+  {
+    "name": "Protein Skimmer Akuarium Laut",
+    "description": "Perangkat pemisah busa untuk membantu pengelolaan limbah organik akuarium laut. Cocokkan kapasitas perangkat dengan volume sistem sebelum memilih.",
+    "category": "akuarium",
+    "image_url": "/images/products/protein-skimmer.webp",
+    "store_id": 3,
+    "price": 375000,
+    "stock": 11,
+    "legacy_name": "Protein Skimmer Reef Compact",
+    "legacy_image_url": "/images/products/protein-skimmer.webp"
+  },
+  {
+    "name": "Sepasang Ikan Badut Hasil Budidaya",
+    "description": "Sepasang Amphiprion ocellaris dalam katalog simulasi budidaya. Gunakan akuarium laut yang sudah cycling dan sesuaikan salinitas sebelum introduksi.",
+    "category": "biota hidup",
+    "image_url": "/images/products/ikan-badut-budidaya.webp",
+    "store_id": 3,
+    "price": 195000,
+    "stock": 8,
+    "legacy_name": "Sepasang Ikan Badut Hasil Budidaya",
+    "legacy_image_url": "/images/products/ikan-badut-budidaya.webp"
+  },
+  {
+    "name": "Starter Caulerpa Anggur Laut Budidaya",
+    "description": "Rumpun Caulerpa lentillifera (anggur laut/green caviar) segar hasil budidaya untuk refugium penyerap nutrien atau konsumsi segar.",
+    "category": "tanaman laut",
+    "image_url": "/images/products/caulerpa-budidaya.webp",
+    "store_id": 3,
+    "price": 45000,
+    "stock": 22,
+    "legacy_name": "Starter Caulerpa Anggur Laut Budidaya",
+    "legacy_image_url": "/images/products/caulerpa-budidaya.webp"
+  },
+  {
+    "name": "Potongan Tuna Segar 500 g",
+    "description": "Potongan tuna mentah 500 g untuk simulasi katalog hasil laut. Foto ilustrasi bahan; simpan dingin dan masak hingga matang sebelum dikonsumsi.",
+    "category": "hasil laut",
+    "image_url": "/images/products/loin-tuna-segar.webp",
+    "store_id": 3,
+    "price": 125000,
+    "stock": 20,
+    "legacy_name": "Loin Tuna Sirip Kuning Segar 500 g",
+    "legacy_image_url": "/images/products/loin-tuna-segar.webp"
+  },
+  {
+    "name": "Rice Bowl Tuna Pedas",
+    "description": "Semangkuk nasi dengan tuna berbumbu dan pelengkap segar. Menu dummy satu porsi untuk simulasi pemesanan kuliner laut.",
+    "category": "kuliner laut",
+    "image_url": "/images/products/rice-bowl-tuna.webp",
+    "store_id": 3,
+    "price": 38000,
+    "stock": 30,
+    "legacy_name": "Rice Bowl Tuna Sambal Matah",
+    "legacy_image_url": "/images/products/rice-bowl-tuna.webp"
+  },
+  {
+    "store_id": 1,
+    "name": "Set Umpan Minnow 4 Warna",
+    "category": "alat pancing",
+    "price": 65000,
+    "stock": 48,
+    "description": "Umpan tiruan berbentuk ikan dalam empat pilihan warna. Perlengkapan demo untuk latihan casting; gunakan kotak pelindung saat menyimpan kail.",
+    "image_url": "/images/products/umpan-minnow.webp"
+  },
+  {
+    "store_id": 2,
+    "name": "Serok Ikan Gagang Panjang",
+    "category": "budidaya",
+    "price": 85000,
+    "stock": 25,
+    "description": "Jaring serok dengan gagang untuk membantu pemindahan ikan. Basahi jaring sebelum digunakan dan hindari mengangkat biota terlalu lama.",
+    "image_url": "/images/products/serok-ikan.webp"
+  },
+  {
+    "store_id": 2,
+    "name": "Tali Tambak Biru 20 m",
+    "category": "budidaya",
+    "price": 55000,
+    "stock": 60,
+    "description": "Tali serat sintetis untuk pengikatan ringan di area budidaya. Panjang demo 20 meter; periksa kebutuhan diameter dan beban sebelum penggunaan.",
+    "image_url": "/images/products/tali-tambak.webp"
+  },
+  {
+    "store_id": 2,
+    "name": "Pakan Hidup Artemia 250 ml",
+    "category": "pakan",
+    "price": 35000,
+    "stock": 40,
+    "description": "Pakan hidup Artemia untuk simulasi katalog pemeliharaan larva ikan. Foto makro memperlihatkan organisme; volume kemasan demo 250 ml.",
+    "image_url": "/images/products/artemia-kering.webp"
+  },
+  {
+    "store_id": 2,
+    "name": "Cacing Darah Pakan Hidup 100 g",
+    "category": "pakan",
+    "price": 22000,
+    "stock": 55,
+    "description": "Larva chironomid sebagai variasi pakan. Foto makro menunjukkan bentuk pakan, bukan ukuran sebenarnya; gunakan sesuai kebutuhan biota.",
+    "image_url": "/images/products/cacing-darah.webp"
+  },
+  {
+    "store_id": 2,
+    "name": "Bubuk Spirulina Campuran Pakan 100 g",
+    "category": "pakan",
+    "price": 42000,
+    "stock": 65,
+    "description": "Bubuk spirulina hijau sebagai bahan campuran pakan. Produk dummy kemasan 100 gram; simpan rapat dan gunakan takaran sesuai formulasi.",
+    "image_url": "/images/products/pakan-spirulina.webp"
+  },
+  {
+    "store_id": 2,
+    "name": "Nori Polos Pakan Herbivora 10 Lembar",
+    "category": "pakan",
+    "price": 28000,
+    "stock": 70,
+    "description": "Lembaran alga tanpa bumbu untuk variasi pakan ikan herbivora. Potong secukupnya dan angkat sisa pakan dari akuarium.",
+    "image_url": "/images/products/nori-pakan.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Batu Aquascape Laut Berpori 1 kg",
+    "category": "akuarium",
+    "price": 68000,
+    "stock": 28,
+    "description": "Batuan berpori untuk contoh penataan akuarium laut. Foto memperlihatkan susunan dalam tangki; bentuk setiap potongan dapat berbeda.",
+    "image_url": "/images/products/batu-karang.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Ikan Banggai Cardinal Budidaya",
+    "category": "biota hidup",
+    "price": 95000,
+    "stock": 14,
+    "description": "Pterapogon kauderni bercorak hitam putih dalam katalog simulasi budidaya. Pelihara pada sistem laut yang stabil dan hindari perubahan air mendadak.",
+    "image_url": "/images/products/ikan-banggai.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Udang Cleaner Akuarium Laut",
+    "category": "biota hidup",
+    "price": 125000,
+    "stock": 12,
+    "description": "Lysmata amboinensis dengan antena putih panjang. Contoh biota untuk tangki laut yang matang; lakukan aklimatisasi perlahan.",
+    "image_url": "/images/products/udang-cleaner.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Ikan Royal Gramma Budidaya",
+    "category": "biota hidup",
+    "price": 185000,
+    "stock": 10,
+    "description": "Gramma loreto bercorak ungu dan kuning untuk katalog simulasi budidaya. Sediakan celah batu untuk berlindung dan perhatikan kompatibilitas penghuni.",
+    "image_url": "/images/products/siput-trochus.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Ikan Yellow Clown Goby Budidaya",
+    "category": "biota hidup",
+    "price": 75000,
+    "stock": 18,
+    "description": "Gobiodon okinawae berwarna kuning cerah. Contoh biota berukuran kecil untuk akuarium laut yang sudah stabil.",
+    "image_url": "/images/products/ikan-goby.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Chaetomorpha Refugium 100 g",
+    "category": "tanaman laut",
+    "price": 38000,
+    "stock": 32,
+    "description": "Makroalga hijau berfilamen untuk contoh refugium laut. Foto memperlihatkan bentuk rumpun di akuarium; kemasan demo 100 gram.",
+    "image_url": "/images/products/chaetomorpha.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Rumput Laut Gracilaria 250 g",
+    "category": "tanaman laut",
+    "price": 25000,
+    "stock": 45,
+    "description": "Gracilaria bercabang halus untuk simulasi kebutuhan budidaya alga. Kemasan dummy 250 gram; cocokkan kondisi air dengan kebutuhan spesies.",
+    "image_url": "/images/products/gracilaria.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Selada Laut Ulva 100 g",
+    "category": "tanaman laut",
+    "price": 22000,
+    "stock": 38,
+    "description": "Ulva berlembaran hijau menyerupai selada. Contoh makroalga untuk pengenalan ekosistem dan budidaya laut.",
+    "image_url": "/images/products/ulva.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Makroalga Sargassum 250 g",
+    "category": "tanaman laut",
+    "price": 30000,
+    "stock": 24,
+    "description": "Makroalga cokelat dengan percabangan khas untuk katalog edukasi bahari. Data persediaan dan kemasan pada produk ini bersifat simulasi.",
+    "image_url": "/images/products/sargassum.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Udang Segar Ukuran Besar 500 g",
+    "category": "hasil laut",
+    "price": 65000,
+    "stock": 40,
+    "description": "Udang mentah dalam porsi demo 500 gram. Foto menunjukkan bahan sebelum dimasak; simpan dalam rantai dingin dan masak hingga matang.",
+    "image_url": "/images/products/udang-vaname.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Cumi-Cumi Segar 500 g",
+    "category": "hasil laut",
+    "price": 72000,
+    "stock": 26,
+    "description": "Cumi utuh untuk simulasi belanja bahan laut. Bersihkan bagian dalam, simpan dingin, dan masak sebelum disajikan.",
+    "image_url": "/images/products/cumi-segar.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Kerang Hijau Segar 1 kg",
+    "category": "hasil laut",
+    "price": 35000,
+    "stock": 44,
+    "description": "Kerang hijau bercangkang untuk contoh katalog hasil laut. Bersihkan dan masak sampai matang; kemasan demo satu kilogram.",
+    "image_url": "/images/products/kerang-hijau.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Ikan Kakap Merah Utuh 1 kg",
+    "category": "hasil laut",
+    "price": 98000,
+    "stock": 21,
+    "description": "Ikan kakap merah utuh untuk simulasi pemesanan hasil laut. Foto ilustrasi bahan; berat per ekor dapat bervariasi.",
+    "image_url": "/images/products/ikan-kakap.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Sate Udang Bakar dan Nasi",
+    "category": "kuliner laut",
+    "price": 48000,
+    "stock": 30,
+    "description": "Udang panggang bertusuk dengan nasi dan pelengkap. Satu porsi dummy untuk menguji alur pembelian makanan siap santap.",
+    "image_url": "/images/products/udang-bakar.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Cumi Goreng Tepung Saus Mayo",
+    "category": "kuliner laut",
+    "price": 42000,
+    "stock": 28,
+    "description": "Potongan cumi berbalut tepung dengan saus pendamping. Menu simulasi satu porsi; mengandung hasil laut, telur, dan tepung.",
+    "image_url": "/images/products/cumi-goreng.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Kakap Bakar Madu dan Sambal",
+    "category": "kuliner laut",
+    "price": 68000,
+    "stock": 18,
+    "description": "Ikan kakap bakar dengan sayuran dan sambal. Contoh menu kuliner laut untuk pesanan instan satu porsi.",
+    "image_url": "/images/products/ikan-bakar.webp"
+  },
+  {
+    "store_id": 3,
+    "name": "Sup Ikan Kuah Kuning Pallumara",
+    "category": "kuliner laut",
+    "price": 38000,
+    "stock": 32,
+    "description": "Potongan ikan dalam kuah kuning bergaya pallumara. Menu dummy satu porsi, disajikan dengan pelengkap sesuai contoh foto.",
+    "image_url": "/images/products/sup-ikan.webp"
+  }
+]

@@ -24,7 +24,9 @@ class AuthController extends Controller
      */
     public function register(Request $request): JsonResponse
     {
-        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => mb_strtolower(trim($request->input('email')))]);
+        }
 
         // Validasi input
         $validated = $request->validate([
@@ -69,7 +71,9 @@ class AuthController extends Controller
      */
     public function login(Request $request): JsonResponse
     {
-        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => mb_strtolower(trim($request->input('email')))]);
+        }
 
         // Validasi input
         $validated = $request->validate([

@@ -4,7 +4,7 @@ SEAPEDIA adalah marketplace bahari full-stack multi-role yang menghubungkan Pemb
 
 ## Sorotan produk
 
-- Katalog bahari publik dengan 16 fixture realistis, foto WebP lokal, pencarian, filter kategori/harga, detail produk, dan halaman toko.
+- Katalog bahari publik dengan 40 fixture (lima per kategori), foto internet berlisensi yang disimpan sebagai WebP lokal, pencarian, filter kategori/harga, detail produk, dan halaman toko.
 - Satu akun dapat memiliki beberapa role dengan role aktif yang diverifikasi backend.
 - Buyer: wallet simulasi, alamat, cart satu toko, quote checkout, voucher/promo, ongkir, PPN 12%, order timeline, cancel, dan refund.
 - Seller: profil toko, CRUD produk, upload/preview foto produk, stok, pesanan masuk, dan laporan pendapatan selesai.
@@ -74,6 +74,8 @@ Panel akun demo tampil otomatis pada halaman login saat menjalankan `npm run dev
 
 ## Quality gate
 
+Audit terbaru: [31 Oktober 2026](docs/AUDIT-2026-10-31.md). Katalog sudah diperbarui ke 40 produk, dan sumber foto tersedia pada footer aplikasi. Sinkronisasi katalog tanpa reset database: `php artisan db:seed --class=ProductSeeder` dari folder backend. Seeder ini mempertahankan stok/harga yang sudah berubah dan upload seller.
+
 ```powershell
 cd seapedia-backend
 php artisan test --compact
@@ -87,7 +89,7 @@ npm run test:e2e
 npm audit
 ```
 
-Checkpoint terverifikasi 18 Oktober 2026:
+Checkpoint historis 18 Oktober 2026 (hasil terbaru ada di `docs/QUALITY.md`):
 
 - Backend: 20 test, 135 assertion lulus.
 - Frontend: ESLint tanpa error/warning dan production build lulus.

@@ -15,6 +15,7 @@ const Card = ({
   padding = 'md',
   shadow = 'sm',
   border = true,
+  tone = 'default',
   onClick,
   ...props
 }) => {
@@ -44,7 +45,7 @@ const Card = ({
     <div
       onClick={onClick}
       className={`
-        bg-white rounded-2xl
+        ${tone === 'navy' ? 'bg-primary-800 text-white' : 'bg-white'} rounded-2xl
         ${border ? 'border border-gray-100' : ''}
         ${paddingStyles[padding]}
         ${shadowStyles[shadow]}
@@ -65,6 +66,7 @@ Card.propTypes = {
   padding: PropTypes.oneOf(['none', 'sm', 'md', 'lg', 'xl']),
   shadow: PropTypes.oneOf(['none', 'sm', 'md', 'lg']),
   border: PropTypes.bool,
+  tone: PropTypes.oneOf(['default', 'navy']),
   onClick: PropTypes.func,
 }
 

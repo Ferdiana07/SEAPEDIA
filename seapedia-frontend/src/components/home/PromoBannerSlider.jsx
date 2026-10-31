@@ -6,6 +6,8 @@ import {
   CaretRight,
   Fire,
   Lightning,
+  Pause,
+  Play,
   Sparkle,
   Tag,
 } from '@phosphor-icons/react'
@@ -17,8 +19,8 @@ const BANNERS = [
     badge: 'MULAI PETUALANGAN PESISIR',
     badgeIcon: Fire,
     badgeColor: 'border-amber-400/30 bg-amber-500/10 text-amber-300',
-    title: 'Perlengkapan Pancing Laut Diskon s.d 25%',
-    subtitle: 'Joran pantai, reel tahan korosi, tackle box, dan rompi praktis untuk menyiapkan perjalanan memancing berikutnya.',
+    title: 'Perlengkapan Pancing untuk Jelajah Pesisir',
+    subtitle: 'Joran, reel, tackle box, dan pelampung untuk menyiapkan perjalanan memancing berikutnya. Jelajahi katalog demo dan bandingkan pilihannya.',
     cta: 'Lihat Alat Pancing',
     link: '/products?category=Alat%20Pancing',
     image: '/images/products/set-pancing-pantai.webp',
@@ -69,6 +71,8 @@ const BANNERS = [
 export default function PromoBannerSlider() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+  const [hasFocus, setHasFocus] = useState(false)
+  const [manuallyPaused, setManuallyPaused] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
 
@@ -86,14 +90,22 @@ export default function PromoBannerSlider() {
 
   // Auto-play loop every 4.5 seconds
   useEffect(() => {
-    if (isPaused) return
+    if (isPaused || manuallyPaused || hasFocus) return undefined
     const interval = setInterval(nextSlide, 4500)
     return () => clearInterval(interval)
-  }, [isPaused, nextSlide])
+  }, [isPaused, manuallyPaused, hasFocus, nextSlide])
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const onChange = () => { if (media.matches) setManuallyPaused(true) }
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [])
 
   // Touch swipe support
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX
+    touchEndX.current = touchStartX.current
   }
 
   const handleTouchMove = (e) => {
@@ -114,22 +126,27 @@ export default function PromoBannerSlider() {
       aria-label="Promo & Banner Pilihan SEAPEDIA"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      onFocusCapture={() => setHasFocus(true)}
+      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setHasFocus(false) }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={() => { touchEndX.current = touchStartX.current }}
     >
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-primary-950 shadow-2xl">
 
         {/* Carousel Slides Track */}
         <div
-          className="flex transition-transform duration-700 ease-out"
+          className="flex transition-transform duration-700 ease-out motion-reduce:transition-none"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
         >
-          {BANNERS.map((banner) => {
+          {BANNERS.map((banner, index) => {
             const BadgeIcon = banner.badgeIcon
             return (
               <div
                 key={banner.id}
+                inert={index !== currentIndex}
+                aria-hidden={index !== currentIndex}
                 className={`relative min-w-full flex-shrink-0 bg-gradient-to-r ${banner.bgGradient} p-7 sm:p-10 lg:p-14`}
               >
                 {/* Background ambient lighting */}
@@ -153,12 +170,7 @@ export default function PromoBannerSlider() {
                     </span>
 
                     <h3 className="mt-4 text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
-                      {banner.title.split('Diskon')[0]}
-                      {banner.title.includes('Diskon') && (
-                        <span className={`bg-gradient-to-r ${banner.accentGradient} bg-clip-text text-transparent`}>
-                          Diskon{banner.title.split('Diskon')[1]}
-                        </span>
-                      )}
+                      {banner.title}
                     </h3>
 
                     <p className="mt-3 text-sm leading-6 text-blue-100/80 sm:text-base sm:leading-7">
@@ -180,7 +192,7 @@ export default function PromoBannerSlider() {
                         to="/products"
                         className="text-xs sm:text-sm font-semibold text-blue-200 hover:text-white transition-colors"
                       >
-                        Lihat Semua Promo
+                        Lihat Semua Produk
                       </Link>
                     </div>
                   </div>
@@ -209,7 +221,7 @@ export default function PromoBannerSlider() {
           type="button"
           onClick={prevSlide}
           aria-label="Banner sebelumnya"
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-primary-950/60 text-white backdrop-blur-md transition-all hover:scale-105 hover:bg-white hover:text-primary-950 shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-primary-950/60 text-white backdrop-blur-md transition-all hover:scale-105 hover:bg-white hover:text-primary-950 shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
         >
           <CaretLeft size={20} weight="bold" />
         </button>
@@ -219,7 +231,7 @@ export default function PromoBannerSlider() {
           type="button"
           onClick={nextSlide}
           aria-label="Banner selanjutnya"
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-primary-950/60 text-white backdrop-blur-md transition-all hover:scale-105 hover:bg-white hover:text-primary-950 shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-primary-950/60 text-white backdrop-blur-md transition-all hover:scale-105 hover:bg-white hover:text-primary-950 shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
         >
           <CaretRight size={20} weight="bold" />
         </button>
@@ -234,15 +246,19 @@ export default function PromoBannerSlider() {
                 type="button"
                 onClick={() => goToSlide(index)}
                 aria-label={`Pindah ke banner ${index + 1}`}
-                className={`h-2 rounded-full transition-all duration-300 focus:outline-none ${
+                aria-current={isActive ? 'true' : undefined}
+                className={`relative h-11 min-w-11 rounded-full after:absolute after:inset-x-3 after:top-5 after:h-2 after:rounded-full ${
                   isActive
-                    ? 'w-7 bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]'
-                    : 'w-2 bg-white/30 hover:bg-white/60'
+                    ? 'after:bg-cyan-400'
+                    : 'after:bg-white/60 hover:after:bg-white'
                 }`}
               />
             )
           })}
         </div>
+        <button type="button" aria-label={manuallyPaused ? 'Putar banner otomatis' : 'Jeda banner otomatis'} aria-pressed={manuallyPaused} onClick={() => setManuallyPaused((paused) => !paused)} className="absolute right-3 bottom-2 grid h-11 w-11 place-items-center rounded-full bg-primary-950 text-white">
+          {manuallyPaused ? <Play size={18} weight="fill" /> : <Pause size={18} weight="fill" />}
+        </button>
 
       </div>
     </section>

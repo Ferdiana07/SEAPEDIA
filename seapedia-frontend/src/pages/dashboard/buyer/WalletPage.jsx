@@ -96,7 +96,7 @@ const WalletPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Balance Card */}
           <div className="lg:col-span-1">
-            <Card className="bg-primary-800 text-white">
+            <Card tone="navy">
               <p className="text-primary-100 mb-2">Saldo Aktif</p>
               <p className="text-4xl font-bold mb-6">{formatPrice(balance)}</p>
               
