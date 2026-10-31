@@ -27,7 +27,7 @@ Brief awal berada di `SEAPEDIA.pdf`. Proyek ini dilanjutkan sebagai proyek porto
 - `QUALITY.md`: command verifikasi dan status kualitas.
 - `OPENAPI.yaml`: kontrak seluruh endpoint publik dan private.
 - `DEMO_GUIDE.md`: alur demo end-to-end untuk setiap role.
-- `DEPLOYMENT.md`: target Vercel, Railway, PostgreSQL, dan object storage untuk production.
+- `DEPLOYMENT.md`: langkah Neon → backend Docker di Render → frontend Vercel; sumber APP_KEY/APP_URL/CORS dan konfigurasi object storage.
 
 ## Prinsip dokumentasi
 

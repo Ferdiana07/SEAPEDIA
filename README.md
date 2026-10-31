@@ -99,6 +99,8 @@ Checkpoint historis 18 Oktober 2026 (hasil terbaru ada di `docs/QUALITY.md`):
 
 ## Dokumentasi
 
+Backend kini memiliki Dockerfile untuk Render di `seapedia-backend/Dockerfile`. Mulai dari Neon dan Render terlebih dahulu; frontend Vercel dapat menyusul. Ikuti [panduan deployment bertahap](docs/DEPLOYMENT.md) untuk environment dan asal APP_KEY, APP_URL, serta CORS.
+
 - [Product specification](docs/PRODUCT_SPEC.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [API OpenAPI](docs/OPENAPI.yaml)

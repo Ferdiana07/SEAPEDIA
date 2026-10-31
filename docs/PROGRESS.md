@@ -18,6 +18,16 @@ Tidak ada blocker untuk demo lokal. Sebelum produksi: tindak lanjuti advisory de
 
 ## Session log
 
+### 2026-10-31 — Docker backend untuk Render dan konfigurasi Neon
+
+- Membuat `seapedia-backend/Dockerfile`, `.dockerignore`, konfigurasi Apache/OPcache, dan startup script yang mengikuti PORT Render, menjalankan migrasi tanpa reset, serta membuat cache Laravel.
+- Menyalin APP_KEY Laravel dan DB_URL Neon dari `.env` lokal ke `.env.render` lokal yang diabaikan Git/Docker. Kredensial tidak dimasukkan ke source atau dokumentasi.
+- APP_URL otomatis diambil dari RENDER_EXTERNAL_URL ketika belum diisi; generated URL tetap HTTPS di balik proxy. CORS baru perlu diisi setelah frontend memiliki domain.
+- Build Docker berhasil. PDO_PGSQL di dalam container berhasil terhubung ke Neon dengan kebijakan channel binding require melalui query read-only; database baru masih 0 tabel. Migrasi/seeder cloud tidak dijalankan saat pemeriksaan.
+- Smoke container: /up dan foto 200, endpoint auth tanpa token 401, file privat 404, APP_URL otomatis benar. Container pemeriksaan dibersihkan setelah test.
+- Test backend menjadi 30 test / 235 assertion lulus; lima konfigurasi startup tidak valid ditolak sebelum tindakan database/server.
+- Panduan deployment ditulis ulang untuk urutan Neon → Render → frontend Vercel. Deployment publik belum dilakukan.
+
 ### 2026-10-31 — Foto internet, perluasan katalog, dan audit menyeluruh
 
 - Mengganti seluruh 16 foto fixture dan menambahkan 24 foto/produk; total 40 dengan lima produk per kategori. Semua foto bersumber dari Wikimedia Commons, disimpan lokal pada frontend/backend, disertai kredit publik, metadata lisensi, dan hash. Tidak menggunakan image generation.

@@ -6,7 +6,7 @@ Tanggal audit terbaru: 2026-10-31. Lihat [laporan audit](AUDIT-2026-10-31.md) un
 
 | Check | Hasil |
 |---|---|
-| Backend feature/unit | 29 test, 233 assertion lulus |
+| Backend feature/unit | 30 test, 235 assertion lulus, termasuk HTTPS di balik proxy Render |
 | Laravel Pint | Lulus |
 | Composer audit locked | 0 advisory |
 | Frontend lint / production build | Lulus |
@@ -18,6 +18,9 @@ Tanggal audit terbaru: 2026-10-31. Lihat [laporan audit](AUDIT-2026-10-31.md) un
 | Playwright E2E | 17 test lulus dalam full run terakhir |
 | Audit rendered | 43 variasi halaman/viewport: 0 pelanggaran axe, 0 overflow halaman, 0 gambar rusak, 0 runtime exception / respons 5xx pada cakupan test |
 | Smoke API MySQL lokal | 40 produk; delapan kategori masing-masing lima; pencarian case-insensitive dan CORS preflight lulus |
+| Docker backend Render | Build PHP 8.4/Apache berhasil; konfigurasi Apache valid; startup pada PORT custom berhasil |
+| Koneksi Neon dari Docker | PDO_PGSQL terhubung dengan sslmode/channel binding require; query read-only; database masih 0 tabel |
+| HTTP container | /up 200, foto fixture 200, auth/me tanpa token 401; /.env dan /composer.json 404; APP_URL otomatis dari RENDER_EXTERNAL_URL terverifikasi |
 
 E2E sekarang memakai SQLite khusus di `tmp/e2e/`, API port 18000, dan frontend port 15173. Server developer pada 8000/5173 tidak dipakai E2E. `npm run test:e2e` menjalankan regression flow dan audit axe; hasil detail/screenshot dibuat di `tmp/qa/audit-20261031/`.
 
@@ -26,6 +29,8 @@ Validasi aset tanpa network dari root proyek:
 ```powershell
 python scripts/import-catalog-photos.py --check
 ```
+
+Pengujian Docker dilakukan dengan `RUN_MIGRATIONS=false` agar tidak mengubah Neon saat memeriksa koneksi dan health check. Deployment sebenarnya memakai `RUN_MIGRATIONS=true` dari file `.env.render` lokal. Build image tidak memuat `.env` atau `.env.render`; kedua file kredensial diabaikan Git.
 
 Untuk mengambil ulang foto berdasarkan manifest yang sudah ditinjau (memerlukan Pillow dan koneksi internet): `python scripts/import-catalog-photos.py`. Metadata dan lisensi tetap tersedia pada `/photo-credits.html`.
 
